@@ -283,11 +283,12 @@ export default function ImportPage() {
       })()
 
       // ── Moneda acordada (Col 12) — "Soles" o "Dólares"
-      const monedaRaw = getVal(r, 'Moneda acordada', 'Moneda Acordada', 'moneda acordada', 'Moneda')
+      const monedaRaw = getVal(r, 'Moneda acordada', 'Moneda Acordada', 'moneda acordada', 'Moneda', 'MONEDA')
       const moneda = (() => {
-        const m = (monedaRaw || '').toLowerCase()
-        if (m.includes('dol') || m.includes('usd') || m.includes('dollar')) return 'USD'
-        return 'PEN'
+        const m = (monedaRaw || '').toLowerCase().trim()
+        if (m.includes('dol') || m.includes('usd') || m.includes('dollar') || m === 'usd') return 'USD'
+        if (m.includes('sol') || m.includes('pen') || m.includes('soles')) return 'PEN'
+        return 'USD' // default USD si no se reconoce
       })()
 
       // ── Monto de la cuota en moneda acordada (Col 13)
@@ -309,6 +310,9 @@ export default function ImportPage() {
       // ── Nro de cuota (Col 2)
       const nroCuota = parseInt(getVal(r, 'Nro', 'nro', 'NRO', 'Numero', 'numero')) || (i + 1)
 
+      // ── Estado Asesoría (Col 7) — si es Retirado, override el estado de cuota
+      const estadoAsesoriaRaw = getVal(r, 'Estado Asesoría', 'Estado Asesoria', 'Estado Asesoría', 'EstadoAsesoria')
+
       // ── Estado de la cuota (Col 10)
       const estadoRaw = getVal(r,
         'Estado de la cuota',
@@ -316,7 +320,13 @@ export default function ImportPage() {
         'estado de la cuota',
         'Estado'
       )
-      const estado = mapearEstado(estadoRaw)
+
+      // Si Estado Asesoría = Retirado → siempre Retirado sin importar estado cuota
+      const estado = (() => {
+        const ea = (estadoAsesoriaRaw || '').toLowerCase()
+        if (ea.includes('retir')) return 'Retirado'
+        return mapearEstado(estadoRaw)
+      })()
 
       return {
         alumno_id,

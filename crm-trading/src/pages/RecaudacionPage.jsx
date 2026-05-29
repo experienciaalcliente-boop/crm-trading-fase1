@@ -1,3 +1,4 @@
+import React, { useState } from 'react'
 import { useRecaudacion } from '../hooks/useRecaudacion'
 import ModalPago from '../components/modules/ModalPago'
 import { Loader2, RefreshCw } from 'lucide-react'
@@ -5,6 +6,7 @@ import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 
 const ESTADOS = ['Todos','No iniciada','Pago parcial','Prórroga','Reserva académica','Pagada','Retirado']
+const DIAS_PAGO = ['Todos los días', 'Día 5', 'Día 15']
 
 const ESTADO_STYLE = {
   'Pagada':             { bg: 'rgba(34,201,142,0.12)', color: '#2dd4a0', border: 'rgba(34,201,142,0.25)' },
@@ -79,6 +81,22 @@ export default function RecaudacionPage() {
           ))}
         </div>
 
+        {/* Día de pago */}
+        <div style={{ display: 'flex', gap: 6 }}>
+          {DIAS_PAGO.map(d => (
+            <button key={d} onClick={() => setFiltroDia(d)}
+              style={{
+                padding: '5px 12px', borderRadius: 20, fontSize: 12, fontWeight: 500,
+                cursor: 'pointer', transition: 'all 0.15s',
+                background: filtroDia === d ? '#9b71f5' : 'rgba(255,255,255,0.05)',
+                border: `1px solid ${filtroDia === d ? '#9b71f5' : 'rgba(255,255,255,0.1)'}`,
+                color: filtroDia === d ? '#fff' : '#7a8aaa',
+              }}>
+              {d}
+            </button>
+          ))}
+        </div>
+
         {/* Programa */}
         <select
           value={r.filtroPrograma}
@@ -95,7 +113,7 @@ export default function RecaudacionPage() {
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 60, gap: 10, color: '#506080' }}>
             <Loader2 size={18} className="animate-spin" /><span style={{ fontSize: 13 }}>Cargando cuotas...</span>
           </div>
-        ) : !r.cuotas.length ? (
+        ) : !cuotasFiltradas.length ? (
           <div style={{ textAlign: 'center', padding: 60, color: '#3d5070' }}>
             <div style={{ fontSize: 28, marginBottom: 8 }}>💳</div>
             <p style={{ fontSize: 13 }}>No hay cuotas con ese filtro</p>
@@ -116,7 +134,7 @@ export default function RecaudacionPage() {
                 </tr>
               </thead>
               <tbody>
-                {r.cuotas.map(cuota => {
+                {cuotasFiltradas.map(cuota => {
                   const vencida = isVencida(cuota.fecha_vence) && cuota.estado !== 'Pagada'
                   return (
                     <tr key={cuota.id}>

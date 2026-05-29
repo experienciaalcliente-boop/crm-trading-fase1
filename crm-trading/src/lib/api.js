@@ -214,7 +214,7 @@ export async function registrarPago(cuotaId, payload) {
   }
   if (payload.monto_pagado !== undefined) updates.monto_pagado = payload.monto_pagado
   if (payload.fecha_pago)   updates.fecha_pago  = payload.fecha_pago
-  if (payload.nueva_fecha)  updates.nueva_fecha  = payload.nueva_fecha
+  if (payload.nueva_fecha)  updates.fecha_pago_estimada = payload.nueva_fecha // prórroga: solo cambia fecha estimada de pago, NO fecha_vence
   if (payload.motivo)       updates.motivo_retiro = payload.motivo
 
   const { error: errCuota } = await supabase

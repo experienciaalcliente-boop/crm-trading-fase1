@@ -91,7 +91,11 @@ export default function ModalPago({ cuota, form, cuotasAlumno, setField, onGuard
 
           {tipo === 'Prórroga' && (
             <div style={{ marginBottom: 14 }}>
-              <Field label="Nueva fecha de vencimiento">
+              {/* Aclaración importante */}
+              <div style={{ padding: '8px 12px', borderRadius: 8, background: 'rgba(167,139,250,0.08)', border: '1px solid rgba(167,139,250,0.2)', fontSize: 11, color: '#b89eff', marginBottom: 10 }}>
+                💡 La <strong>fecha de cronograma</strong> ({format(new Date(cuota.fecha_vence + 'T00:00:00'), 'dd MMM yyyy', { locale: es })}) no cambia. Solo se registra una nueva fecha estimada de pago.
+              </div>
+              <Field label="Nueva fecha estimada de pago">
                 <input type="date" className="crm-input"
                   value={form.nueva_fecha} onChange={e => setField('nueva_fecha', e.target.value)} />
               </Field>
