@@ -223,65 +223,23 @@ export async function fetchResumenRecaudacion() {
 // ZOOM API
 // ─────────────────────────────────────────
 
-async function getZoomToken() {
-  const accountId  = import.meta.env.VITE_ZOOM_ACCOUNT_ID
-  const clientId   = import.meta.env.VITE_ZOOM_CLIENT_ID
-  const clientSecret = import.meta.env.VITE_ZOOM_CLIENT_SECRET
-
-  if (!accountId || !clientId || !clientSecret) {
-    throw new Error('Faltan credenciales de Zoom. Configura las variables de entorno en Vercel.')
-  }
-
-  const credentials = btoa(`${clientId}:${clientSecret}`)
-  const res = await fetch(`https://zoom.us/oauth/token?grant_type=account_credentials&account_id=${accountId}`, {
-    method: 'POST',
-    headers: { Authorization: `Basic ${credentials}`, 'Content-Type': 'application/x-www-form-urlencoded' }
-  })
-  if (!res.ok) throw new Error('Error al autenticar con Zoom')
-  const data = await res.json()
-  return data.access_token
-}
+// Zoom auth se maneja en /api/zoom-meeting.js (serverless function)
 
 export async function crearReunionZoom({ titulo, fecha, hora, duracion = 45, alumno }) {
-  const token = await getZoomToken()
-
-  // Combinar fecha y hora en formato ISO
-  const startTime = `${fecha}T${hora}:00`
-
-  const res = await fetch('https://zoom.us/v2/users/experienciaalcliente@bursadvisory.com/meetings', {
+  // Llamamos a nuestra función serverless en Vercel
+  // que actúa como intermediario para evitar el bloqueo CORS de Zoom
+  const res = await fetch('/api/zoom-meeting', {
     method: 'POST',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      topic:      `Orientación Técnica - ${alumno}`,
-      type:       2, // reunión programada
-      start_time: startTime,
-      duration:   duracion,
-      timezone:   'America/Lima',
-      agenda:     titulo,
-      settings: {
-        host_video:        true,
-        participant_video:  true,
-        join_before_host:  true,
-        waiting_room:      false,
-        auto_recording:    'none',
-      }
-    })
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ titulo, fecha, hora, alumno, duracion }),
   })
 
   if (!res.ok) {
     const err = await res.json()
-    throw new Error(err.message || 'Error al crear reunión en Zoom')
+    throw new Error(err.error || 'Error al crear reunión en Zoom')
   }
 
-  const meeting = await res.json()
-  return {
-    meeting_id: String(meeting.id),
-    join_url:   meeting.join_url,
-    start_url:  meeting.start_url,
-  }
+  return await res.json()
 }
 
 // ─────────────────────────────────────────
