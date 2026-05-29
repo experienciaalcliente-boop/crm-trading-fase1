@@ -176,7 +176,7 @@ export default function ImportPage() {
       </div>
 
       {/* Info */}
-      <div className="crm-card p-4 mb-5 border-brand/20">
+      <div className="crm-card p-4 mb-5 ">
         <div className="text-sm font-semibold text-white mb-1">{info.titulo}</div>
         <div className="text-xs text-sub mb-2">{info.descripcion}</div>
         <div className="text-[10px] text-muted bg-bg-3 rounded-lg px-3 py-2 font-mono">
@@ -188,7 +188,7 @@ export default function ImportPage() {
       {!preview && (
         <label
           className="block border-2 border-dashed border-line2 rounded-2xl p-10 text-center cursor-pointer
-                     hover:border-brand hover:bg-brand/5 transition-all"
+                     hover:border-brand hover:bg-bg-3 transition-all"
           onDragOver={e => e.preventDefault()}
           onDrop={e => { e.preventDefault(); handleFile(e.dataTransfer.files[0]) }}
         >
@@ -243,7 +243,7 @@ export default function ImportPage() {
       {/* Resultado */}
       {resultado && (
         <div className={`flex items-start gap-3 p-4 rounded-xl border mt-4 animate-fadeUp
-          ${resultado.ok ? 'bg-success/8 border-success/25' : 'bg-danger/8 border-danger/25'}`}>
+          ${resultado.ok ? 'bg-bg-3 border-line2' : 'bg-bg-3 border-line2'}`}>
           {resultado.ok
             ? <CheckCircle2 size={16} className="text-success flex-shrink-0 mt-0.5" />
             : <AlertCircle size={16} className="text-danger flex-shrink-0 mt-0.5" />}

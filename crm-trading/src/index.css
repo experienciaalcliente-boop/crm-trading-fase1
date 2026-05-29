@@ -51,13 +51,22 @@
            hover:bg-bg-4 hover:text-white transition-all cursor-pointer;
   }
   .crm-btn-primary {
-    @apply crm-btn bg-brand border-brand-border text-white hover:brightness-110;
+    background-color: #4e8fff;
+    border-color: rgba(78,143,255,0.5);
+    color: white;
+    @apply inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all cursor-pointer hover:brightness-110;
   }
   .crm-btn-success {
-    @apply crm-btn bg-success/10 border-success/30 text-success hover:bg-success/20;
+    background-color: rgba(45,212,160,0.12);
+    border: 1px solid rgba(45,212,160,0.3);
+    color: #2dd4a0;
+    @apply inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all cursor-pointer;
   }
   .crm-btn-danger {
-    @apply crm-btn bg-danger/10 border-danger/30 text-danger hover:bg-danger/20;
+    background-color: rgba(240,92,92,0.12);
+    border: 1px solid rgba(240,92,92,0.3);
+    color: #f05c5c;
+    @apply inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all cursor-pointer;
   }
   .crm-btn-sm {
     @apply px-3 py-1.5 text-xs;
@@ -67,12 +76,12 @@
   .badge {
     @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold;
   }
-  .badge-green  { @apply bg-success/12 text-success; }
-  .badge-red    { @apply bg-danger/12 text-danger; }
-  .badge-blue   { @apply bg-brand/15 text-brand; }
-  .badge-amber  { @apply bg-warn/12 text-warn; }
+  .badge-green  { background-color: rgba(45,212,160,0.15); color: #2dd4a0; }
+  .badge-red    { background-color: rgba(240,92,92,0.15);  color: #f05c5c; }
+  .badge-blue   { background-color: rgba(78,143,255,0.15); color: #4e8fff; }
+  .badge-amber  { background-color: rgba(245,166,35,0.15); color: #f5a623; }
   .badge-gray   { @apply bg-bg-4 text-sub; }
-  .badge-purple { @apply bg-purple/12 text-purple; }
+  .badge-purple { background-color: rgba(167,139,250,0.15); color: #a78bfa; }
 
   /* ── Table ── */
   .crm-table { @apply w-full border-collapse text-sm; }

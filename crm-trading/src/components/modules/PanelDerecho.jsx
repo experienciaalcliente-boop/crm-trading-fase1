@@ -21,10 +21,8 @@ export default function PanelDerecho({
         <div className="flex flex-wrap gap-1.5">
           <button
             onClick={() => setAsesoraPanel(null)}
-            className={`px-2.5 py-1 rounded-full text-[11px] font-medium border transition-all
-              ${asesoraPanel === null
-                ? 'bg-brand/15 border-brand/35 text-brand'
-                : 'bg-bg-3 border-line2 text-sub hover:text-white'}`}
+            style={asesoraPanel === null ? { backgroundColor:'rgba(78,143,255,0.15)', borderColor:'rgba(78,143,255,0.35)', color:'#4e8fff' } : {}}
+            className="px-2.5 py-1 rounded-full text-[11px] font-medium border border-line2 bg-bg-3 text-sub hover:text-white transition-all"
           >
             Todas
           </button>
@@ -32,10 +30,8 @@ export default function PanelDerecho({
             <button
               key={a.id}
               onClick={() => setAsesoraPanel(a.nombre === asesoraPanel ? null : a.nombre)}
-              className={`px-2.5 py-1 rounded-full text-[11px] font-medium border transition-all
-                ${asesoraPanel === a.nombre
-                  ? 'bg-brand/15 border-brand/35 text-brand'
-                  : 'bg-bg-3 border-line2 text-sub hover:text-white'}`}
+              style={asesoraPanel === a.nombre ? { backgroundColor:'rgba(78,143,255,0.15)', borderColor:'rgba(78,143,255,0.35)', color:'#4e8fff' } : {}}
+              className="px-2.5 py-1 rounded-full text-[11px] font-medium border border-line2 bg-bg-3 text-sub hover:text-white transition-all"
             >
               {a.nombre.split(' ')[0]}
             </button>
@@ -45,10 +41,10 @@ export default function PanelDerecho({
 
       {/* Stats grid */}
       <div className="grid grid-cols-2 gap-2 p-3 border-b border-line">
-        <StatMini icon={Phone}        label="Llamadas"     value={stats.total}        color="blue" />
-        <StatMini icon={TrendingUp}   label="Respondieron" value={stats.respondieron}  color="green" />
-        <StatMini icon={PhoneMissed}  label="Sin respuesta" value={sinRespuesta.length} color="red" />
-        <StatMini icon={TrendingUp}   label="Efectividad"  value={`${stats.efectividad}%`} color="amber" />
+        <StatMini icon={Phone}        label="Llamadas"      value={stats.total}            color="blue" />
+        <StatMini icon={TrendingUp}   label="Respondieron"  value={stats.respondieron}     color="green" />
+        <StatMini icon={PhoneMissed}  label="Sin respuesta" value={sinRespuesta.length}    color="red" />
+        <StatMini icon={TrendingUp}   label="Efectividad"   value={`${stats.efectividad}%`} color="amber" />
       </div>
 
       {/* Lista sin respuesta */}
@@ -57,7 +53,7 @@ export default function PanelDerecho({
           <PhoneMissed size={10} />
           Sin respuesta hoy
           {sinRespuesta.length > 0 && (
-            <span className="ml-auto bg-danger/15 text-danger text-[10px] px-1.5 py-0.5 rounded-full font-bold">
+            <span style={{ backgroundColor:'rgba(240,92,92,0.15)', color:'#f05c5c' }} className="ml-auto text-[10px] px-1.5 py-0.5 rounded-full font-bold">
               {sinRespuesta.length}
             </span>
           )}
@@ -100,16 +96,16 @@ export default function PanelDerecho({
 }
 
 function StatMini({ icon: Icon, label, value, color }) {
-  const colors = {
-    blue:  'text-brand border-brand/20 bg-brand/5',
-    green: 'text-success border-success/20 bg-success/5',
-    red:   'text-danger border-danger/20 bg-danger/5',
-    amber: 'text-warn border-warn/20 bg-warn/5',
+  const styles = {
+    blue:  { color:'#4e8fff',  borderColor:'rgba(78,143,255,0.2)',  backgroundColor:'rgba(78,143,255,0.05)' },
+    green: { color:'#2dd4a0',  borderColor:'rgba(45,212,160,0.2)',  backgroundColor:'rgba(45,212,160,0.05)' },
+    red:   { color:'#f05c5c',  borderColor:'rgba(240,92,92,0.2)',   backgroundColor:'rgba(240,92,92,0.05)'  },
+    amber: { color:'#f5a623',  borderColor:'rgba(245,166,35,0.2)',  backgroundColor:'rgba(245,166,35,0.05)' },
   }
   return (
-    <div className={`rounded-xl border p-2.5 ${colors[color]}`}>
+    <div style={{ ...styles[color], border:'1px solid' }} className="rounded-xl p-2.5">
       <div className="text-[10px] font-semibold opacity-70 mb-1 uppercase tracking-wider">{label}</div>
-      <div className="text-xl font-display font-bold leading-none">{value}</div>
+      <div style={{ color: styles[color].color }} className="text-xl font-display font-bold leading-none">{value}</div>
     </div>
   )
 }

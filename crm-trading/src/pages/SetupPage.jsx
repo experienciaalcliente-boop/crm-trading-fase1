@@ -4,84 +4,13 @@ import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import toast from 'react-hot-toast'
 
-const SQL_SETUP = `-- ============================================
--- ACADEMIA CRM — Setup de base de datos
--- Ejecuta este SQL en Supabase > SQL Editor
--- ============================================
-
--- 1. Asesoras
-CREATE TABLE IF NOT EXISTS asesoras (
-  id      uuid DEFAULT gen_random_uuid() PRIMARY KEY,
-  nombre  text NOT NULL UNIQUE,
-  activo  boolean DEFAULT true,
-  created_at timestamptz DEFAULT now()
-);
-
--- 2. Alumnos
-CREATE TABLE IF NOT EXISTS alumnos (
-  id            uuid DEFAULT gen_random_uuid() PRIMARY KEY,
-  nombre        text NOT NULL,
-  programa      text NOT NULL,
-  semana_actual text,
-  asesora       text,
-  estado        text DEFAULT 'Activo',
-  activo        boolean DEFAULT true,
-  created_at    timestamptz DEFAULT now(),
-  updated_at    timestamptz DEFAULT now(),
-  UNIQUE(nombre, programa)
-);
-
--- 3. Registros de llamadas
-CREATE TABLE IF NOT EXISTS registros_llamadas (
-  id           uuid DEFAULT gen_random_uuid() PRIMARY KEY,
-  codigo       text NOT NULL UNIQUE,
-  fecha        date NOT NULL DEFAULT CURRENT_DATE,
-  alumno_id    uuid REFERENCES alumnos(id) ON DELETE SET NULL,
-  asesora_id   uuid REFERENCES asesoras(id) ON DELETE SET NULL,
-  semana       text,
-  respondio    text CHECK (respondio IN ('Sí','No')),
-  avance       numeric(5,2),
-  mentoria     text CHECK (mentoria IN ('Sí','No')),
-  cuenta       text CHECK (cuenta IN ('Demo','Real','Fondeo','No opera','Balance')),
-  capital_real numeric(12,2),
-  fase_fondeo  text CHECK (fase_fondeo IN ('Primera fase','Segunda fase','Aprobado')),
-  beneficio    numeric(12,2),
-  retiro       text CHECK (retiro IN ('Sí','No')),
-  monto_retiro numeric(12,2),
-  observaciones text,
-  created_at   timestamptz DEFAULT now()
-);
-
--- 4. Asesoras por defecto (personaliza estos nombres)
-INSERT INTO asesoras (nombre) VALUES
-  ('María García'),
-  ('Ana López'),
-  ('Carlos Soto')
-ON CONFLICT (nombre) DO NOTHING;
-
--- 5. Índices para rendimiento
-CREATE INDEX IF NOT EXISTS idx_llamadas_fecha     ON registros_llamadas(fecha);
-CREATE INDEX IF NOT EXISTS idx_llamadas_alumno    ON registros_llamadas(alumno_id);
-CREATE INDEX IF NOT EXISTS idx_llamadas_asesora   ON registros_llamadas(asesora_id);
-CREATE INDEX IF NOT EXISTS idx_alumnos_programa   ON alumnos(programa);
-
--- 6. Row Level Security (habilitar acceso)
-ALTER TABLE asesoras           ENABLE ROW LEVEL SECURITY;
-ALTER TABLE alumnos            ENABLE ROW LEVEL SECURITY;
-ALTER TABLE registros_llamadas ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "acceso_publico_asesoras"  ON asesoras           FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "acceso_publico_alumnos"   ON alumnos            FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "acceso_publico_llamadas"  ON registros_llamadas FOR ALL USING (true) WITH CHECK (true);
-
--- 7. Realtime
-ALTER PUBLICATION supabase_realtime ADD TABLE registros_llamadas;
-`
+const SQL_SETUP = `-- Ejecuta este SQL en Supabase > SQL Editor > New query
+-- (El archivo completo está en supabase-schema.sql)`
 
 export default function SetupPage() {
-  const [copied,  setCopied]  = useState(false)
-  const [testing, setTesting] = useState(false)
-  const [ok,      setOk]      = useState(false)
+  const [copied,   setCopied]   = useState(false)
+  const [testing,  setTesting]  = useState(false)
+  const [ok,       setOk]       = useState(false)
   const navigate = useNavigate()
 
   async function testConexion() {
@@ -102,7 +31,7 @@ export default function SetupPage() {
     navigator.clipboard.writeText(SQL_SETUP)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
-    toast.success('SQL copiado al portapapeles')
+    toast.success('Copiado al portapapeles')
   }
 
   const steps = [
@@ -112,25 +41,19 @@ export default function SetupPage() {
       link: 'https://supabase.com', linkLabel: 'Ir a Supabase →',
     },
     {
-      n: 2, title: 'Copia y ejecuta el SQL',
-      body: 'En Supabase, ve a SQL Editor → New query → Pega el código → Run.',
-      action: (
-        <button onClick={copiar} className="crm-btn crm-btn-sm gap-2 mt-2">
-          {copied ? <Check size={13} className="text-success" /> : <Copy size={13} />}
-          {copied ? 'Copiado!' : 'Copiar SQL de configuración'}
-        </button>
-      ),
+      n: 2, title: 'Ejecuta el SQL de configuración',
+      body: 'En Supabase, ve a SQL Editor → New query → Pega el contenido del archivo supabase-schema.sql → Run.',
     },
     {
       n: 3, title: 'Obtén tus credenciales',
       body: 'En Supabase → Settings → API → copia "Project URL" y "anon public key".',
     },
     {
-      n: 4, title: 'Configura el archivo .env.local',
+      n: 4, title: 'Configura las variables en Vercel',
       body: (
         <div>
-          <p className="mb-2">En la carpeta del proyecto, edita el archivo <code className="bg-bg-4 px-1.5 py-0.5 rounded text-xs font-mono text-brand">.env.local</code>:</p>
-          <pre className="bg-bg-4 rounded-lg p-3 text-xs font-mono text-brand leading-relaxed overflow-x-auto">
+          <p className="mb-2">En Vercel → tu proyecto → Settings → Environment Variables, agrega:</p>
+          <pre className="rounded-lg p-3 text-xs font-mono leading-relaxed overflow-x-auto" style={{ background:'#1f2840', color:'#4e8fff' }}>
 {`VITE_SUPABASE_URL=https://tu-proyecto.supabase.co
 VITE_SUPABASE_ANON_KEY=eyJhbGci...`}
           </pre>
@@ -145,7 +68,8 @@ VITE_SUPABASE_ANON_KEY=eyJhbGci...`}
           <button
             onClick={testConexion}
             disabled={testing || ok}
-            className={ok ? 'crm-btn crm-btn-sm text-success border-success/30' : 'crm-btn-primary crm-btn-sm'}
+            className={ok ? 'crm-btn crm-btn-sm' : 'crm-btn-primary crm-btn-sm'}
+            style={ok ? { color:'#2dd4a0', borderColor:'rgba(45,212,160,0.3)' } : {}}
           >
             {testing ? 'Probando...' : ok ? '✓ Conexión OK' : 'Probar conexión'}
           </button>
@@ -169,9 +93,10 @@ VITE_SUPABASE_ANON_KEY=eyJhbGci...`}
         </div>
 
         <div className="space-y-3">
-          {steps.map((step, i) => (
+          {steps.map((step) => (
             <div key={step.n} className="crm-card p-5 flex gap-4">
-              <div className="flex-shrink-0 w-7 h-7 rounded-full bg-brand/15 border border-brand/30 flex items-center justify-center text-brand text-xs font-bold">
+              <div className="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold"
+                style={{ backgroundColor:'rgba(78,143,255,0.15)', border:'1px solid rgba(78,143,255,0.3)', color:'#4e8fff' }}>
                 {step.n}
               </div>
               <div className="flex-1">
@@ -191,10 +116,6 @@ VITE_SUPABASE_ANON_KEY=eyJhbGci...`}
             </div>
           ))}
         </div>
-
-        <p className="text-center text-xs text-muted mt-6">
-          ¿Necesitas ayuda? El botón "Probar conexión" te dirá exactamente qué falta.
-        </p>
       </div>
     </div>
   )
