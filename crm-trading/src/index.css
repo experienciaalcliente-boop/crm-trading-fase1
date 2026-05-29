@@ -152,8 +152,10 @@
     border-radius: 10px !important;
     box-shadow: 0 8px 24px rgba(0,0,0,0.4) !important;
   }
-  .rs__option { background: transparent !important; color: #9aaccb !important; font-size: 13px; padding: 9px 12px !important; }
-  .rs__option--is-focused { background: rgba(78,143,255,0.12) !important; color: #ddeeff !important; }
+  .rs__menu-list { background: #1e2840 !important; border-radius: 10px !important; padding: 4px !important;
+  }
+  .rs__option { background: #1e2840 !important; color: #c8d8f0 !important; font-size: 13px; padding: 9px 12px !important; }
+  .rs__option--is-focused { background: rgba(78,143,255,0.2) !important; color: #ffffff !important; }
   .rs__option--is-selected { background: rgba(78,143,255,0.2) !important; color: #7ab3ff !important; font-weight: 600; }
   .rs__single-value { color: #ffffff !important; font-weight: 500; }
   .rs__input-container { color: #ffffff !important; }
