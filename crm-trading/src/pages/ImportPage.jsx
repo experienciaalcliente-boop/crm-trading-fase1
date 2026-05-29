@@ -254,61 +254,48 @@ export default function ImportPage() {
     }
 
     const rows = rawData.map((r, i) => {
-      // Nombre del alumno
-      const nombre = buscarCol(r, 'alumno', 'nombre', 'name') || ''
+      // ── Columna ALUMNO (Col 5 en tu archivo)
+      const nombre = buscarCol(r, 'alumno') || ''
       const alumno_id = alumnoMap[nombre.toLowerCase().trim()] || null
 
-      // Fecha de vencimiento
-      const fechaRaw = buscarCol(r, 'fecha', 'vencimiento', 'vence')
+      // ── Columna FECHA (Col 3) — viene como "2026-05-05 00:00:00"
+      const fechaRaw = buscarCol(r, 'fecha')
+      const fecha_vence = fechaRaw
+        ? fechaRaw.toString().split(' ')[0].split('T')[0] // tomar solo YYYY-MM-DD
+        : new Date().toISOString().split('T')[0]
 
-      // Moneda acordada (USD o PEN)
-      const monedaRaw = buscarCol(r, 'monedaacordada', 'moneda acordada', 'moneda')
-      const moneda = monedaRaw ? monedaRaw.toUpperCase().trim().slice(0,3) : 'PEN'
+      // ── Columna MONEDA ACORDADA (Col 12) — "Soles" o "Dólares"
+      const monedaRaw = buscarCol(r, 'monedaacordada')
+      const moneda = (() => {
+        const m = (monedaRaw || '').toLowerCase()
+        if (m.includes('dol') || m.includes('usd') || m.includes('dollar')) return 'USD'
+        return 'PEN' // Soles por defecto
+      })()
 
-      // Monto: usar "Monto de la cuota en moneda acordada"
-      // que es el monto real según la moneda de pago de cada alumno
-      const montoRaw = buscarCol(r,
-        'montodelaenmonedaacordada',
-        'cuotaenmonedaacordada',
-        'montocuota',
-        'montodeacuerdo',
-      )
-      // Si no encontró, intentar con "monto de la cuota en soles" como fallback
-      const montoFallback = buscarCol(r, 'montosoles', 'cuotasoles', 'cuotaensoles')
-      const monto = parseFloat(montoRaw || montoFallback) || 0
+      // ── Columna MONTO DE LA CUOTA EN MONEDA ACORDADA (Col 13)
+      const montoRaw = buscarCol(r, 'montodelaenmonedaacordada')
+      const monto = parseFloat(montoRaw) || 0
 
-      // Monto ya pagado en moneda acordada
-      const montoPagadoRaw = buscarCol(r, 'montopagado', 'pagadoenmoneda', 'pagado')
-      const montoPagado = parseFloat(montoPagadoRaw) || 0
+      // ── Columna MONTO PAGADO EN MONEDA ACORDADA (Col 14)
+      const montoPagadoRaw = buscarCol(r, 'montopagadoenmonedaacordada')
+      const monto_pagado = parseFloat(montoPagadoRaw) || 0
 
-      // Número de cuota
-      const nroCuota = parseInt(buscarCol(r, 'nrodecuota', 'numerodecuota', 'nrocuota', 'nro', 'numero')) || (i + 1)
+      // ── Columna NRO (Col 2) — número de cuota
+      const nroCuota = parseInt(buscarCol(r, 'nro')) || (i + 1)
 
-      // Estado de la cuota
-      const estadoRaw = buscarCol(r, 'estadodelacuota', 'estadocuota', 'estado')
-
-      // Calcular tipo de cambio implícito si hay monto en soles y monto en moneda acordada
-      // Útil para análisis futuros
-      const montoSolesRaw = buscarCol(r, 'montosoles', 'cuotaensoles', 'montoenso')
-      const montoSoles = parseFloat(montoSolesRaw) || 0
-      let tipoCambio = null
-      if (moneda === 'USD' && montoSoles > 0 && monto > 0) {
-        tipoCambio = Math.round((montoSoles / monto) * 100) / 100
-      }
+      // ── Columna ESTADO DE LA CUOTA (Col 10)
+      // Valores en tu archivo: "Pagada", "No iniciada", "Pago parcial"
+      const estadoRaw = buscarCol(r, 'estadodelacuota')
+      const estado = mapearEstado(estadoRaw)
 
       return {
         alumno_id,
         numero_cuota: nroCuota,
-        fecha_vence:  excelSerialToFecha(fechaRaw) || new Date().toISOString().split('T')[0],
+        fecha_vence,
         monto,
         moneda,
-        monto_pagado: montoPagado,
-        // Estado: si ya tiene monto pagado y es igual al monto total → Pagada
-        estado: montoPagado >= monto && monto > 0
-          ? 'Pagada'
-          : montoPagado > 0 && montoPagado < monto
-          ? 'Pago parcial'
-          : mapearEstado(estadoRaw),
+        monto_pagado,
+        estado,
       }
     }).filter(r => r.alumno_id && r.monto > 0)
 
