@@ -1,0 +1,120 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body, #root {
+    height: 100%;
+    background: #0b0e14;
+    color: #e2e8f4;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #1f2840; border-radius: 4px; }
+
+  input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; }
+}
+
+@layer components {
+  /* ── Card ── */
+  .crm-card {
+    @apply bg-bg-2 border border-line rounded-2xl;
+  }
+
+  /* ── Field ── */
+  .crm-field {
+    @apply flex flex-col gap-1.5;
+  }
+  .crm-label {
+    @apply text-[10px] font-semibold text-muted uppercase tracking-widest;
+  }
+  .crm-input {
+    @apply w-full bg-bg-3 border border-line2 rounded-lg px-3 py-2 text-sm
+           text-white placeholder:text-muted
+           focus:outline-none focus:border-brand transition-colors;
+  }
+  .crm-input:disabled {
+    @apply opacity-40 cursor-not-allowed;
+  }
+
+  /* ── Button ── */
+  .crm-btn {
+    @apply inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium
+           border border-line2 bg-bg-3 text-sub
+           hover:bg-bg-4 hover:text-white transition-all cursor-pointer;
+  }
+  .crm-btn-primary {
+    @apply crm-btn bg-brand border-brand-border text-white hover:brightness-110;
+  }
+  .crm-btn-success {
+    @apply crm-btn bg-success/10 border-success/30 text-success hover:bg-success/20;
+  }
+  .crm-btn-danger {
+    @apply crm-btn bg-danger/10 border-danger/30 text-danger hover:bg-danger/20;
+  }
+  .crm-btn-sm {
+    @apply px-3 py-1.5 text-xs;
+  }
+
+  /* ── Badge ── */
+  .badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold;
+  }
+  .badge-green  { @apply bg-success/12 text-success; }
+  .badge-red    { @apply bg-danger/12 text-danger; }
+  .badge-blue   { @apply bg-brand/15 text-brand; }
+  .badge-amber  { @apply bg-warn/12 text-warn; }
+  .badge-gray   { @apply bg-bg-4 text-sub; }
+  .badge-purple { @apply bg-purple/12 text-purple; }
+
+  /* ── Table ── */
+  .crm-table { @apply w-full border-collapse text-sm; }
+  .crm-table th {
+    @apply px-4 py-2.5 text-left text-[10px] font-semibold text-muted uppercase
+           tracking-widest border-b border-line whitespace-nowrap;
+  }
+  .crm-table td {
+    @apply px-4 py-3 border-b border-line text-sub align-middle;
+  }
+  .crm-table tbody tr:last-child td { @apply border-b-0; }
+  .crm-table tbody tr:hover td { @apply bg-bg-3 text-white; }
+
+  /* ── Metric Card ── */
+  .metric-card {
+    @apply crm-card p-4 flex flex-col gap-1;
+  }
+  .metric-label { @apply text-[10px] font-semibold text-muted uppercase tracking-widest; }
+  .metric-value { @apply text-3xl font-display font-bold text-white leading-none; }
+  .metric-sub   { @apply text-xs text-muted mt-1; }
+
+  /* ── React-Select custom theme ── */
+  .rs__control {
+    background: #181e2e !important;
+    border-color: rgba(255,255,255,0.12) !important;
+    border-radius: 8px !important;
+    min-height: 38px !important;
+    box-shadow: none !important;
+    font-size: 13px;
+  }
+  .rs__control--is-focused { border-color: #4e8fff !important; }
+  .rs__menu { background: #1f2840 !important; border: 1px solid rgba(255,255,255,0.12) !important; border-radius: 8px !important; }
+  .rs__option { background: transparent !important; color: #9aa3b8 !important; font-size: 13px; }
+  .rs__option--is-focused { background: rgba(78,143,255,0.1) !important; color: #fff !important; }
+  .rs__option--is-selected { background: rgba(78,143,255,0.2) !important; color: #4e8fff !important; }
+  .rs__single-value { color: #e2e8f4 !important; }
+  .rs__input-container { color: #e2e8f4 !important; }
+  .rs__placeholder { color: #6b7a99 !important; }
+  .rs__indicator-separator { background: rgba(255,255,255,0.1) !important; }
+  .rs__dropdown-indicator, .rs__clear-indicator { color: #6b7a99 !important; }
+  .rs__multi-value { background: rgba(78,143,255,0.15) !important; border-radius: 4px !important; }
+  .rs__multi-value__label { color: #4e8fff !important; font-size: 12px !important; }
+  .rs__multi-value__remove { color: #4e8fff !important; }
+  .rs__multi-value__remove:hover { background: rgba(240,92,92,0.2) !important; color: #f05c5c !important; }
+}
