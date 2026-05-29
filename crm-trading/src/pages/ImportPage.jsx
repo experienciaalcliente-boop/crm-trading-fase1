@@ -267,11 +267,20 @@ export default function ImportPage() {
       const nombre = getVal(r, 'Alumno', 'alumno', 'Nombre', 'nombre') || ''
       const alumno_id = alumnoMap[normNombre(nombre)] || null
 
-      // ── Fecha (Col 3) — viene como "2026-05-05 00:00:00"
+      // ── Fecha (Col 3) — puede venir como "2026-05-05 00:00:00" o serial Excel
       const fechaRaw = getVal(r, 'Fecha', 'fecha', 'Fecha de vencimiento')
-      const fecha_vence = fechaRaw
-        ? fechaRaw.toString().split(' ')[0].split('T')[0]
-        : new Date().toISOString().split('T')[0]
+      const fecha_vence = (() => {
+        if (!fechaRaw) return new Date().toISOString().split('T')[0]
+        const str = fechaRaw.toString().trim()
+        // Si es número serial de Excel (ej: 46147)
+        const num = parseInt(str)
+        if (!isNaN(num) && num > 40000 && num < 60000) {
+          const date = new Date((num - 25569) * 86400 * 1000)
+          return date.toISOString().split('T')[0]
+        }
+        // Si tiene hora al final "2026-05-05 00:00:00"
+        return str.split(' ')[0].split('T')[0]
+      })()
 
       // ── Moneda acordada (Col 12) — "Soles" o "Dólares"
       const monedaRaw = getVal(r, 'Moneda acordada', 'Moneda Acordada', 'moneda acordada', 'Moneda')
