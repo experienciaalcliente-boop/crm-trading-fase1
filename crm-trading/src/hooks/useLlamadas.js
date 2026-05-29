@@ -40,14 +40,13 @@ export function useLlamadas() {
       fetchAsesoras(),        // todas — para tabs del panel
       fetchAsesorasLlamadas(), // solo asesoras — para el form
       fetchRegistrosHoy(),
-      fetchNextCodigo()
     ])
-      .then(([als, todasAsesoras, asesorasLlamadas, regs, codigo]) => {
+      .then(([als, todasAsesoras, asesorasLlamadas, regs]) => {
         setAlumnos(als)
         setAsesoras(todasAsesoras)
         setAsesorasForm(asesorasLlamadas)
         setRegistrosHoy(regs)
-        setForm(f => ({ ...f, codigo }))
+        // Código se genera fresco al momento de guardar
       })
       .catch(err => {
         console.error(err)
@@ -141,8 +140,10 @@ export function useLlamadas() {
 
     setSaving(true)
     try {
+      // Generar código fresco en el momento exacto de guardar
+      const codigoFresco = await fetchNextCodigo()
       const payload = {
-        codigo:       form.codigo,
+        codigo:       codigoFresco,
         fecha:        form.fecha,
         alumno_id:    form.alumno.value,
         asesora_id:   form.asesora.value,
@@ -163,8 +164,8 @@ export function useLlamadas() {
 
       // Recargar historial del mismo alumno después de guardar
       const alumnoId = form.alumno.value
-      const nextCod = await fetchNextCodigo()
-      setForm({ ...FORM_INICIAL, codigo: nextCod })
+      // Limpiar formulario — el código nuevo se generará al próximo guardado
+      setForm({ ...FORM_INICIAL, codigo: '...' })
       // Mantener historial visible un momento y luego limpiar
       fetchHistorialAlumno(alumnoId).then(setHistorial).catch(console.error)
     } catch (err) {
@@ -175,9 +176,8 @@ export function useLlamadas() {
     }
   }, [form])
 
-  const limpiar = useCallback(async () => {
-    const cod = await fetchNextCodigo()
-    setForm({ ...FORM_INICIAL, codigo: cod })
+  const limpiar = useCallback(() => {
+    setForm({ ...FORM_INICIAL, codigo: '...' })
     setHistorial([])
   }, [])
 
