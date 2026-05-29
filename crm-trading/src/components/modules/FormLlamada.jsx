@@ -1,15 +1,17 @@
 import Select from 'react-select'
 
-// Estilos inline para React-Select — evita conflictos con CSS externo
+// Estilos inline para React-Select
 const rsStyles = {
   control: (base, state) => ({
     ...base,
-    background: '#1e2840',
+    background: state.isDisabled ? '#141a28' : '#1e2840',
     border: `1.5px solid ${state.isFocused ? '#4e8fff' : '#2e3d5c'}`,
     borderRadius: 8,
     minHeight: 38,
     boxShadow: state.isFocused ? '0 0 0 3px rgba(78,143,255,0.15)' : 'none',
-    '&:hover': { borderColor: '#4e8fff' },
+    opacity: state.isDisabled ? 0.45 : 1,
+    cursor: state.isDisabled ? 'not-allowed' : 'default',
+    '&:hover': { borderColor: state.isDisabled ? '#2e3d5c' : '#4e8fff' },
   }),
   menu: (base) => ({
     ...base,
@@ -48,8 +50,9 @@ const rsStyles = {
   noOptionsMessage: (base) => ({ ...base, color: '#506080', background: '#1e2840' }),
 }
 
-const SI_NO  = [{ value: 'Sí', label: 'Sí' }, { value: 'No', label: 'No' }]
-const CUENTAS = [
+const SI_NO    = [{ value: 'Sí', label: 'Sí' }, { value: 'No', label: 'No' }]
+const SI_NO_NC = [{ value: 'Sí', label: 'Sí' }, { value: 'No', label: 'No' }, { value: 'No corresponde', label: 'No corresponde' }]
+const CUENTAS  = [
   { value: 'Demo',     label: 'Demo'     },
   { value: 'Real',     label: 'Real'     },
   { value: 'Fondeo',   label: 'Fondeo'   },
@@ -64,13 +67,20 @@ const FASES = [
 const divider = <div style={{ height: 1, background: 'rgba(255,255,255,0.07)', margin: '4px 0 16px' }} />
 
 export default function FormLlamada({ form, setField, onAlumnoChange, onProgramaChange, programasOpts, alumnosOpts, asesorasOpts }) {
-  const cuenta = form.cuenta?.value
-  const retiro = form.retiro?.value
+  const cuenta     = form.cuenta?.value
+  const retiro     = form.retiro?.value
+  const respondio  = form.respondio?.value
+
+  // Si no contestó → bloquear todos los campos excepto los de identificación
+  const bloqueado  = respondio === 'No'
+
+  // Estilo para campos bloqueados
+  const inputBloq  = bloqueado ? { opacity: 0.4, pointerEvents: 'none' } : {}
 
   return (
     <div className="crm-card" style={{ padding: 20, marginBottom: 16 }}>
 
-      {/* Fila 1 */}
+      {/* Fila 1: Código / Fecha / Respondió */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14, marginBottom: 16 }}>
         <Field label="Código de registro">
           <input className="crm-input" style={{ fontFamily: 'DM Mono, monospace', color: '#7ab3ff', fontWeight: 600 }} value={form.codigo} readOnly />
@@ -85,7 +95,7 @@ export default function FormLlamada({ form, setField, onAlumnoChange, onPrograma
 
       {divider}
 
-      {/* Fila 2 */}
+      {/* Fila 2: Programa / Alumno / Semana */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14, marginBottom: 16 }}>
         <Field label="Programa">
           <Select styles={rsStyles} options={programasOpts} value={form.programa} onChange={onProgramaChange} placeholder="Seleccionar programa..." isClearable />
@@ -100,61 +110,94 @@ export default function FormLlamada({ form, setField, onAlumnoChange, onPrograma
         </Field>
       </div>
 
-      {/* Fila 3 */}
+      {/* Fila 3: Asesora / Avance / Mentoría */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14, marginBottom: 16 }}>
         <Field label="Asesora">
           <Select styles={rsStyles} options={asesorasOpts} value={form.asesora} onChange={v => setField('asesora', v)} placeholder="Seleccionar..." isClearable />
         </Field>
+
+        {/* Campos bloqueados si no contestó */}
         <Field label="Avance del aula (%)">
-          <input type="number" min="0" max="100" className="crm-input" value={form.avance} onChange={e => setField('avance', e.target.value)} placeholder="0 – 100" />
+          <div style={inputBloq}>
+            <input type="number" min="0" max="100" className="crm-input"
+              value={form.avance} onChange={e => setField('avance', e.target.value)}
+              placeholder="0 – 100" disabled={bloqueado} />
+          </div>
         </Field>
         <Field label="¿Asistió a mentoría?">
-          <Select styles={rsStyles} options={SI_NO} value={form.mentoria} onChange={v => setField('mentoria', v)} placeholder="Seleccionar..." isClearable />
+          <div style={inputBloq}>
+            <Select styles={rsStyles} options={SI_NO_NC} value={form.mentoria}
+              onChange={v => setField('mentoria', v)} placeholder="Seleccionar..."
+              isClearable isDisabled={bloqueado} />
+          </div>
         </Field>
       </div>
 
       {divider}
 
-      {/* Cuenta + condicionales */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14, marginBottom: 16 }}>
+      {/* Cuenta + condicionales — bloqueados si no contestó */}
+      <div style={{ ...inputBloq, display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14, marginBottom: 16 }}>
         <Field label="Tipo de cuenta">
-          <Select styles={rsStyles} options={CUENTAS} value={form.cuenta} onChange={v => setField('cuenta', v)} placeholder="Seleccionar..." isClearable />
+          <Select styles={rsStyles} options={CUENTAS} value={form.cuenta}
+            onChange={v => setField('cuenta', v)} placeholder="Seleccionar..."
+            isClearable isDisabled={bloqueado} />
         </Field>
-        {cuenta === 'Real' && (
+        {cuenta === 'Real' && !bloqueado && (
           <Field label="Capital en cuenta real (USD)">
-            <input type="number" min="0" className="crm-input" value={form.capital_real} onChange={e => setField('capital_real', e.target.value)} placeholder="0.00" />
+            <input type="number" min="0" className="crm-input" value={form.capital_real}
+              onChange={e => setField('capital_real', e.target.value)} placeholder="0.00" />
           </Field>
         )}
-        {cuenta === 'Fondeo' && (
+        {cuenta === 'Fondeo' && !bloqueado && (
           <Field label="Fase de fondeo">
-            <Select styles={rsStyles} options={FASES} value={form.fase_fondeo} onChange={v => setField('fase_fondeo', v)} placeholder="Seleccionar fase..." isClearable />
+            <Select styles={rsStyles} options={FASES} value={form.fase_fondeo}
+              onChange={v => setField('fase_fondeo', v)} placeholder="Seleccionar fase..." isClearable />
           </Field>
         )}
       </div>
 
-      {/* Beneficio + Retiro */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14, marginBottom: 16 }}>
+      {/* Beneficio + Retiro — bloqueados si no contestó */}
+      <div style={{ ...inputBloq, display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14, marginBottom: 16 }}>
         {cuenta !== 'No opera' && (
           <Field label="Beneficio semanal (USD)">
-            <input type="number" min="0" className="crm-input" value={form.beneficio} onChange={e => setField('beneficio', e.target.value)} placeholder="0.00" />
+            <input type="number" min="0" className="crm-input" value={form.beneficio}
+              onChange={e => setField('beneficio', e.target.value)}
+              placeholder="0.00" disabled={bloqueado} />
           </Field>
         )}
         <Field label="¿Realizó retiro?">
-          <Select styles={rsStyles} options={SI_NO} value={form.retiro} onChange={v => setField('retiro', v)} placeholder="Seleccionar..." isClearable />
+          <Select styles={rsStyles} options={SI_NO} value={form.retiro}
+            onChange={v => setField('retiro', v)} placeholder="Seleccionar..."
+            isClearable isDisabled={bloqueado} />
         </Field>
-        {retiro === 'Sí' && (
+        {retiro === 'Sí' && !bloqueado && (
           <Field label="Monto retirado (USD)">
-            <input type="number" min="0" className="crm-input" value={form.monto_retiro} onChange={e => setField('monto_retiro', e.target.value)} placeholder="0.00" />
+            <input type="number" min="0" className="crm-input" value={form.monto_retiro}
+              onChange={e => setField('monto_retiro', e.target.value)} placeholder="0.00" />
           </Field>
         )}
       </div>
 
-      {/* Observaciones */}
+      {/* Observaciones — siempre disponible */}
       <Field label="Observaciones y compromisos">
         <textarea className="crm-input" rows={4} style={{ resize: 'vertical' }}
           value={form.observaciones} onChange={e => setField('observaciones', e.target.value)}
-          placeholder="Escribe aquí los compromisos del alumno, situación de la cuenta, próximos pasos..." />
+          placeholder={bloqueado
+            ? 'Registra aquí el motivo por el que no contestó, próximo intento...'
+            : 'Escribe aquí los compromisos del alumno, situación de la cuenta, próximos pasos...'} />
       </Field>
+
+      {/* Aviso visual cuando está bloqueado */}
+      {bloqueado && (
+        <div style={{
+          marginTop: 12, padding: '10px 14px', borderRadius: 8,
+          background: 'rgba(240,92,92,0.08)', border: '1px solid rgba(240,92,92,0.2)',
+          fontSize: 12, color: '#f07070', display: 'flex', alignItems: 'center', gap: 8
+        }}>
+          <span>⚠</span>
+          <span>Registro en modo <strong>No contestó</strong> — solo se guardará la observación. Los demás campos están bloqueados.</span>
+        </div>
+      )}
     </div>
   )
 }

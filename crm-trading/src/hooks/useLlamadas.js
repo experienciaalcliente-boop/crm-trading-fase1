@@ -115,9 +115,33 @@ export function useLlamadas() {
 
   // ── Guardar registro ──
   const guardar = useCallback(async () => {
+    // Validaciones básicas siempre requeridas
     if (!form.alumno)    { toast.error('Selecciona un alumno'); return }
     if (!form.respondio) { toast.error('Indica si respondió'); return }
     if (!form.asesora)   { toast.error('Selecciona una asesora'); return }
+
+    // Si contestó → validar campos obligatorios
+    if (form.respondio.value === 'Sí') {
+      const faltantes = []
+      if (!form.avance)   faltantes.push('Avance del aula')
+      if (!form.mentoria) faltantes.push('Asistió a mentoría')
+      if (!form.cuenta)   faltantes.push('Tipo de cuenta')
+      if (form.cuenta?.value === 'Real'   && !form.capital_real) faltantes.push('Capital en cuenta real')
+      if (form.cuenta?.value === 'Fondeo' && !form.fase_fondeo)  faltantes.push('Fase de fondeo')
+      if (form.cuenta?.value !== 'No opera' && !form.beneficio)  faltantes.push('Beneficio semanal')
+      if (!form.retiro) faltantes.push('¿Realizó retiro?')
+      if (form.retiro?.value === 'Sí' && !form.monto_retiro) faltantes.push('Monto retirado')
+
+      if (faltantes.length > 0) {
+        toast.error(
+          '⚠ Faltan los siguientes campos:
+• ' + faltantes.join('
+• '),
+          { duration: 5000, style: { whiteSpace: 'pre-line', maxWidth: 320 } }
+        )
+        return
+      }
+    }
 
     setSaving(true)
     try {
