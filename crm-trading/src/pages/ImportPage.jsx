@@ -257,38 +257,65 @@ export default function ImportPage() {
     }
 
     const rows = rawData.map((r, i) => {
-      // ── Columna ALUMNO (Col 5 en tu archivo)
-      const nombre = buscarCol(r, 'alumno') || ''
+      // ── Alumno (Col 5)
+      const getVal = (row, ...nombres) => {
+        for (const n of nombres) {
+          if (row[n] !== undefined && row[n] !== null && row[n] !== '') return String(row[n])
+        }
+        return ''
+      }
+      const nombre = getVal(r, 'Alumno', 'alumno', 'Nombre', 'nombre') || ''
       const alumno_id = alumnoMap[normNombre(nombre)] || null
 
-      // ── Columna FECHA (Col 3) — viene como "2026-05-05 00:00:00"
-      const fechaRaw = buscarCol(r, 'fecha')
+      // ── Fecha (Col 3) — viene como "2026-05-05 00:00:00"
+      const fechaRaw = getVal(r, 'Fecha', 'fecha', 'Fecha de vencimiento')
       const fecha_vence = fechaRaw
-        ? fechaRaw.toString().split(' ')[0].split('T')[0] // tomar solo YYYY-MM-DD
+        ? fechaRaw.toString().split(' ')[0].split('T')[0]
         : new Date().toISOString().split('T')[0]
 
-      // ── Columna MONEDA ACORDADA (Col 12) — "Soles" o "Dólares"
-      const monedaRaw = buscarCol(r, 'monedaacordada')
+      // ── Moneda acordada (Col 12) — "Soles" o "Dólares"
+      const monedaRaw = getVal(r, 'Moneda acordada', 'Moneda Acordada', 'moneda acordada', 'Moneda')
       const moneda = (() => {
         const m = (monedaRaw || '').toLowerCase()
         if (m.includes('dol') || m.includes('usd') || m.includes('dollar')) return 'USD'
-        return 'PEN' // Soles por defecto
+        return 'PEN'
       })()
 
-      // ── Columna MONTO DE LA CUOTA EN MONEDA ACORDADA (Col 13)
-      const montoRaw = buscarCol(r, 'montodelaenmonedaacordada')
+      // ── Buscar por nombre exacto o por posición en el objeto
+      // Las claves del objeto vienen exactamente como en el Excel
+      const getVal = (row, ...nombres) => {
+        for (const n of nombres) {
+          if (row[n] !== undefined && row[n] !== null && row[n] !== '') return String(row[n])
+        }
+        return ''
+      }
+
+      // ── Monto de la cuota en moneda acordada (Col 13)
+      const montoRaw = getVal(r,
+        'Monto de la cuota en moneda acordada',
+        'Monto de la cuota en Moneda acordada',
+        'monto de la cuota en moneda acordada'
+      )
       const monto = parseFloat(montoRaw) || 0
 
-      // ── Columna MONTO PAGADO EN MONEDA ACORDADA (Col 14)
-      const montoPagadoRaw = buscarCol(r, 'montopagadoenmonedaacordada')
+      // ── Monto pagado en moneda acordada (Col 14)
+      const montoPagadoRaw = getVal(r,
+        'Monto pagado en moneda acordada',
+        'Monto pagado en Moneda acordada',
+        'monto pagado en moneda acordada'
+      )
       const monto_pagado = parseFloat(montoPagadoRaw) || 0
 
-      // ── Columna NRO (Col 2) — número de cuota
-      const nroCuota = parseInt(buscarCol(r, 'nro')) || (i + 1)
+      // ── Nro de cuota (Col 2)
+      const nroCuota = parseInt(getVal(r, 'Nro', 'nro', 'NRO', 'Numero', 'numero')) || (i + 1)
 
-      // ── Columna ESTADO DE LA CUOTA (Col 10)
-      // Valores en tu archivo: "Pagada", "No iniciada", "Pago parcial"
-      const estadoRaw = buscarCol(r, 'estadodelacuota')
+      // ── Estado de la cuota (Col 10)
+      const estadoRaw = getVal(r,
+        'Estado de la cuota',
+        'Estado De La Cuota',
+        'estado de la cuota',
+        'Estado'
+      )
       const estado = mapearEstado(estadoRaw)
 
       return {
@@ -300,7 +327,7 @@ export default function ImportPage() {
         monto_pagado,
         estado,
       }
-    }).filter(r => r.alumno_id && r.monto > 0)
+    }).filter(r => r.alumno_id) // incluir filas con monto 0 (cuotas no iniciadas)
 
     if (!rows.length) {
       toast.error('No se encontraron cuotas válidas. ¿Ya importaste la base de alumnos?')
