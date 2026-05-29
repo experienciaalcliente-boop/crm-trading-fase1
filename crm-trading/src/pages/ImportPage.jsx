@@ -256,6 +256,12 @@ export default function ImportPage() {
       return ''
     }
 
+    // DEBUG: ver claves exactas de la primera fila
+    if (rawData.length > 0) {
+      console.log('CLAVES EXCEL:', Object.keys(rawData[0]))
+      console.log('VALORES FILA 1:', Object.values(rawData[0]))
+    }
+
     const rows = rawData.map((r, i) => {
       // Leer por posición de columna — más confiable que por nombre
       // El orden exacto del archivo es:
