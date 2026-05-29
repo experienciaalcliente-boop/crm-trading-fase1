@@ -285,8 +285,11 @@ export default function ImportPage() {
         return str.split(' ')[0].split('T')[0]
       })()
 
-      // Moneda — "Dólares" → USD, "Soles" → PEN
-      const moneda = monedaVal.toLowerCase().includes('dol') ? 'USD' : 'PEN'
+      // Moneda — leer columna 'Moneda' directamente (USD o PEN)
+      const monedaSimple = String(r['Moneda'] || r['moneda'] || vals[15] || '').trim().toUpperCase()
+      const moneda = monedaSimple === 'USD' ? 'USD' : monedaSimple === 'PEN' ? 'PEN'
+        // fallback: si no existe columna Moneda, inferir de Moneda acordada
+        : String(vals[11] || '').toLowerCase().includes('dol') ? 'USD' : 'PEN'
 
       const monto        = parseFloat(montoVal)       || 0
       const monto_pagado = parseFloat(montoPagadoVal) || 0
