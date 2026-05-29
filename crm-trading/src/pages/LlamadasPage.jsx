@@ -10,7 +10,7 @@ export default function LlamadasPage() {
   const state = useLlamadas()
 
   if (state.loading) return (
-    <div className="flex items-center justify-center h-full gap-3" style={{ color: '#a0acc4' }}>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 10, color: '#506080' }}>
       <Loader2 size={18} className="animate-spin" />
       <span style={{ fontSize: 13 }}>Cargando datos...</span>
     </div>
@@ -22,11 +22,12 @@ export default function LlamadasPage() {
     <div style={{ display: 'flex', height: '100%' }}>
       {/* Columna principal */}
       <div style={{ flex: 1, overflowY: 'auto', padding: 24, minWidth: 0 }}>
-        {/* Header */}
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 20 }}>
           <div>
-            <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, color: '#1a2035', fontSize: 20 }}>Registro de llamadas</h1>
-            <p style={{ fontSize: 13, color: '#8896b4', textTransform: 'capitalize', marginTop: 3 }}>{hoy}</p>
+            <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, color: '#e2e8f4', fontSize: 20 }}>
+              Registro de llamadas
+            </h1>
+            <p style={{ fontSize: 13, color: '#506080', textTransform: 'capitalize', marginTop: 3 }}>{hoy}</p>
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
             <button className="crm-btn crm-btn-sm" onClick={state.limpiar}>↺ Limpiar</button>
@@ -36,11 +37,18 @@ export default function LlamadasPage() {
             </button>
           </div>
         </div>
+
+        {/* Formulario */}
         <FormLlamada {...state} />
+
+        {/* Historial — automático según alumno seleccionado arriba */}
         <HistorialAlumno historial={state.historial} alumno={state.form.alumno} />
       </div>
+
+      {/* Panel derecho — solo asesoras de llamadas */}
       <PanelDerecho
-        asesoras={state.asesoras}
+        asesoras={state.asesorasForm}
+        asesorasPanelOpts={state.asesorasPanelOpts}
         registrosHoy={state.registrosHoy}
         stats={state.stats}
         asesoraPanel={state.asesoraPanel}

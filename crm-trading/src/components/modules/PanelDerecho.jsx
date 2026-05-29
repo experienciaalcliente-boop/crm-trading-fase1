@@ -1,6 +1,6 @@
 import { TrendingUp, PhoneMissed, Phone } from 'lucide-react'
 
-export default function PanelDerecho({ asesoras, registrosHoy, stats, asesoraPanel, setAsesoraPanel }) {
+export default function PanelDerecho({ asesoras, asesorasPanelOpts, registrosHoy, stats, asesoraPanel, setAsesoraPanel }) {
   const sinRespuesta = stats.sinRespuesta || []
   return (
     <aside style={{ width:280, flexShrink:0, borderLeft:'1px solid rgba(255,255,255,0.07)', background:'#0f1520', display:'flex', flexDirection:'column', overflowY:'auto' }}>

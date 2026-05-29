@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { fetchAlumnos, fetchAsesoras, fetchRegistrosHoy, fetchHistorialAlumno, fetchNextCodigo, insertRegistroLlamada, suscribirRegistrosHoy } from '../lib/api'
+import { fetchAlumnos, fetchAsesorasLlamadas, fetchAsesoras, fetchRegistrosHoy, fetchHistorialAlumno, fetchNextCodigo, insertRegistroLlamada, suscribirRegistrosHoy } from '../lib/api'
 import toast from 'react-hot-toast'
 import { format } from 'date-fns'
 
@@ -23,21 +23,29 @@ const FORM_INICIAL = {
 }
 
 export function useLlamadas() {
-  const [alumnos,       setAlumnos]       = useState([])
-  const [asesoras,      setAsesoras]      = useState([])
-  const [registrosHoy,  setRegistrosHoy]  = useState([])
-  const [historial,     setHistorial]     = useState([])
-  const [form,          setForm]          = useState(FORM_INICIAL)
-  const [loading,       setLoading]       = useState(true)
-  const [saving,        setSaving]        = useState(false)
-  const [asesoraPanel,  setAsesoraPanel]  = useState(null) // filtro panel derecho
+  const [alumnos,         setAlumnos]         = useState([])
+  const [asesoras,        setAsesoras]        = useState([])   // todas (para panel)
+  const [asesorasForm,    setAsesorasForm]    = useState([])   // solo llamadas (para form)
+  const [registrosHoy,    setRegistrosHoy]    = useState([])
+  const [historial,       setHistorial]       = useState([])
+  const [form,            setForm]            = useState(FORM_INICIAL)
+  const [loading,         setLoading]         = useState(true)
+  const [saving,          setSaving]          = useState(false)
+  const [asesoraPanel,    setAsesoraPanel]    = useState(null)
 
   // ── Carga inicial ──
   useEffect(() => {
-    Promise.all([fetchAlumnos(), fetchAsesoras(), fetchRegistrosHoy(), fetchNextCodigo()])
-      .then(([als, asrs, regs, codigo]) => {
+    Promise.all([
+      fetchAlumnos(),
+      fetchAsesoras(),        // todas — para tabs del panel
+      fetchAsesorasLlamadas(), // solo asesoras — para el form
+      fetchRegistrosHoy(),
+      fetchNextCodigo()
+    ])
+      .then(([als, todasAsesoras, asesorasLlamadas, regs, codigo]) => {
         setAlumnos(als)
-        setAsesoras(asrs)
+        setAsesoras(todasAsesoras)
+        setAsesorasForm(asesorasLlamadas)
         setRegistrosHoy(regs)
         setForm(f => ({ ...f, codigo }))
       })
@@ -71,13 +79,19 @@ export function useLlamadas() {
     data: a,
   }))
 
-  const asesorasOpts = asesoras
-    .filter(a => !a.nombre.toLowerCase().includes('orientador') && !a.nombre.toLowerCase().includes('técnico') && !a.nombre.toLowerCase().includes('tecnico'))
-    .map(a => ({ value: a.id, label: a.nombre }))
+  // Solo asesoras de llamadas para el formulario
+  const asesorasOpts = asesorasForm.map(a => ({ value: a.id, label: a.nombre }))
 
-  // ── Cambio de alumno → autocompletar ──
+  // Solo asesoras de llamadas para las tabs del panel derecho
+  const asesorasPanelOpts = asesorasForm
+
+  // ── Cambio de alumno → autocompletar + cargar historial automáticamente ──
   const onAlumnoChange = useCallback(opt => {
-    if (!opt) { setForm(f => ({ ...f, alumno: null, semana: '' })); setHistorial([]); return }
+    if (!opt) {
+      setForm(f => ({ ...f, alumno: null, semana: '' }))
+      setHistorial([])
+      return
+    }
     const alumno = opt.data
     setForm(f => ({
       ...f,
@@ -85,16 +99,16 @@ export function useLlamadas() {
       semana: alumno.semana_actual || '',
       asesora: asesorasOpts.find(a => a.label === alumno.asesora) || f.asesora,
     }))
+    // Historial se carga automáticamente al seleccionar alumno
     fetchHistorialAlumno(alumno.id).then(setHistorial).catch(console.error)
   }, [asesorasOpts])
 
-  // ── Cambio de programa → limpiar alumno ──
+  // ── Cambio de programa → limpiar alumno e historial ──
   const onProgramaChange = useCallback(opt => {
     setForm(f => ({ ...f, programa: opt, alumno: null, semana: '' }))
     setHistorial([])
   }, [])
 
-  // ── Actualizar campo genérico ──
   const setField = useCallback((key, val) => {
     setForm(f => ({ ...f, [key]: val }))
   }, [])
@@ -102,7 +116,7 @@ export function useLlamadas() {
   // ── Guardar registro ──
   const guardar = useCallback(async () => {
     if (!form.alumno)    { toast.error('Selecciona un alumno'); return }
-    if (!form.respondio) { toast.error('¿Respondió?'); return }
+    if (!form.respondio) { toast.error('Indica si respondió'); return }
     if (!form.asesora)   { toast.error('Selecciona una asesora'); return }
 
     setSaving(true)
@@ -121,16 +135,18 @@ export function useLlamadas() {
         fase_fondeo:  form.cuenta?.value === 'Fondeo' ? form.fase_fondeo?.value || null : null,
         beneficio:    form.cuenta?.value !== 'No opera' ? parseFloat(form.beneficio) || null : null,
         retiro:       form.retiro?.value || null,
-        monto_retiro: form.retiro?.value === 'Sí'     ? parseFloat(form.monto_retiro) || null : null,
+        monto_retiro: form.retiro?.value === 'Sí' ? parseFloat(form.monto_retiro) || null : null,
         observaciones: form.observaciones || null,
       }
       await insertRegistroLlamada(payload)
       toast.success('Registro guardado ✓')
 
-      // Siguiente código y limpiar
+      // Recargar historial del mismo alumno después de guardar
+      const alumnoId = form.alumno.value
       const nextCod = await fetchNextCodigo()
       setForm({ ...FORM_INICIAL, codigo: nextCod })
-      setHistorial([])
+      // Mantener historial visible un momento y luego limpiar
+      fetchHistorialAlumno(alumnoId).then(setHistorial).catch(console.error)
     } catch (err) {
       console.error(err)
       toast.error('Error al guardar: ' + err.message)
@@ -145,13 +161,13 @@ export function useLlamadas() {
     setHistorial([])
   }, [])
 
-  // ── Panel derecho: stats ──
+  // ── Panel derecho: stats (solo asesoras de llamadas) ──
   const registrosFiltrados = asesoraPanel
     ? registrosHoy.filter(r => r.asesora?.nombre === asesoraPanel)
     : registrosHoy
 
   const stats = {
-    total:       registrosFiltrados.length,
+    total:        registrosFiltrados.length,
     respondieron: registrosFiltrados.filter(r => r.respondio === 'Sí').length,
     sinRespuesta: registrosFiltrados.filter(r => r.respondio === 'No'),
     efectividad:  registrosFiltrados.length
@@ -160,17 +176,12 @@ export function useLlamadas() {
   }
 
   return {
-    // data
-    alumnos, asesoras, registrosHoy, historial,
-    // form
+    alumnos, asesoras, asesorasForm, registrosHoy, historial,
     form, setField, onAlumnoChange, onProgramaChange,
-    // options
     programasOpts, alumnosOpts, asesorasOpts,
-    // actions
     guardar, limpiar,
-    // state
     loading, saving,
-    // panel
     asesoraPanel, setAsesoraPanel, stats,
+    asesorasPanelOpts,
   }
 }
