@@ -156,3 +156,42 @@ CREATE POLICY "acceso_pagos"  ON pagos  FOR ALL USING (true) WITH CHECK (true);
 -- Realtime
 ALTER PUBLICATION supabase_realtime ADD TABLE cuotas;
 ALTER PUBLICATION supabase_realtime ADD TABLE pagos;
+
+-- ============================================================
+-- FASE 3: Orientación Técnica
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS sesiones_orientacion (
+  id              uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  alumno_id       uuid REFERENCES alumnos(id) ON DELETE SET NULL,
+  fecha           date NOT NULL,
+  hora_inicio     time NOT NULL,
+  hora_fin        time NOT NULL,
+  motivo          text NOT NULL,
+  zoom_meeting_id text,
+  zoom_join_url   text,
+  zoom_start_url  text,
+  estado          text DEFAULT 'Pendiente' CHECK (estado IN ('Pendiente','Concretada','Reprogramada','No se conectó')),
+  -- Campos post-sesión (solo si se concretó)
+  pais            text,
+  broker          text,
+  tiene_mt5       boolean DEFAULT false,
+  tiene_tradingview boolean DEFAULT false,
+  tiene_broker    boolean DEFAULT false,
+  tiene_ingreso_trade boolean DEFAULT false,
+  preguntas_adicionales text,
+  observaciones   text,
+  agendado_por    text,
+  nueva_fecha     date,
+  nueva_hora      time,
+  created_at      timestamptz DEFAULT now(),
+  updated_at      timestamptz DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_sesiones_fecha    ON sesiones_orientacion(fecha);
+CREATE INDEX IF NOT EXISTS idx_sesiones_alumno   ON sesiones_orientacion(alumno_id);
+CREATE INDEX IF NOT EXISTS idx_sesiones_estado   ON sesiones_orientacion(estado);
+
+ALTER TABLE sesiones_orientacion ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "acceso_sesiones" ON sesiones_orientacion FOR ALL USING (true) WITH CHECK (true);
+ALTER PUBLICATION supabase_realtime ADD TABLE sesiones_orientacion;

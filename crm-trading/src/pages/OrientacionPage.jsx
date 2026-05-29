@@ -1,0 +1,253 @@
+import { useOrientacion } from '../hooks/useOrientacion'
+import ModalTipificacion from '../components/modules/ModalTipificacion'
+import Select from 'react-select'
+import { Loader2, RefreshCw, Video, Clock, ChevronLeft, ChevronRight } from 'lucide-react'
+import { format, addDays, subDays } from 'date-fns'
+import { es } from 'date-fns/locale'
+
+// Mismo rsStyles oscuro que FormLlamada
+const rsStyles = {
+  control: (base, state) => ({
+    ...base, background: '#1e2840',
+    border: `1.5px solid ${state.isFocused ? '#4e8fff' : '#2e3d5c'}`,
+    borderRadius: 8, minHeight: 38, boxShadow: state.isFocused ? '0 0 0 3px rgba(78,143,255,0.15)' : 'none',
+  }),
+  menu: (base) => ({ ...base, background: '#1e2840', border: '1.5px solid #2e3d5c', borderRadius: 10, boxShadow: '0 8px 28px rgba(0,0,0,0.5)', zIndex: 9999 }),
+  menuList: (base) => ({ ...base, background: '#1e2840', borderRadius: 10, padding: 4 }),
+  option: (base, state) => ({ ...base, background: state.isSelected ? 'rgba(78,143,255,0.25)' : state.isFocused ? 'rgba(78,143,255,0.15)' : '#1e2840', color: state.isSelected ? '#7ab3ff' : state.isFocused ? '#fff' : '#c8d8f0', borderRadius: 6, fontSize: 13, padding: '9px 12px' }),
+  singleValue: (base) => ({ ...base, color: '#fff', fontWeight: 500 }),
+  placeholder: (base) => ({ ...base, color: '#506080' }),
+  input: (base) => ({ ...base, color: '#fff' }),
+  indicatorSeparator: (base) => ({ ...base, background: '#2e3d5c' }),
+  dropdownIndicator: (base) => ({ ...base, color: '#506080' }),
+  noOptionsMessage: (base) => ({ ...base, color: '#506080', background: '#1e2840' }),
+}
+
+const ESTADO_STYLE = {
+  'Pendiente':     { bg: 'rgba(78,143,255,0.12)',  color: '#7ab3ff',  border: 'rgba(78,143,255,0.25)'  },
+  'Concretada':    { bg: 'rgba(34,201,142,0.12)',  color: '#2dd4a0',  border: 'rgba(34,201,142,0.25)'  },
+  'Reprogramada':  { bg: 'rgba(245,166,35,0.12)',  color: '#f5b93a',  border: 'rgba(245,166,35,0.25)'  },
+  'No se conectó': { bg: 'rgba(240,92,92,0.12)',   color: '#f07070',  border: 'rgba(240,92,92,0.25)'   },
+}
+
+function EstadoBadge({ estado }) {
+  const s = ESTADO_STYLE[estado] || ESTADO_STYLE['Pendiente']
+  return <span style={{ background: s.bg, color: s.color, border: `1px solid ${s.border}`, padding: '2px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600 }}>{estado}</span>
+}
+
+const HORAS_DISPONIBLES = [
+  '09:00','09:30','10:00','10:30','11:00','11:30',
+  '12:00','12:30','14:30','15:00','15:30','16:00','16:30','17:00','17:30',
+]
+
+export default function OrientacionPage() {
+  const o = useOrientacion()
+  const fechaDisplay = format(new Date(o.fechaVista + 'T00:00:00'), "EEEE d 'de' MMMM, yyyy", { locale: es })
+
+  // Horas ya ocupadas
+  const horasOcupadas = o.sesiones.map(s => s.hora_inicio?.slice(0,5))
+
+  return (
+    <div style={{ display: 'flex', height: '100%' }}>
+
+      {/* ── COLUMNA PRINCIPAL ── */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: 24, minWidth: 0 }}>
+
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 20 }}>
+          <div>
+            <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, color: '#e2e8f4', fontSize: 20 }}>Orientación Técnica</h1>
+            <p style={{ fontSize: 13, color: '#506080', textTransform: 'capitalize', marginTop: 3 }}>{fechaDisplay}</p>
+          </div>
+          <button className="crm-btn crm-btn-sm" onClick={() => o.cargarSesiones()}>
+            <RefreshCw size={13} /> Actualizar
+          </button>
+        </div>
+
+        {/* Stats */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 10, marginBottom: 20 }}>
+          {[
+            { label: 'Total',         value: o.stats.total,         color: '#7ab3ff' },
+            { label: 'Pendientes',    value: o.stats.pendientes,    color: '#506080' },
+            { label: 'Concretadas',   value: o.stats.concretadas,   color: '#2dd4a0' },
+            { label: 'Reprogramadas', value: o.stats.reprogramadas, color: '#f5b93a' },
+            { label: 'No conectaron', value: o.stats.noConectaron,  color: '#f07070' },
+          ].map(({ label, value, color }) => (
+            <div key={label} className="crm-card" style={{ padding: '12px 14px' }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: '#506080', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>{label}</div>
+              <div style={{ fontSize: 22, fontWeight: 700, color, fontFamily: 'Syne, sans-serif', lineHeight: 1 }}>{value}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Navegación de fecha */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+          <button className="crm-btn crm-btn-sm" onClick={() => o.setFechaVista(format(subDays(new Date(o.fechaVista + 'T00:00:00'), 1), 'yyyy-MM-dd'))}>
+            <ChevronLeft size={14} />
+          </button>
+          <input type="date" className="crm-input" style={{ width: 160 }}
+            value={o.fechaVista} onChange={e => o.setFechaVista(e.target.value)} />
+          <button className="crm-btn crm-btn-sm" onClick={() => o.setFechaVista(format(addDays(new Date(o.fechaVista + 'T00:00:00'), 1), 'yyyy-MM-dd'))}>
+            <ChevronRight size={14} />
+          </button>
+          <button className="crm-btn crm-btn-sm" onClick={() => o.setFechaVista(format(new Date(), 'yyyy-MM-dd'))}>
+            Hoy
+          </button>
+        </div>
+
+        {/* Agenda del día */}
+        <div className="crm-card">
+          <div style={{ padding: '13px 18px', borderBottom: '1px solid rgba(255,255,255,0.07)', display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.02)', borderRadius: '12px 12px 0 0' }}>
+            <Clock size={14} style={{ color: '#506080' }} />
+            <span style={{ fontSize: 13, fontWeight: 700, color: '#e2e8f4' }}>Sesiones del día</span>
+            <span style={{ marginLeft: 'auto', fontSize: 12, color: '#506080' }}>{o.sesiones.length} sesiones agendadas</span>
+          </div>
+
+          {o.loading ? (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 50, gap: 10, color: '#506080' }}>
+              <Loader2 size={16} className="animate-spin" /><span style={{ fontSize: 13 }}>Cargando...</span>
+            </div>
+          ) : !o.sesiones.length ? (
+            <div style={{ textAlign: 'center', padding: 50, color: '#3d5070' }}>
+              <div style={{ fontSize: 28, marginBottom: 8 }}>📅</div>
+              <p style={{ fontSize: 13 }}>No hay sesiones agendadas para este día</p>
+            </div>
+          ) : (
+            <div style={{ overflowX: 'auto' }}>
+              <table className="crm-table">
+                <thead>
+                  <tr>
+                    <th>Hora</th><th>Alumno</th><th>Programa</th><th>Motivo</th>
+                    <th>Zoom</th><th>Estado</th><th>Acción</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {o.sesiones.map(s => (
+                    <tr key={s.id}>
+                      <td style={{ whiteSpace: 'nowrap', fontFamily: 'DM Mono, monospace', fontSize: 12, color: '#7ab3ff' }}>
+                        {s.hora_inicio?.slice(0,5)} – {s.hora_fin?.slice(0,5)}
+                      </td>
+                      <td style={{ fontWeight: 600, color: '#e2e8f4' }}>{s.alumno?.nombre || '—'}</td>
+                      <td style={{ fontSize: 12 }}>{s.alumno?.programa || '—'}</td>
+                      <td style={{ fontSize: 12, maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.motivo}</td>
+                      <td>
+                        {s.zoom_join_url
+                          ? <a href={s.zoom_join_url} target="_blank" rel="noopener noreferrer"
+                              style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#7ab3ff', textDecoration: 'none', background: 'rgba(78,143,255,0.1)', padding: '3px 8px', borderRadius: 6 }}>
+                              <Video size={11} /> Unirse
+                            </a>
+                          : <span style={{ fontSize: 11, color: '#3d5070' }}>Sin enlace</span>}
+                      </td>
+                      <td><EstadoBadge estado={s.estado} /></td>
+                      <td>
+                        {s.estado === 'Pendiente' && (
+                          <button className="crm-btn crm-btn-sm" style={{ fontSize: 11 }}
+                            onClick={() => o.abrirTipificacion(s)}>
+                            Tipificar
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ── PANEL DERECHO: Formulario agendar ── */}
+      <aside style={{ width: 300, flexShrink: 0, borderLeft: '1px solid rgba(255,255,255,0.07)', background: '#0f1520', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ padding: '16px', borderBottom: '1px solid rgba(255,255,255,0.07)', background: 'rgba(255,255,255,0.02)' }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#e2e8f4' }}>Agendar sesión</div>
+          <div style={{ fontSize: 10, color: '#3d5070', marginTop: 2 }}>Crea una reunión Zoom automáticamente</div>
+        </div>
+
+        <div style={{ padding: 14, flex: 1 }}>
+          <Field label="Alumno">
+            <Select styles={rsStyles} options={o.alumnosOpts} value={o.form.alumno}
+              onChange={v => o.setField('alumno', v)} placeholder="Buscar alumno..."
+              isSearchable isClearable noOptionsMessage={() => 'Sin resultados'} />
+          </Field>
+
+          <div style={{ height: 12 }} />
+          <Field label="Fecha">
+            <input type="date" className="crm-input" value={o.form.fecha}
+              onChange={e => o.setField('fecha', e.target.value)} />
+          </Field>
+
+          <div style={{ height: 12 }} />
+          <Field label="Horario disponible">
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {HORAS_DISPONIBLES.map(h => {
+                const ocupada = horasOcupadas.includes(h) && o.fechaVista === o.form.fecha
+                return (
+                  <button key={h} onClick={() => !ocupada && o.setField('hora', h)}
+                    disabled={ocupada}
+                    style={{
+                      padding: '5px 10px', borderRadius: 7, fontSize: 12, fontWeight: 500,
+                      cursor: ocupada ? 'not-allowed' : 'pointer', transition: 'all 0.15s',
+                      background: o.form.hora === h ? '#4e8fff' : ocupada ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.06)',
+                      border: `1px solid ${o.form.hora === h ? '#4e8fff' : ocupada ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.1)'}`,
+                      color: o.form.hora === h ? '#fff' : ocupada ? '#2e3d5c' : '#9aaccb',
+                      textDecoration: ocupada ? 'line-through' : 'none',
+                    }}>
+                    {h}
+                  </button>
+                )
+              })}
+            </div>
+          </Field>
+
+          <div style={{ height: 12 }} />
+          <Field label="Motivo de la sesión">
+            <select className="crm-input" value={o.form.motivo} onChange={e => o.setField('motivo', e.target.value)}>
+              <option value="">— Seleccionar motivo —</option>
+              {o.MOTIVOS.map(m => <option key={m} value={m}>{m}</option>)}
+            </select>
+          </Field>
+
+          <div style={{ height: 12 }} />
+          <Field label="Agendado por">
+            <input className="crm-input" value={o.form.agendado_por}
+              onChange={e => o.setField('agendado_por', e.target.value)}
+              placeholder="Nombre de la asesora" />
+          </Field>
+
+          <div style={{ height: 16 }} />
+          <button className="crm-btn-primary" style={{ width: '100%', justifyContent: 'center' }}
+            onClick={o.agendarSesion} disabled={o.saving}>
+            {o.saving
+              ? <><Loader2 size={14} className="animate-spin" /> Agendando...</>
+              : <><Video size={14} /> Agendar y crear Zoom</>}
+          </button>
+
+          <div style={{ marginTop: 10, padding: '8px 10px', borderRadius: 8, background: 'rgba(78,143,255,0.06)', border: '1px solid rgba(78,143,255,0.15)', fontSize: 11, color: '#506080' }}>
+            💡 Duración: 45 minutos · Zona horaria: Lima
+          </div>
+        </div>
+      </aside>
+
+      {/* Modal tipificación */}
+      {o.tipifModal && (
+        <ModalTipificacion
+          sesion={o.tipifModal}
+          form={o.tipifForm}
+          setField={o.setTipifField}
+          onGuardar={o.guardarTipificacion}
+          onCerrar={o.cerrarTipificacion}
+          saving={o.saving}
+        />
+      )}
+    </div>
+  )
+}
+
+function Field({ label, children }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+      <label style={{ fontSize: 10, fontWeight: 700, color: '#7a8aaa', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{label}</label>
+      {children}
+    </div>
+  )
+}

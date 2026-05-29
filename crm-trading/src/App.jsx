@@ -1,7 +1,8 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
-import AppShell from './components/shared/AppShell'
+import AppShell        from './components/shared/AppShell'
 import LlamadasPage    from './pages/LlamadasPage'
 import RecaudacionPage from './pages/RecaudacionPage'
+import OrientacionPage from './pages/OrientacionPage'
 import ImportPage      from './pages/ImportPage'
 import SetupPage       from './pages/SetupPage'
 
@@ -13,6 +14,7 @@ export default function App() {
         <Route index element={<Navigate to="/llamadas" replace />} />
         <Route path="/llamadas"    element={<LlamadasPage />} />
         <Route path="/recaudacion" element={<RecaudacionPage />} />
+        <Route path="/orientacion" element={<OrientacionPage />} />
         <Route path="/importar"    element={<ImportPage />} />
       </Route>
     </Routes>

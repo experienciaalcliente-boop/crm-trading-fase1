@@ -1,0 +1,193 @@
+import { useState, useEffect, useCallback } from 'react'
+import { fetchAlumnos, fetchSesionesHoy, fetchSesionesFecha, insertSesion, updateSesion, crearReunionZoom } from '../lib/api'
+import toast from 'react-hot-toast'
+import { format } from 'date-fns'
+
+const MOTIVOS = [
+  'Vinculación del bróker',
+  'Uso del MetaTrader',
+  'Uso del TradingView',
+  'Consultas sobre el bróker',
+  'Creación de plataformas',
+  'Otros',
+]
+
+const FORM_INICIAL = {
+  alumno:      null,
+  fecha:       format(new Date(), 'yyyy-MM-dd'),
+  hora:        '09:00',
+  motivo:      '',
+  agendado_por: '',
+}
+
+const TIPIF_INICIAL = {
+  estado:       '',
+  pais:         '',
+  broker:       '',
+  tiene_mt5:    false,
+  tiene_tradingview: false,
+  tiene_broker: false,
+  tiene_ingreso_trade: false,
+  preguntas_adicionales: '',
+  observaciones: '',
+  nueva_fecha:  '',
+  nueva_hora:   '',
+}
+
+export function useOrientacion() {
+  const [alumnos,       setAlumnos]       = useState([])
+  const [sesiones,      setSesiones]      = useState([])
+  const [fechaVista,    setFechaVista]    = useState(format(new Date(), 'yyyy-MM-dd'))
+  const [loading,       setLoading]       = useState(true)
+  const [saving,        setSaving]        = useState(false)
+  const [form,          setForm]          = useState(FORM_INICIAL)
+  const [tipifModal,    setTipifModal]    = useState(null) // sesión a tipificar
+  const [tipifForm,     setTipifForm]     = useState(TIPIF_INICIAL)
+  const [vistaCalendario, setVistaCalendario] = useState('dia') // dia | semana
+
+  useEffect(() => {
+    fetchAlumnos().then(setAlumnos).catch(console.error)
+  }, [])
+
+  const cargarSesiones = useCallback(async (fecha) => {
+    setLoading(true)
+    try {
+      const data = await fetchSesionesFecha(fecha || fechaVista)
+      setSesiones(data)
+    } catch (err) {
+      toast.error('Error al cargar sesiones')
+    } finally {
+      setLoading(false)
+    }
+  }, [fechaVista])
+
+  useEffect(() => { cargarSesiones() }, [cargarSesiones])
+
+  const setField = useCallback((key, val) => {
+    setForm(f => ({ ...f, [key]: val }))
+  }, [])
+
+  const setTipifField = useCallback((key, val) => {
+    setTipifForm(f => ({ ...f, [key]: val }))
+  }, [])
+
+  // ── Agendar nueva sesión ──
+  const agendarSesion = useCallback(async () => {
+    if (!form.alumno)  { toast.error('Selecciona un alumno'); return }
+    if (!form.hora)    { toast.error('Indica la hora'); return }
+    if (!form.motivo)  { toast.error('Selecciona el motivo'); return }
+
+    setSaving(true)
+    try {
+      // 1. Crear reunión en Zoom
+      let zoomData = {}
+      try {
+        zoomData = await crearReunionZoom({
+          fecha:   form.fecha,
+          hora:    form.hora,
+          alumno:  form.alumno.label,
+          titulo:  form.motivo,
+          duracion: 45,
+        })
+        toast.success('Reunión Zoom creada ✓')
+      } catch (zoomErr) {
+        console.warn('Zoom no disponible:', zoomErr.message)
+        toast('Sesión agendada sin Zoom. Configura las credenciales para activarlo.', { icon: '⚠️' })
+      }
+
+      // 2. Guardar en Supabase
+      const horaFin = calcularHoraFin(form.hora, 45)
+      await insertSesion({
+        alumno_id:       form.alumno.value,
+        fecha:           form.fecha,
+        hora_inicio:     form.hora,
+        hora_fin:        horaFin,
+        motivo:          form.motivo,
+        agendado_por:    form.agendado_por || null,
+        zoom_meeting_id: zoomData.meeting_id || null,
+        zoom_join_url:   zoomData.join_url   || null,
+        zoom_start_url:  zoomData.start_url  || null,
+        estado:          'Pendiente',
+      })
+
+      toast.success('Sesión agendada correctamente ✓')
+      setForm(FORM_INICIAL)
+      cargarSesiones()
+    } catch (err) {
+      toast.error('Error al agendar: ' + err.message)
+      console.error(err)
+    } finally {
+      setSaving(false)
+    }
+  }, [form, cargarSesiones])
+
+  // ── Tipificar sesión ──
+  const abrirTipificacion = useCallback((sesion) => {
+    setTipifModal(sesion)
+    setTipifForm(TIPIF_INICIAL)
+  }, [])
+
+  const cerrarTipificacion = useCallback(() => {
+    setTipifModal(null)
+    setTipifForm(TIPIF_INICIAL)
+  }, [])
+
+  const guardarTipificacion = useCallback(async () => {
+    if (!tipifForm.estado) { toast.error('Selecciona el resultado de la sesión'); return }
+    if (tipifForm.estado === 'Reprogramada' && !tipifForm.nueva_fecha) {
+      toast.error('Indica la nueva fecha'); return
+    }
+
+    setSaving(true)
+    try {
+      await updateSesion(tipifModal.id, {
+        estado:                 tipifForm.estado,
+        pais:                   tipifForm.pais || null,
+        broker:                 tipifForm.broker || null,
+        tiene_mt5:              tipifForm.tiene_mt5,
+        tiene_tradingview:      tipifForm.tiene_tradingview,
+        tiene_broker:           tipifForm.tiene_broker,
+        tiene_ingreso_trade:    tipifForm.tiene_ingreso_trade,
+        preguntas_adicionales:  tipifForm.preguntas_adicionales || null,
+        observaciones:          tipifForm.observaciones || null,
+        nueva_fecha:            tipifForm.nueva_fecha || null,
+        nueva_hora:             tipifForm.nueva_hora || null,
+      })
+      toast.success('Sesión tipificada ✓')
+      cerrarTipificacion()
+      cargarSesiones()
+    } catch (err) {
+      toast.error('Error: ' + err.message)
+    } finally {
+      setSaving(false)
+    }
+  }, [tipifModal, tipifForm, cargarSesiones, cerrarTipificacion])
+
+  const alumnosOpts = alumnos.map(a => ({ value: a.id, label: a.nombre, data: a }))
+
+  // Stats del día
+  const stats = {
+    total:        sesiones.length,
+    pendientes:   sesiones.filter(s => s.estado === 'Pendiente').length,
+    concretadas:  sesiones.filter(s => s.estado === 'Concretada').length,
+    reprogramadas: sesiones.filter(s => s.estado === 'Reprogramada').length,
+    noConectaron: sesiones.filter(s => s.estado === 'No se conectó').length,
+  }
+
+  return {
+    alumnos, alumnosOpts, sesiones, loading, saving,
+    form, setField, agendarSesion,
+    fechaVista, setFechaVista: (f) => { setFechaVista(f); cargarSesiones(f) },
+    tipifModal, tipifForm, setTipifField,
+    abrirTipificacion, cerrarTipificacion, guardarTipificacion,
+    stats, MOTIVOS, cargarSesiones,
+  }
+}
+
+function calcularHoraFin(horaInicio, minutos) {
+  const [h, m] = horaInicio.split(':').map(Number)
+  const total = h * 60 + m + minutos
+  const hf = Math.floor(total / 60) % 24
+  const mf = total % 60
+  return `${String(hf).padStart(2,'0')}:${String(mf).padStart(2,'0')}`
+}

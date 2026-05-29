@@ -4,13 +4,13 @@ import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 
 const NAV = [
-  { to: '/llamadas',    icon: Phone,       label: 'Seguimiento',  sub: 'Registro de llamadas' },
-  { to: '/recaudacion', icon: CreditCard,  label: 'Recaudación',  sub: 'Cuotas y pagos'       },
-  { to: '/importar',    icon: Upload,      label: 'Importar',     sub: 'CSV / Excel'           },
+  { to: '/llamadas',    icon: Phone,              label: 'Seguimiento',      sub: 'Registro de llamadas' },
+  { to: '/recaudacion', icon: CreditCard,          label: 'Recaudación',      sub: 'Cuotas y pagos'       },
+  { to: '/orientacion', icon: MonitorSmartphone,   label: 'Orient. Técnica',  sub: 'Agenda y sesiones'    },
+  { to: '/importar',    icon: Upload,              label: 'Importar',         sub: 'CSV / Excel'          },
 ]
 const NAV_PRONTO = [
-  { icon: MonitorSmartphone, label: 'Orient. Técnica', sub: 'Fase 3 — próximamente' },
-  { icon: BarChart2,         label: 'Dashboard',       sub: 'Fase 4 — próximamente' },
+  { icon: BarChart2, label: 'Dashboard', sub: 'Fase 4 — próximamente' },
 ]
 
 export default function AppShell() {
@@ -60,7 +60,7 @@ export default function AppShell() {
         </nav>
         <div style={{ padding:'12px 16px', borderTop:'1px solid rgba(255,255,255,0.07)' }}>
           <div style={{ fontSize:11, color:'#3d5070', textTransform:'capitalize' }}>{hoy}</div>
-          <div style={{ fontSize:10, color:'#2a3450', marginTop:2 }}>Fase 2 — en producción</div>
+          <div style={{ fontSize:10, color:'#2a3450', marginTop:2 }}>Fase 3 — en producción</div>
         </div>
       </aside>
       <main style={{ flex:1, overflowY:'auto', background:'#0b0e14' }}>
