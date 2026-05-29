@@ -347,3 +347,45 @@ export async function deleteSesion(id, zoomMeetingId) {
   if (error) throw error
   return true
 }
+
+// ─────────────────────────────────────────
+// DASHBOARD — queries optimizadas
+// ─────────────────────────────────────────
+
+export async function fetchDashboardLlamadas() {
+  const { data, error } = await supabase
+    .from('registros_llamadas')
+    .select(`
+      id, fecha, respondio, avance, cuenta, capital_real,
+      fase_fondeo, beneficio, retiro, monto_retiro,
+      alumno:alumnos(nombre, programa),
+      asesora:asesoras(nombre, rol)
+    `)
+    .order('fecha', { ascending: false })
+  if (error) throw error
+  return (data || []).filter(r => r.asesora?.rol !== 'orientador')
+}
+
+export async function fetchDashboardRecaudacion() {
+  const { data, error } = await supabase
+    .from('cuotas')
+    .select(`
+      id, estado, monto, monto_pagado, moneda,
+      alumno:alumnos(nombre, programa)
+    `)
+  if (error) throw error
+  return data || []
+}
+
+export async function fetchDashboardOrientacion() {
+  const { data, error } = await supabase
+    .from('sesiones_orientacion')
+    .select(`
+      id, fecha, estado, motivo,
+      tiene_mt5, tiene_tradingview, tiene_broker, tiene_ingreso_trade,
+      alumno:alumnos(nombre, programa)
+    `)
+    .order('fecha', { ascending: false })
+  if (error) throw error
+  return data || []
+}

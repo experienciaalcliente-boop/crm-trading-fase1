@@ -4,13 +4,11 @@ import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 
 const NAV = [
-  { to: '/llamadas',    icon: Phone,              label: 'Seguimiento',      sub: 'Registro de llamadas' },
-  { to: '/recaudacion', icon: CreditCard,          label: 'Recaudación',      sub: 'Cuotas y pagos'       },
-  { to: '/orientacion', icon: MonitorSmartphone,   label: 'Orient. Técnica',  sub: 'Agenda y sesiones'    },
-  { to: '/importar',    icon: Upload,              label: 'Importar',         sub: 'CSV / Excel'          },
-]
-const NAV_PRONTO = [
-  { icon: BarChart2, label: 'Dashboard', sub: 'Fase 4 — próximamente' },
+  { to: '/dashboard',   icon: BarChart2,          label: 'Dashboard',        sub: 'Vista ejecutiva'      },
+  { to: '/llamadas',    icon: Phone,               label: 'Seguimiento',      sub: 'Registro de llamadas' },
+  { to: '/recaudacion', icon: CreditCard,           label: 'Recaudación',      sub: 'Cuotas y pagos'       },
+  { to: '/orientacion', icon: MonitorSmartphone,    label: 'Orient. Técnica',  sub: 'Agenda y sesiones'    },
+  { to: '/importar',    icon: Upload,               label: 'Importar',         sub: 'CSV / Excel'          },
 ]
 
 export default function AppShell() {
@@ -28,7 +26,6 @@ export default function AppShell() {
           </div>
         </div>
         <nav style={{ flex:1, padding:12, overflowY:'auto' }}>
-          <div style={{ fontSize:10, fontWeight:700, color:'#3d5070', textTransform:'uppercase', letterSpacing:'0.08em', padding:'4px 8px 8px' }}>Módulos activos</div>
           {NAV.map(({ to, icon: Icon, label, sub }) => (
             <NavLink key={to} to={to} style={({ isActive }) => ({
               display:'flex', alignItems:'center', gap:10, padding:'9px 10px',
@@ -47,20 +44,10 @@ export default function AppShell() {
               </>)}
             </NavLink>
           ))}
-          <div style={{ fontSize:10, fontWeight:700, color:'#3d5070', textTransform:'uppercase', letterSpacing:'0.08em', padding:'14px 8px 8px' }}>Próximamente</div>
-          {NAV_PRONTO.map(({ icon: Icon, label, sub }) => (
-            <div key={label} style={{ display:'flex', alignItems:'center', gap:10, padding:'9px 10px', borderRadius:10, marginBottom:2, opacity:0.3, cursor:'not-allowed' }}>
-              <Icon size={15} style={{ flexShrink:0, color:'#506080' }} />
-              <div>
-                <div style={{ fontSize:13, fontWeight:500, color:'#506080', lineHeight:1 }}>{label}</div>
-                <div style={{ fontSize:10, color:'#2e3d5c', marginTop:3 }}>{sub}</div>
-              </div>
-            </div>
-          ))}
         </nav>
         <div style={{ padding:'12px 16px', borderTop:'1px solid rgba(255,255,255,0.07)' }}>
           <div style={{ fontSize:11, color:'#3d5070', textTransform:'capitalize' }}>{hoy}</div>
-          <div style={{ fontSize:10, color:'#2a3450', marginTop:2 }}>Fase 3 — en producción</div>
+          <div style={{ fontSize:10, color:'#2a3450', marginTop:2 }}>v1.0 — Todos los módulos activos</div>
         </div>
       </aside>
       <main style={{ flex:1, overflowY:'auto', background:'#0b0e14' }}>
