@@ -285,11 +285,18 @@ export default function ImportPage() {
         return str.split(' ')[0].split('T')[0]
       })()
 
-      // Moneda — buscar la clave que contenga 'moneda' ignorando tildes/mayúsculas
-      const monedaKey = Object.keys(r).find(k => 
-        k.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/\s/g,'') === 'monedaacordada'
-      )
-      const monedaAcordada = String(monedaKey ? r[monedaKey] : vals[11] || '').toLowerCase()
+      // Moneda — iterar todas las claves buscando 'moneda' y 'acordada'
+      let monedaAcordada = ''
+      for (const k of Object.keys(r)) {
+        const kNorm = k.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/\s/g,'')
+        if (kNorm.includes('moneda') && kNorm.includes('acordada')) {
+          monedaAcordada = String(r[k] || '').toLowerCase()
+          break
+        }
+      }
+      // Si no encontró, usar posición 11
+      if (!monedaAcordada) monedaAcordada = String(vals[11] || '').toLowerCase()
+      if (i === 0) console.log('DEBUG moneda fila1:', monedaAcordada, '| vals[11]:', vals[11], '| todas las claves:', Object.keys(r))
       const moneda = monedaAcordada.includes('dol') ? 'USD' : 'PEN'
 
       const monto        = parseFloat(montoVal)       || 0
