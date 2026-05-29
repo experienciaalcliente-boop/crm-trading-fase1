@@ -62,8 +62,34 @@ export async function fetchRegistrosHoy() {
     .eq('fecha', hoy)
     .order('created_at', { ascending: false })
   if (error) throw error
-  // Filtrar solo registros de asesoras (no orientadores)
   return (data || []).filter(r => r.asesora?.rol !== 'orientador')
+}
+
+// Alumnos cuyo ÚLTIMO registro es "No respondió"
+// Si después hubo un "Sí", ya no aparecen
+export async function fetchSinResponderAcumulado() {
+  const { data, error } = await supabase
+    .from('registros_llamadas')
+    .select(`
+      id, fecha, respondio, alumno_id, created_at,
+      alumno:alumnos(id, nombre, programa, semana_actual),
+      asesora:asesoras(nombre, rol)
+    `)
+    .order('alumno_id')
+    .order('created_at', { ascending: false })
+  if (error) throw error
+
+  // Agrupar por alumno y quedarse solo con el último registro de cada uno
+  const porAlumno = {}
+  for (const reg of (data || [])) {
+    if (reg.asesora?.rol === 'orientador') continue
+    if (!porAlumno[reg.alumno_id]) {
+      porAlumno[reg.alumno_id] = reg // primer resultado = más reciente
+    }
+  }
+
+  // Filtrar solo los que su último registro fue "No"
+  return Object.values(porAlumno).filter(r => r.respondio === 'No')
 }
 
 export async function fetchHistorialAlumno(alumnoId) {

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { fetchAlumnos, fetchAsesorasLlamadas, fetchAsesoras, fetchRegistrosHoy, fetchHistorialAlumno, fetchNextCodigo, insertRegistroLlamada, suscribirRegistrosHoy } from '../lib/api'
+import { fetchAlumnos, fetchAsesorasLlamadas, fetchAsesoras, fetchRegistrosHoy, fetchHistorialAlumno, fetchNextCodigo, insertRegistroLlamada, suscribirRegistrosHoy, fetchSinResponderAcumulado } from '../lib/api'
 import toast from 'react-hot-toast'
 import { format } from 'date-fns'
 
@@ -32,21 +32,23 @@ export function useLlamadas() {
   const [loading,         setLoading]         = useState(true)
   const [saving,          setSaving]          = useState(false)
   const [asesoraPanel,    setAsesoraPanel]    = useState(null)
+  const [sinResponder,    setSinResponder]    = useState([])
 
   // ── Carga inicial ──
   useEffect(() => {
     Promise.all([
       fetchAlumnos(),
-      fetchAsesoras(),        // todas — para tabs del panel
-      fetchAsesorasLlamadas(), // solo asesoras — para el form
+      fetchAsesoras(),
+      fetchAsesorasLlamadas(),
       fetchRegistrosHoy(),
+      fetchSinResponderAcumulado(),
     ])
-      .then(([als, todasAsesoras, asesorasLlamadas, regs]) => {
+      .then(([als, todasAsesoras, asesorasLlamadas, regs, sinResp]) => {
         setAlumnos(als)
         setAsesoras(todasAsesoras)
         setAsesorasForm(asesorasLlamadas)
         setRegistrosHoy(regs)
-        // Código se genera fresco al momento de guardar
+        setSinResponder(sinResp)
       })
       .catch(err => {
         console.error(err)
@@ -59,6 +61,7 @@ export function useLlamadas() {
   useEffect(() => {
     const unsub = suscribirRegistrosHoy(() => {
       fetchRegistrosHoy().then(setRegistrosHoy).catch(console.error)
+      fetchSinResponderAcumulado().then(setSinResponder).catch(console.error)
     })
     return unsub
   }, [])
@@ -162,10 +165,10 @@ export function useLlamadas() {
       await insertRegistroLlamada(payload)
       toast.success('Registro guardado ✓')
 
-      // Recargar historial del mismo alumno después de guardar
+      // Recargar historial y lista sin responder
       const alumnoId = form.alumno.value
-      // Limpiar formulario — el código nuevo se generará al próximo guardado
       setForm({ ...FORM_INICIAL, codigo: '...' })
+      fetchSinResponderAcumulado().then(setSinResponder).catch(console.error)
       // Mantener historial visible un momento y luego limpiar
       fetchHistorialAlumno(alumnoId).then(setHistorial).catch(console.error)
     } catch (err) {
@@ -181,15 +184,20 @@ export function useLlamadas() {
     setHistorial([])
   }, [])
 
-  // ── Panel derecho: stats (solo asesoras de llamadas) ──
+  // ── Panel derecho: stats del día (filtrado por asesora) ──
   const registrosFiltrados = asesoraPanel
     ? registrosHoy.filter(r => r.asesora?.nombre === asesoraPanel)
     : registrosHoy
 
+  // Lista acumulada sin responder (filtrada por asesora si aplica)
+  const sinRespuestaAcumulada = asesoraPanel
+    ? sinResponder.filter(r => r.asesora?.nombre === asesoraPanel)
+    : sinResponder
+
   const stats = {
     total:        registrosFiltrados.length,
     respondieron: registrosFiltrados.filter(r => r.respondio === 'Sí').length,
-    sinRespuesta: registrosFiltrados.filter(r => r.respondio === 'No'),
+    sinRespuesta: sinRespuestaAcumulada, // ahora es la lista acumulada
     efectividad:  registrosFiltrados.length
       ? Math.round((registrosFiltrados.filter(r => r.respondio === 'Sí').length / registrosFiltrados.length) * 100)
       : 0,
@@ -201,7 +209,7 @@ export function useLlamadas() {
     programasOpts, alumnosOpts, asesorasOpts,
     guardar, limpiar,
     loading, saving,
-    asesoraPanel, setAsesoraPanel, stats,
+    asesoraPanel, setAsesoraPanel, stats, sinResponder,
     asesorasPanelOpts,
   }
 }
