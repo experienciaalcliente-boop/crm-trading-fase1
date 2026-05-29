@@ -5,26 +5,56 @@ import { Upload, FileSpreadsheet, CheckCircle2, AlertCircle, Loader2 } from 'luc
 import { upsertAlumnos, importarHistorialLlamadas } from '../lib/api'
 import { supabase } from '../lib/supabase'
 
+// ── Convierte número serial de Excel a formato Mes-AA ──────────
+function excelSerialToMesAnio(val) {
+  if (!val) return ''
+  const str = String(val).trim()
+  // Ya tiene formato texto (Jun-26, Ene-26, etc.) → dejarlo
+  if (/^[A-Za-záéíóúñ]{3}-\d{2}$/i.test(str)) return str
+  // Es número serial de Excel (ej: 46174)
+  const num = parseInt(str)
+  if (!isNaN(num) && num > 40000 && num < 60000) {
+    const date = new Date((num - 25569) * 86400 * 1000)
+    const meses = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']
+    const mes = meses[date.getUTCMonth()]
+    const anio = String(date.getUTCFullYear()).slice(-2)
+    return `${mes}-${anio}`
+  }
+  return str
+}
+
+// ── Convierte número serial de Excel a fecha YYYY-MM-DD ────────
+function excelSerialToFecha(val) {
+  if (!val) return ''
+  const str = String(val).trim()
+  // Ya tiene formato fecha texto
+  if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str
+  const num = parseInt(str)
+  if (!isNaN(num) && num > 40000 && num < 60000) {
+    const date = new Date((num - 25569) * 86400 * 1000)
+    return date.toISOString().split('T')[0]
+  }
+  return str
+}
+
 const TIPOS = {
   alumnos: {
     titulo: 'Base de alumnos',
     descripcion: 'Carga o actualiza el listado de alumnos. Si ya existen, se actualizarán.',
-    columnas: 'Nombre completo · Programa · Semana actual · Asesora · Estado',
-    color: 'brand',
+    columnas: 'Nombre · Programa · Semana actual · Asesora · Estado',
   },
   historial: {
     titulo: 'Historial de llamadas',
-    descripcion: 'Importa registros históricos. Los duplicados (mismo código) se omiten automáticamente.',
-    columnas: 'Codigo · Fecha · Alumno · Programa · Semana · Asesora · Respondio · Avance · Cuenta · Beneficio · Retiro · Monto · Observaciones',
-    color: 'success',
+    descripcion: 'Importa registros históricos. Los duplicados se omiten automáticamente.',
+    columnas: 'Codigo · Fecha · Alumno · Semana · Asesora · Respondio · Avance · Cuenta · Beneficio · Retiro · Monto · Observaciones',
   },
 }
 
 export default function ImportPage() {
-  const [tipo,     setTipo]     = useState('alumnos')
-  const [preview,  setPreview]  = useState(null)
-  const [rawData,  setRawData]  = useState([])
-  const [loading,  setLoading]  = useState(false)
+  const [tipo,      setTipo]      = useState('alumnos')
+  const [preview,   setPreview]   = useState(null)
+  const [rawData,   setRawData]   = useState([])
+  const [loading,   setLoading]   = useState(false)
   const [resultado, setResultado] = useState(null)
   const inputRef = useRef()
 
@@ -45,16 +75,20 @@ export default function ImportPage() {
       let data = []
       if (ext === 'csv') {
         const text = e.target.result
+        // Detectar separador automáticamente (coma o punto y coma)
+        const firstLine = text.split('\n')[0]
+        const sep = firstLine.includes(';') ? ';' : ','
         const lines = text.split('\n').filter(l => l.trim())
-        const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''))
+        const headers = lines[0].split(sep).map(h => h.trim().replace(/"/g, ''))
         data = lines.slice(1).map(line => {
-          const vals = line.split(',').map(v => v.trim().replace(/"/g, ''))
+          const vals = line.split(sep).map(v => v.trim().replace(/"/g, ''))
           return Object.fromEntries(headers.map((h, i) => [h, vals[i] || '']))
         })
       } else {
-        const wb = XLSX.read(e.target.result, { type: 'array' })
+        // Excel: usar dateNF para que las fechas vengan como texto
+        const wb = XLSX.read(e.target.result, { type: 'array', cellDates: false, raw: true })
         const ws = wb.Sheets[wb.SheetNames[0]]
-        data = XLSX.utils.sheet_to_json(ws, { defval: '' })
+        data = XLSX.utils.sheet_to_json(ws, { defval: '', raw: true })
       }
       setRawData(data)
       setPreview({ headers: Object.keys(data[0] || {}), rows: data.slice(0, 5), total: data.length })
@@ -64,27 +98,31 @@ export default function ImportPage() {
     else reader.readAsArrayBuffer(file)
   }
 
-  // ── Mapeo flexible de columnas ──
+  // ── Mapeo flexible de columnas ──────────────────────────────
   function col(row, ...keys) {
     for (const k of keys) {
       const found = Object.keys(row).find(c =>
         c.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s/g,'')
-          .includes(k.toLowerCase().replace(/\s/g,''))
+          .includes(k.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s/g,''))
       )
-      if (found) return String(row[found] || '').trim()
+      if (found !== undefined && row[found] !== undefined && row[found] !== '') {
+        return String(row[found]).trim()
+      }
     }
     return ''
   }
 
+  // ── Procesar alumnos ────────────────────────────────────────
   async function procesarAlumnos() {
     const rows = rawData
       .map(r => ({
-        nombre:         col(r, 'nombre', 'name', 'alumno'),
-        programa:       col(r, 'programa', 'program'),
-        semana_actual:  col(r, 'semana', 'week'),
-        asesora:        col(r, 'asesora', 'asesor'),
-        estado:         col(r, 'estado', 'status') || 'Activo',
-        activo:         true,
+        nombre:        col(r, 'nombre', 'name', 'alumno'),
+        // Convertir número serial de Excel a Mes-AA
+        programa:      excelSerialToMesAnio(col(r, 'programa', 'program')),
+        semana_actual: col(r, 'semana', 'week') || '0',
+        asesora:       col(r, 'asesora', 'asesor', 'advisor'),
+        estado:        col(r, 'estado', 'status') || 'Activo',
+        activo:        true,
       }))
       .filter(r => r.nombre && r.programa)
 
@@ -104,8 +142,8 @@ export default function ImportPage() {
     }
   }
 
+  // ── Procesar historial ──────────────────────────────────────
   async function procesarHistorial() {
-    // Primero necesitamos resolver los IDs de alumnos
     const { data: alumnosDB } = await supabase.from('alumnos').select('id, nombre, programa')
     const alumnoMap = {}
     alumnosDB?.forEach(a => { alumnoMap[a.nombre.toLowerCase()] = a.id })
@@ -116,7 +154,7 @@ export default function ImportPage() {
         const alumno_id = alumnoMap[nombre.toLowerCase()] || null
         return {
           codigo:       col(r, 'codigo', 'code') || `IMP-${String(i+1).padStart(6,'0')}`,
-          fecha:        col(r, 'fecha', 'date') || new Date().toISOString().split('T')[0],
+          fecha:        excelSerialToFecha(col(r, 'fecha', 'date')) || new Date().toISOString().split('T')[0],
           alumno_id,
           semana:       col(r, 'semana'),
           respondio:    col(r, 'respondio', 'respondió'),
@@ -131,7 +169,7 @@ export default function ImportPage() {
           observaciones: col(r, 'observacion', 'observaciones', 'comentario'),
         }
       })
-      .filter(r => r.alumno_id) // solo los que tengan alumno válido
+      .filter(r => r.alumno_id)
 
     if (!rows.length) {
       toast.error('No se encontraron filas con alumnos reconocidos. ¿Ya importaste la base de alumnos?')
@@ -141,8 +179,8 @@ export default function ImportPage() {
     setLoading(true)
     try {
       const inserted = await importarHistorialLlamadas(rows)
-      setResultado({ ok: true, msg: `${inserted} registros históricos importados (duplicados omitidos).` })
-      toast.success(`Historial importado ✓`)
+      setResultado({ ok: true, msg: `${inserted} registros históricos importados.` })
+      toast.success('Historial importado ✓')
       limpiar()
     } catch (err) {
       setResultado({ ok: false, msg: err.message })
@@ -155,31 +193,32 @@ export default function ImportPage() {
   const info = TIPOS[tipo]
 
   return (
-    <div className="p-6 max-w-3xl mx-auto animate-fadeUp">
-      <div className="mb-6">
-        <h1 className="font-display font-bold text-white text-xl">Importar datos</h1>
-        <p className="text-sm text-muted mt-0.5">Carga o actualiza información desde archivos Excel o CSV</p>
+    <div style={{ padding: 24, maxWidth: 860, margin: '0 auto' }}>
+      <div style={{ marginBottom: 24 }}>
+        <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, color: '#e2e8f4', fontSize: 20 }}>Importar datos</h1>
+        <p style={{ fontSize: 13, color: '#506080', marginTop: 3 }}>Carga o actualiza información desde archivos Excel o CSV</p>
       </div>
 
-      {/* Selector de tipo */}
-      <div className="crm-card p-1 mb-5 inline-flex gap-1">
+      {/* Selector tipo */}
+      <div className="crm-card" style={{ display: 'inline-flex', gap: 4, padding: 4, marginBottom: 20 }}>
         {Object.entries(TIPOS).map(([key, val]) => (
-          <button
-            key={key}
-            onClick={() => onTipoChange(key)}
-            className={`px-4 py-2 rounded-xl text-sm font-medium transition-all
-              ${tipo === key ? 'bg-brand text-white' : 'text-sub hover:text-white'}`}
-          >
+          <button key={key} onClick={() => onTipoChange(key)}
+            style={{
+              padding: '7px 16px', borderRadius: 9, fontSize: 13, fontWeight: 500,
+              cursor: 'pointer', transition: 'all 0.15s', border: 'none',
+              background: tipo === key ? '#4e8fff' : 'transparent',
+              color: tipo === key ? '#fff' : '#506080',
+            }}>
             {val.titulo}
           </button>
         ))}
       </div>
 
       {/* Info */}
-      <div className="crm-card p-4 mb-5 ">
-        <div className="text-sm font-semibold text-white mb-1">{info.titulo}</div>
-        <div className="text-xs text-sub mb-2">{info.descripcion}</div>
-        <div className="text-[10px] text-muted bg-bg-3 rounded-lg px-3 py-2 font-mono">
+      <div className="crm-card" style={{ padding: 16, marginBottom: 20 }}>
+        <div style={{ fontSize: 13, fontWeight: 600, color: '#e2e8f4', marginBottom: 4 }}>{info.titulo}</div>
+        <div style={{ fontSize: 12, color: '#7a8aaa', marginBottom: 8 }}>{info.descripcion}</div>
+        <div style={{ fontSize: 11, color: '#506080', background: 'rgba(255,255,255,0.04)', borderRadius: 8, padding: '8px 12px', fontFamily: 'DM Mono, monospace' }}>
           Columnas esperadas: {info.columnas}
         </div>
       </div>
@@ -187,51 +226,54 @@ export default function ImportPage() {
       {/* Upload zone */}
       {!preview && (
         <label
-          className="block border-2 border-dashed border-line2 rounded-2xl p-10 text-center cursor-pointer
-                     hover:border-brand hover:bg-bg-3 transition-all"
-          onDragOver={e => e.preventDefault()}
-          onDrop={e => { e.preventDefault(); handleFile(e.dataTransfer.files[0]) }}
+          style={{ display: 'block', border: '2px dashed rgba(255,255,255,0.12)', borderRadius: 12, padding: 40, textAlign: 'center', cursor: 'pointer', transition: 'all 0.2s' }}
+          onDragOver={e => { e.preventDefault(); e.currentTarget.style.borderColor = '#4e8fff' }}
+          onDragLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)' }}
+          onDrop={e => { e.preventDefault(); e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)'; handleFile(e.dataTransfer.files[0]) }}
         >
-          <input ref={inputRef} type="file" accept=".csv,.xlsx,.xls" className="hidden"
+          <input ref={inputRef} type="file" accept=".csv,.xlsx,.xls" style={{ display: 'none' }}
             onChange={e => handleFile(e.target.files[0])} />
-          <FileSpreadsheet size={32} className="mx-auto text-muted mb-3" strokeWidth={1} />
-          <div className="text-sm font-medium text-sub mb-1">Arrastra tu archivo aquí</div>
-          <div className="text-xs text-muted">o haz clic para seleccionar · CSV o Excel (.xlsx)</div>
+          <FileSpreadsheet size={32} style={{ color: '#3d5070', margin: '0 auto 12px' }} strokeWidth={1} />
+          <div style={{ fontSize: 14, fontWeight: 500, color: '#7a8aaa', marginBottom: 4 }}>Arrastra tu archivo aquí</div>
+          <div style={{ fontSize: 12, color: '#3d5070' }}>o haz clic para seleccionar · CSV o Excel (.xlsx)</div>
         </label>
       )}
 
       {/* Preview */}
       {preview && (
-        <div className="crm-card animate-fadeUp">
-          <div className="px-5 py-3 border-b border-line flex items-center justify-between">
-            <div className="text-sm font-semibold text-white">Vista previa — {preview.total} filas</div>
-            <button className="crm-btn crm-btn-sm text-xs" onClick={limpiar}>✕ Cambiar archivo</button>
+        <div className="crm-card">
+          <div style={{ padding: '12px 18px', borderBottom: '1px solid rgba(255,255,255,0.07)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span style={{ fontSize: 13, fontWeight: 600, color: '#e2e8f4' }}>Vista previa — {preview.total} filas</span>
+            <button className="crm-btn crm-btn-sm" onClick={limpiar}>✕ Cambiar archivo</button>
           </div>
-          <div className="overflow-x-auto">
-            <table className="crm-table text-xs">
-              <thead>
-                <tr>{preview.headers.map(h => <th key={h}>{h}</th>)}</tr>
-              </thead>
+          <div style={{ overflowX: 'auto' }}>
+            <table className="crm-table" style={{ fontSize: 12 }}>
+              <thead><tr>{preview.headers.map(h => <th key={h}>{h}</th>)}</tr></thead>
               <tbody>
                 {preview.rows.map((row, i) => (
                   <tr key={i}>
-                    {preview.headers.map(h => <td key={h} className="max-w-[120px] truncate">{String(row[h] || '')}</td>)}
+                    {preview.headers.map(h => (
+                      <td key={h} style={{ maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {/* Mostrar conversión de fecha en preview */}
+                        {h.toLowerCase().includes('programa')
+                          ? excelSerialToMesAnio(String(row[h] || ''))
+                          : String(row[h] || '')}
+                      </td>
+                    ))}
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
           {preview.total > 5 && (
-            <div className="px-5 py-2 text-[11px] text-muted border-t border-line">
+            <div style={{ padding: '8px 18px', fontSize: 11, color: '#3d5070', borderTop: '1px solid rgba(255,255,255,0.07)' }}>
               … y {preview.total - 5} filas más
             </div>
           )}
-          <div className="px-5 py-4 border-t border-line">
-            <button
-              className="crm-btn-primary w-full justify-center"
+          <div style={{ padding: '14px 18px', borderTop: '1px solid rgba(255,255,255,0.07)' }}>
+            <button className="crm-btn-primary" style={{ width: '100%', justifyContent: 'center' }}
               onClick={tipo === 'alumnos' ? procesarAlumnos : procesarHistorial}
-              disabled={loading}
-            >
+              disabled={loading}>
               {loading
                 ? <><Loader2 size={14} className="animate-spin" /> Procesando...</>
                 : <><Upload size={14} /> Importar {preview.total} registros</>}
@@ -242,12 +284,15 @@ export default function ImportPage() {
 
       {/* Resultado */}
       {resultado && (
-        <div className={`flex items-start gap-3 p-4 rounded-xl border mt-4 animate-fadeUp
-          ${resultado.ok ? 'bg-bg-3 border-line2' : 'bg-bg-3 border-line2'}`}>
+        <div style={{
+          display: 'flex', alignItems: 'flex-start', gap: 10, padding: 16, borderRadius: 12, marginTop: 16,
+          background: resultado.ok ? 'rgba(34,201,142,0.08)' : 'rgba(240,92,92,0.08)',
+          border: `1px solid ${resultado.ok ? 'rgba(34,201,142,0.25)' : 'rgba(240,92,92,0.25)'}`,
+        }}>
           {resultado.ok
-            ? <CheckCircle2 size={16} className="text-success flex-shrink-0 mt-0.5" />
-            : <AlertCircle size={16} className="text-danger flex-shrink-0 mt-0.5" />}
-          <span className={`text-sm ${resultado.ok ? 'text-success' : 'text-danger'}`}>{resultado.msg}</span>
+            ? <CheckCircle2 size={16} style={{ color: '#2dd4a0', flexShrink: 0, marginTop: 1 }} />
+            : <AlertCircle  size={16} style={{ color: '#f07070', flexShrink: 0, marginTop: 1 }} />}
+          <span style={{ fontSize: 13, color: resultado.ok ? '#2dd4a0' : '#f07070' }}>{resultado.msg}</span>
         </div>
       )}
     </div>
