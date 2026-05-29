@@ -32,6 +32,17 @@ function isVencida(fecha) {
 
 export default function RecaudacionPage() {
   const r = useRecaudacion()
+  const [filtroDia, setFiltroDia] = useState('Todos los días')
+
+  const cuotasFiltradas = filtroDia === 'Todos los días'
+    ? r.cuotas
+    : r.cuotas.filter(c => {
+        if (!c.fecha_vence) return false
+        const dia = new Date(c.fecha_vence + 'T00:00:00').getDate()
+        if (filtroDia === 'Día 5')  return dia === 5
+        if (filtroDia === 'Día 15') return dia === 15
+        return true
+      })
 
   return (
     <div style={{ padding: 24 }}>
