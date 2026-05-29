@@ -15,72 +15,57 @@ const NAV_PRONTO = [
 
 export default function AppShell() {
   const hoy = format(new Date(), "EEEE d 'de' MMMM", { locale: es })
-
   return (
-    <div className="flex h-screen overflow-hidden" style={{ background: '#f4f6fb' }}>
-
-      {/* ── SIDEBAR ── */}
-      <aside style={{ width: 220, background: '#fff', borderRight: '1px solid #e4e9f2', boxShadow: '2px 0 8px rgba(0,0,0,0.04)' }}
-        className="flex-shrink-0 flex flex-col">
-
+    <div style={{ display:'flex', height:'100vh', overflow:'hidden', background:'#0b0e14' }}>
+      <aside style={{ width:220, flexShrink:0, background:'#0f1520', borderRight:'1px solid rgba(255,255,255,0.07)', display:'flex', flexDirection:'column' }}>
         {/* Logo */}
-        <div style={{ padding: '20px', borderBottom: '1px solid #e4e9f2' }}>
-          <div className="flex items-center gap-2.5">
-            <div style={{ width: 32, height: 32, borderRadius: 8, background: '#4e8fff' }}
-              className="flex items-center justify-center font-bold text-white text-sm">A</div>
+        <div style={{ padding:'18px 16px', borderBottom:'1px solid rgba(255,255,255,0.07)' }}>
+          <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+            <div style={{ width:32, height:32, borderRadius:8, background:'#4e8fff', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:700, color:'#fff', fontSize:14 }}>A</div>
             <div>
-              <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, color: '#1a2035', fontSize: 14, lineHeight: 1 }}>AcademiaCRM</div>
-              <div style={{ fontSize: 10, color: '#a0acc4', marginTop: 3 }}>Trading School</div>
+              <div style={{ fontFamily:'Syne,sans-serif', fontWeight:700, color:'#fff', fontSize:14, lineHeight:1 }}>AcademiaCRM</div>
+              <div style={{ fontSize:10, color:'#3d5070', marginTop:3 }}>Trading School</div>
             </div>
           </div>
         </div>
-
         {/* Nav */}
-        <nav className="flex-1 overflow-y-auto" style={{ padding: 12 }}>
-          <div style={{ fontSize: 10, fontWeight: 700, color: '#a0acc4', textTransform: 'uppercase', letterSpacing: '0.08em', padding: '4px 8px 8px' }}>
-            Módulos activos
-          </div>
+        <nav style={{ flex:1, padding:12, overflowY:'auto' }}>
+          <div style={{ fontSize:10, fontWeight:700, color:'#3d5070', textTransform:'uppercase', letterSpacing:'0.08em', padding:'4px 8px 8px' }}>Módulos activos</div>
           {NAV.map(({ to, icon: Icon, label, sub }) => (
             <NavLink key={to} to={to} style={({ isActive }) => ({
-              display: 'flex', alignItems: 'center', gap: 10, padding: '9px 10px',
-              borderRadius: 10, marginBottom: 2, textDecoration: 'none', transition: 'all 0.15s',
-              background: isActive ? '#eef4ff' : 'transparent',
-              border: `1px solid ${isActive ? '#bdd1ff' : 'transparent'}`,
-              color: isActive ? '#2563eb' : '#6b7a99',
+              display:'flex', alignItems:'center', gap:10, padding:'9px 10px',
+              borderRadius:10, marginBottom:2, textDecoration:'none', transition:'all 0.15s',
+              background: isActive ? 'rgba(78,143,255,0.12)' : 'transparent',
+              border:`1px solid ${isActive ? 'rgba(78,143,255,0.25)' : 'transparent'}`,
+              color: isActive ? '#4e8fff' : '#506080',
             })}>
               {({ isActive }) => (<>
-                <Icon size={15} style={{ flexShrink: 0 }} />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 13, fontWeight: 600, lineHeight: 1 }}>{label}</div>
-                  <div style={{ fontSize: 10, marginTop: 3, color: isActive ? '#93b4ff' : '#b0bcd4' }}>{sub}</div>
+                <Icon size={15} style={{ flexShrink:0 }} />
+                <div style={{ flex:1, minWidth:0 }}>
+                  <div style={{ fontSize:13, fontWeight:600, lineHeight:1 }}>{label}</div>
+                  <div style={{ fontSize:10, marginTop:3, color: isActive ? 'rgba(78,143,255,0.6)' : '#2e3d5c' }}>{sub}</div>
                 </div>
-                {isActive && <ChevronRight size={12} style={{ opacity: 0.5 }} />}
+                {isActive && <ChevronRight size={12} style={{ opacity:0.5 }} />}
               </>)}
             </NavLink>
           ))}
-
-          <div style={{ fontSize: 10, fontWeight: 700, color: '#a0acc4', textTransform: 'uppercase', letterSpacing: '0.08em', padding: '12px 8px 8px' }}>
-            Próximamente
-          </div>
+          <div style={{ fontSize:10, fontWeight:700, color:'#3d5070', textTransform:'uppercase', letterSpacing:'0.08em', padding:'14px 8px 8px' }}>Próximamente</div>
           {NAV_PRONTO.map(({ icon: Icon, label, sub }) => (
-            <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 10px', borderRadius: 10, marginBottom: 2, opacity: 0.35, cursor: 'not-allowed' }}>
-              <Icon size={15} style={{ flexShrink: 0, color: '#6b7a99' }} />
+            <div key={label} style={{ display:'flex', alignItems:'center', gap:10, padding:'9px 10px', borderRadius:10, marginBottom:2, opacity:0.3, cursor:'not-allowed' }}>
+              <Icon size={15} style={{ flexShrink:0, color:'#506080' }} />
               <div>
-                <div style={{ fontSize: 13, fontWeight: 500, color: '#6b7a99', lineHeight: 1 }}>{label}</div>
-                <div style={{ fontSize: 10, color: '#b0bcd4', marginTop: 3 }}>{sub}</div>
+                <div style={{ fontSize:13, fontWeight:500, color:'#506080', lineHeight:1 }}>{label}</div>
+                <div style={{ fontSize:10, color:'#2e3d5c', marginTop:3 }}>{sub}</div>
               </div>
             </div>
           ))}
         </nav>
-
-        {/* Footer */}
-        <div style={{ padding: '14px 16px', borderTop: '1px solid #e4e9f2' }}>
-          <div style={{ fontSize: 11, color: '#a0acc4', textTransform: 'capitalize' }}>{hoy}</div>
-          <div style={{ fontSize: 10, color: '#c4cde0', marginTop: 2 }}>Fase 1 — en producción</div>
+        <div style={{ padding:'12px 16px', borderTop:'1px solid rgba(255,255,255,0.07)' }}>
+          <div style={{ fontSize:11, color:'#3d5070', textTransform:'capitalize' }}>{hoy}</div>
+          <div style={{ fontSize:10, color:'#2a3450', marginTop:2 }}>Fase 1 — en producción</div>
         </div>
       </aside>
-
-      <main className="flex-1 overflow-y-auto" style={{ background: '#f4f6fb' }}>
+      <main style={{ flex:1, overflowY:'auto', background:'#0b0e14' }}>
         <Outlet />
       </main>
     </div>
