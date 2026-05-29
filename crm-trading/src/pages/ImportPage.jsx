@@ -222,19 +222,52 @@ export default function ImportPage() {
   async function procesarCuotas() {
     const { data: alumnosDB } = await supabase.from('alumnos').select('id, nombre')
     const alumnoMap = {}
+    // Mapa por nombre exacto en minúsculas
     alumnosDB?.forEach(a => { alumnoMap[a.nombre.toLowerCase().trim()] = a.id })
 
+    // Mapeo de estados del archivo a los valores del sistema
+    function mapearEstado(estadoRaw) {
+      if (!estadoRaw) return 'No iniciada'
+      const e = estadoRaw.toLowerCase().trim()
+      if (e.includes('pagad') || e.includes('paid') || e === 'completo') return 'Pagada'
+      if (e.includes('parcial') || e.includes('partial')) return 'Pago parcial'
+      if (e.includes('prorrog') || e.includes('prórroga') || e.includes('prorroga')) return 'Prórroga'
+      if (e.includes('reserva') || e.includes('reserve')) return 'Reserva académica'
+      if (e.includes('retir') || e.includes('baja')) return 'Retirado'
+      if (e.includes('pendiente') || e.includes('pending') || e.includes('iniciada') || e === '') return 'No iniciada'
+      return 'No iniciada'
+    }
+
     const rows = rawData.map((r, i) => {
-      const nombre = col(r, 'alumno', 'nombre')
+      // Buscar columna Alumno de forma más agresiva
+      const nombre = col(r, 'alumno', 'nombre', 'name', 'student') || ''
       const alumno_id = alumnoMap[nombre.toLowerCase().trim()] || null
-      const fechaRaw = col(r, 'fecha', 'vence', 'fechavence', 'fechavencimiento')
+
+      // Fecha — puede ser serial o texto
+      const fechaRaw = col(r, 'fecha', 'vence', 'fechavence', 'fechavencimiento', 'date')
+
+      // Monto — buscar columna de monto en moneda acordada primero
+      const montoRaw = col(r, 'montodelaenmonedaacordada', 'montocuotamonedaacordada',
+                            'montodeacuerdoalamoneda', 'monto', 'amount', 'importe',
+                            'cuotamonedaacordada')
+        || col(r, 'moneda acordada') || col(r, 'monto de la cuota en moneda acordada')
+
+      // Moneda
+      const monedaRaw = col(r, 'moneda', 'monedaacordada', 'currency', 'moneda acordada')
+
+      // Número de cuota
+      const nroCuota = parseInt(col(r, 'nro', 'numero', 'cuota', 'numerocuota', 'nrodecuota', 'cuotaid')) || (i + 1)
+
+      // Estado
+      const estadoRaw = col(r, 'estadodelacuota', 'estado', 'status', 'estado de la cuota')
+
       return {
         alumno_id,
-        numero_cuota: parseInt(col(r, 'numero', 'cuota', 'numerocuota', 'nro')) || (i + 1),
+        numero_cuota: nroCuota,
         fecha_vence:  excelSerialToFecha(fechaRaw) || new Date().toISOString().split('T')[0],
-        monto:        parseFloat(col(r, 'monto', 'amount', 'importe')) || 0,
-        moneda:       col(r, 'moneda', 'currency') || 'USD',
-        estado:       col(r, 'estado', 'status') || 'No iniciada',
+        monto:        parseFloat(montoRaw) || 0,
+        moneda:       monedaRaw ? monedaRaw.toUpperCase().trim().slice(0,3) : 'PEN',
+        estado:       mapearEstado(estadoRaw),
       }
     }).filter(r => r.alumno_id && r.monto > 0)
 
