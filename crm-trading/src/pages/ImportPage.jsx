@@ -161,8 +161,31 @@ export default function ImportPage() {
           avance:       parseFloat(col(r, 'avance')) || null,
           mentoria:     col(r, 'mentoria'),
           cuenta:       col(r, 'cuenta'),
-          capital_real: parseFloat(col(r, 'capital', 'capitalreal')) || null,
-          fase_fondeo:  col(r, 'fase', 'fasefondeo'),
+          // Balance puede contener número (Real) o texto de fase (Fondeo)
+          // El sistema detecta automáticamente qué tipo es
+          capital_real: (() => {
+            const bal = col(r, 'balance', 'capital', 'capitalreal')
+            const cuenta = col(r, 'cuenta')
+            if (cuenta === 'Real' || cuenta === 'real') return parseFloat(bal) || null
+            const num = parseFloat(bal)
+            return !isNaN(num) && !/fase|aprobad/i.test(bal) ? num : null
+          })(),
+          fase_fondeo: (() => {
+            const bal = col(r, 'balance', 'capital', 'capitalreal')
+            const fase = col(r, 'fase', 'fasefondeo')
+            const cuenta = col(r, 'cuenta')
+            // Si tiene valor explícito de fase, usarlo
+            if (fase) return fase
+            // Si la cuenta es Fondeo y Balance tiene texto, mapearlo
+            if (cuenta === 'Fondeo' || cuenta === 'fondeo') {
+              const b = String(bal).toLowerCase().trim()
+              if (b.includes('primera') || b === 'fase 1' || b === '1') return 'Primera fase'
+              if (b.includes('segunda') || b === 'fase 2' || b === '2') return 'Segunda fase'
+              if (b.includes('aprobad')) return 'Aprobado'
+              if (bal && isNaN(parseFloat(bal))) return bal // texto desconocido, pasar tal cual
+            }
+            return null
+          })(),
           beneficio:    parseFloat(col(r, 'beneficio')) || null,
           retiro:       col(r, 'retiro'),
           monto_retiro: parseFloat(col(r, 'monto')) || null,
