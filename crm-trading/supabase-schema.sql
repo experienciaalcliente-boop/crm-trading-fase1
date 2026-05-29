@@ -100,3 +100,59 @@ ALTER TABLE asesoras ADD COLUMN IF NOT EXISTS rol text DEFAULT 'asesora'
 
 -- Marcar al orientador (cambia el nombre por el real):
 UPDATE asesoras SET rol = 'orientador' WHERE nombre ILIKE '%orientador%';
+
+-- ============================================================
+-- FASE 2: Recaudación
+-- ============================================================
+
+-- Cuotas de pago por alumno
+CREATE TABLE IF NOT EXISTS cuotas (
+  id            uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  alumno_id     uuid REFERENCES alumnos(id) ON DELETE CASCADE,
+  numero_cuota  integer NOT NULL,
+  fecha_vence   date NOT NULL,
+  monto         numeric(12,2) NOT NULL,
+  moneda        text DEFAULT 'USD' CHECK (moneda IN ('USD','PEN')),
+  estado        text DEFAULT 'No iniciada' CHECK (estado IN ('Pagada','Pago parcial','No iniciada','Prórroga','Reserva académica','Retirado')),
+  monto_pagado  numeric(12,2) DEFAULT 0,
+  fecha_pago    date,
+  nueva_fecha   date,
+  motivo_retiro text,
+  observaciones text,
+  created_at    timestamptz DEFAULT now(),
+  updated_at    timestamptz DEFAULT now(),
+  UNIQUE(alumno_id, numero_cuota)
+);
+
+-- Historial de pagos (cada transacción registrada)
+CREATE TABLE IF NOT EXISTS pagos (
+  id          uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  cuota_id    uuid REFERENCES cuotas(id) ON DELETE CASCADE,
+  alumno_id   uuid REFERENCES alumnos(id) ON DELETE CASCADE,
+  tipo        text NOT NULL CHECK (tipo IN ('Pago completo','Pago parcial','Prórroga','Reserva académica','Retiro')),
+  monto       numeric(12,2),
+  moneda      text CHECK (moneda IN ('USD','PEN')),
+  fecha_pago  date NOT NULL DEFAULT CURRENT_DATE,
+  nueva_fecha date,
+  motivo      text,
+  observaciones text,
+  registrado_por text,
+  created_at  timestamptz DEFAULT now()
+);
+
+-- Índices
+CREATE INDEX IF NOT EXISTS idx_cuotas_alumno    ON cuotas(alumno_id);
+CREATE INDEX IF NOT EXISTS idx_cuotas_estado    ON cuotas(estado);
+CREATE INDEX IF NOT EXISTS idx_cuotas_vence     ON cuotas(fecha_vence);
+CREATE INDEX IF NOT EXISTS idx_pagos_cuota      ON pagos(cuota_id);
+CREATE INDEX IF NOT EXISTS idx_pagos_alumno     ON pagos(alumno_id);
+
+-- RLS
+ALTER TABLE cuotas ENABLE ROW LEVEL SECURITY;
+ALTER TABLE pagos  ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "acceso_cuotas" ON cuotas FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "acceso_pagos"  ON pagos  FOR ALL USING (true) WITH CHECK (true);
+
+-- Realtime
+ALTER PUBLICATION supabase_realtime ADD TABLE cuotas;
+ALTER PUBLICATION supabase_realtime ADD TABLE pagos;

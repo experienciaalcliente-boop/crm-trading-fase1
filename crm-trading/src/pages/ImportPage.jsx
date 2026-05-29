@@ -2,7 +2,7 @@ import { useState, useRef } from 'react'
 import * as XLSX from 'xlsx'
 import toast from 'react-hot-toast'
 import { Upload, FileSpreadsheet, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react'
-import { upsertAlumnos, importarHistorialLlamadas } from '../lib/api'
+import { upsertAlumnos, importarHistorialLlamadas, upsertCuotas } from '../lib/api'
 import { supabase } from '../lib/supabase'
 
 // ── Convierte número serial de Excel a formato Mes-AA ──────────
@@ -47,6 +47,11 @@ const TIPOS = {
     titulo: 'Historial de llamadas',
     descripcion: 'Importa registros históricos. Los duplicados se omiten automáticamente.',
     columnas: 'Codigo · Fecha · Alumno · Semana · Asesora · Respondio · Avance · Cuenta · Beneficio · Retiro · Monto · Observaciones',
+  },
+  cuotas: {
+    titulo: 'Cuotas de pago',
+    descripcion: 'Importa las cuotas pendientes de los alumnos. Se identifican por alumno y número de cuota.',
+    columnas: 'Alumno · Numero cuota · Fecha vence · Monto · Moneda (USD/PEN) · Estado',
   },
 }
 
@@ -213,6 +218,44 @@ export default function ImportPage() {
     }
   }
 
+  // ── Procesar cuotas ────────────────────────────────────────
+  async function procesarCuotas() {
+    const { data: alumnosDB } = await supabase.from('alumnos').select('id, nombre')
+    const alumnoMap = {}
+    alumnosDB?.forEach(a => { alumnoMap[a.nombre.toLowerCase().trim()] = a.id })
+
+    const rows = rawData.map((r, i) => {
+      const nombre = col(r, 'alumno', 'nombre')
+      const alumno_id = alumnoMap[nombre.toLowerCase().trim()] || null
+      const fechaRaw = col(r, 'fecha', 'vence', 'fechavence', 'fechavencimiento')
+      return {
+        alumno_id,
+        numero_cuota: parseInt(col(r, 'numero', 'cuota', 'numerocuota', 'nro')) || (i + 1),
+        fecha_vence:  excelSerialToFecha(fechaRaw) || new Date().toISOString().split('T')[0],
+        monto:        parseFloat(col(r, 'monto', 'amount', 'importe')) || 0,
+        moneda:       col(r, 'moneda', 'currency') || 'USD',
+        estado:       col(r, 'estado', 'status') || 'No iniciada',
+      }
+    }).filter(r => r.alumno_id && r.monto > 0)
+
+    if (!rows.length) {
+      toast.error('No se encontraron cuotas válidas. ¿Ya importaste la base de alumnos?')
+      return
+    }
+    setLoading(true)
+    try {
+      const total = await upsertCuotas(rows)
+      setResultado({ ok: true, msg: `${total} cuotas importadas/actualizadas correctamente.` })
+      toast.success(`${total} cuotas importadas ✓`)
+      limpiar()
+    } catch (err) {
+      setResultado({ ok: false, msg: err.message })
+      toast.error('Error: ' + err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const info = TIPOS[tipo]
 
   return (
@@ -297,7 +340,7 @@ export default function ImportPage() {
           )}
           <div style={{ padding: '14px 18px', borderTop: '1px solid rgba(255,255,255,0.07)' }}>
             <button className="crm-btn-primary" style={{ width: '100%', justifyContent: 'center' }}
-              onClick={tipo === 'alumnos' ? procesarAlumnos : procesarHistorial}
+              onClick={tipo === 'alumnos' ? procesarAlumnos : tipo === 'historial' ? procesarHistorial : procesarCuotas}
               disabled={loading}>
               {loading
                 ? <><Loader2 size={14} className="animate-spin" /> Procesando...</>

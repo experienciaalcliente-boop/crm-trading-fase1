@@ -123,3 +123,98 @@ export function suscribirRegistrosHoy(callback) {
     .subscribe()
   return () => supabase.removeChannel(channel)
 }
+
+// ─────────────────────────────────────────
+// RECAUDACIÓN
+// ─────────────────────────────────────────
+
+export async function fetchCuotas({ estado, programa, ordenVencidas } = {}) {
+  let query = supabase
+    .from('cuotas')
+    .select(`
+      *,
+      alumno:alumnos(id, nombre, programa, asesora)
+    `)
+    .order('fecha_vence', { ascending: true })
+
+  if (estado && estado !== 'Todos') query = query.eq('estado', estado)
+
+  const { data, error } = await query
+  if (error) throw error
+
+  let result = data || []
+  if (programa && programa !== 'Todos') {
+    result = result.filter(c => c.alumno?.programa === programa)
+  }
+  if (ordenVencidas) {
+    const hoy = new Date().toISOString().split('T')[0]
+    const vencidas  = result.filter(c => c.fecha_vence < hoy && c.estado !== 'Pagada')
+    const resto     = result.filter(c => c.fecha_vence >= hoy || c.estado === 'Pagada')
+    result = [...vencidas, ...resto]
+  }
+  return result
+}
+
+export async function fetchCuotasAlumno(alumnoId) {
+  const { data, error } = await supabase
+    .from('cuotas')
+    .select('*')
+    .eq('alumno_id', alumnoId)
+    .order('numero_cuota')
+  if (error) throw error
+  return data
+}
+
+export async function registrarPago(cuotaId, payload) {
+  // 1. Insertar en historial de pagos
+  const { error: errPago } = await supabase.from('pagos').insert([{
+    cuota_id:      cuotaId,
+    alumno_id:     payload.alumno_id,
+    tipo:          payload.tipo,
+    monto:         payload.monto || null,
+    moneda:        payload.moneda || null,
+    fecha_pago:    payload.fecha_pago,
+    nueva_fecha:   payload.nueva_fecha || null,
+    motivo:        payload.motivo || null,
+    observaciones: payload.observaciones || null,
+    registrado_por: payload.registrado_por || null,
+  }])
+  if (errPago) throw errPago
+
+  // 2. Actualizar estado de la cuota
+  const updates = {
+    estado:       payload.estado,
+    updated_at:   new Date().toISOString(),
+  }
+  if (payload.monto_pagado !== undefined) updates.monto_pagado = payload.monto_pagado
+  if (payload.fecha_pago)   updates.fecha_pago  = payload.fecha_pago
+  if (payload.nueva_fecha)  updates.nueva_fecha  = payload.nueva_fecha
+  if (payload.motivo)       updates.motivo_retiro = payload.motivo
+
+  const { error: errCuota } = await supabase
+    .from('cuotas').update(updates).eq('id', cuotaId)
+  if (errCuota) throw errCuota
+
+  return true
+}
+
+export async function upsertCuotas(rows) {
+  const CHUNK = 200
+  let total = 0
+  for (let i = 0; i < rows.length; i += CHUNK) {
+    const { error } = await supabase
+      .from('cuotas')
+      .upsert(rows.slice(i, i + CHUNK), { onConflict: 'alumno_id,numero_cuota', ignoreDuplicates: false })
+    if (error) throw error
+    total += rows.slice(i, i + CHUNK).length
+  }
+  return total
+}
+
+export async function fetchResumenRecaudacion() {
+  const { data, error } = await supabase
+    .from('cuotas')
+    .select('estado, monto, monto_pagado, moneda, alumno:alumnos(programa)')
+  if (error) throw error
+  return data || []
+}

@@ -4,13 +4,13 @@ import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 
 const NAV = [
-  { to: '/llamadas', icon: Phone,  label: 'Seguimiento', sub: 'Registro de llamadas' },
-  { to: '/importar', icon: Upload, label: 'Importar',    sub: 'CSV / Excel' },
+  { to: '/llamadas',    icon: Phone,       label: 'Seguimiento',  sub: 'Registro de llamadas' },
+  { to: '/recaudacion', icon: CreditCard,  label: 'Recaudación',  sub: 'Cuotas y pagos'       },
+  { to: '/importar',    icon: Upload,      label: 'Importar',     sub: 'CSV / Excel'           },
 ]
 const NAV_PRONTO = [
-  { icon: CreditCard,        label: 'Recaudación',    sub: 'Fase 2 — próximamente' },
   { icon: MonitorSmartphone, label: 'Orient. Técnica', sub: 'Fase 3 — próximamente' },
-  { icon: BarChart2,         label: 'Dashboard',      sub: 'Fase 4 — próximamente' },
+  { icon: BarChart2,         label: 'Dashboard',       sub: 'Fase 4 — próximamente' },
 ]
 
 export default function AppShell() {
@@ -18,7 +18,6 @@ export default function AppShell() {
   return (
     <div style={{ display:'flex', height:'100vh', overflow:'hidden', background:'#0b0e14' }}>
       <aside style={{ width:220, flexShrink:0, background:'#0f1520', borderRight:'1px solid rgba(255,255,255,0.07)', display:'flex', flexDirection:'column' }}>
-        {/* Logo */}
         <div style={{ padding:'18px 16px', borderBottom:'1px solid rgba(255,255,255,0.07)' }}>
           <div style={{ display:'flex', alignItems:'center', gap:10 }}>
             <div style={{ width:32, height:32, borderRadius:8, background:'#4e8fff', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:700, color:'#fff', fontSize:14 }}>A</div>
@@ -28,7 +27,6 @@ export default function AppShell() {
             </div>
           </div>
         </div>
-        {/* Nav */}
         <nav style={{ flex:1, padding:12, overflowY:'auto' }}>
           <div style={{ fontSize:10, fontWeight:700, color:'#3d5070', textTransform:'uppercase', letterSpacing:'0.08em', padding:'4px 8px 8px' }}>Módulos activos</div>
           {NAV.map(({ to, icon: Icon, label, sub }) => (
@@ -62,7 +60,7 @@ export default function AppShell() {
         </nav>
         <div style={{ padding:'12px 16px', borderTop:'1px solid rgba(255,255,255,0.07)' }}>
           <div style={{ fontSize:11, color:'#3d5070', textTransform:'capitalize' }}>{hoy}</div>
-          <div style={{ fontSize:10, color:'#2a3450', marginTop:2 }}>Fase 1 — en producción</div>
+          <div style={{ fontSize:10, color:'#2a3450', marginTop:2 }}>Fase 2 — en producción</div>
         </div>
       </aside>
       <main style={{ flex:1, overflowY:'auto', background:'#0b0e14' }}>
