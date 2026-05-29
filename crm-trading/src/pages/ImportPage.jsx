@@ -257,87 +257,48 @@ export default function ImportPage() {
     }
 
     const rows = rawData.map((r, i) => {
-      // ── Alumno (Col 5)
-      const getVal = (row, ...nombres) => {
-        for (const n of nombres) {
-          if (row[n] !== undefined && row[n] !== null && row[n] !== '') return String(row[n])
-        }
-        return ''
-      }
-      const nombre = getVal(r, 'Alumno', 'alumno', 'Nombre', 'nombre') || ''
-      const alumno_id = alumnoMap[normNombre(nombre)] || null
+      // Leer por posición de columna — más confiable que por nombre
+      // El orden exacto del archivo es:
+      // [0]CuotaID [1]Nro [2]Fecha [3]CodAlumno [4]Alumno [5]Programa
+      // [6]EstAsesoría [7]EstVentas [8]MontoSoles [9]EstCuota
+      // [10]PagosRel [11]Moneda [12]MontoCuota [13]MontoPagado [14]Saldo
+      const vals = Object.values(r)
 
-      // ── Fecha (Col 3) — puede venir como "2026-05-05 00:00:00" o serial Excel
-      const fechaRaw = getVal(r, 'Fecha', 'fecha', 'Fecha de vencimiento')
+      const nombre          = String(vals[4]  || '').trim()
+      const alumno_id       = alumnoMap[normNombre(nombre)] || null
+      const fechaVal        = vals[2]
+      const estadoAsesoria  = String(vals[6]  || '').trim()
+      const estadoCuota     = String(vals[9]  || '').trim()
+      const monedaVal       = String(vals[11] || '').trim()
+      const montoVal        = vals[12]
+      const montoPagadoVal  = vals[13]
+      const nroVal          = vals[1]
+
+      // Fecha
       const fecha_vence = (() => {
-        if (!fechaRaw) return new Date().toISOString().split('T')[0]
-        const str = fechaRaw.toString().trim()
-        // Si es número serial de Excel (ej: 46147)
+        if (!fechaVal) return new Date().toISOString().split('T')[0]
+        const str = String(fechaVal).trim()
         const num = parseInt(str)
         if (!isNaN(num) && num > 40000 && num < 60000) {
-          const date = new Date((num - 25569) * 86400 * 1000)
-          return date.toISOString().split('T')[0]
+          return new Date((num - 25569) * 86400 * 1000).toISOString().split('T')[0]
         }
-        // Si tiene hora al final "2026-05-05 00:00:00"
         return str.split(' ')[0].split('T')[0]
       })()
 
-      // ── Moneda acordada (Col 12) — "Soles" o "Dólares"
-      const monedaRaw = getVal(r, 'Moneda acordada', 'Moneda Acordada', 'moneda acordada', 'Moneda', 'MONEDA')
-      const moneda = (() => {
-        const m = (monedaRaw || '').toLowerCase().trim()
-        if (m.includes('dol') || m.includes('usd') || m.includes('dollar') || m === 'usd') return 'USD'
-        if (m.includes('sol') || m.includes('pen') || m.includes('soles')) return 'PEN'
-        return 'USD' // default USD si no se reconoce
-      })()
+      // Moneda — "Dólares" → USD, "Soles" → PEN
+      const moneda = monedaVal.toLowerCase().includes('dol') ? 'USD' : 'PEN'
 
-      // ── Monto de la cuota en moneda acordada (Col 13)
-      const montoRaw = getVal(r,
-        'Monto de la cuota en moneda acordada',
-        'Monto de la cuota en Moneda acordada',
-        'monto de la cuota en moneda acordada'
-      )
-      const monto = parseFloat(montoRaw) || 0
+      const monto        = parseFloat(montoVal)       || 0
+      const monto_pagado = parseFloat(montoPagadoVal) || 0
+      const nroCuota     = parseInt(nroVal)            || (i + 1)
 
-      // ── Monto pagado en moneda acordada (Col 14)
-      const montoPagadoRaw = getVal(r,
-        'Monto pagado en moneda acordada',
-        'Monto pagado en Moneda acordada',
-        'monto pagado en moneda acordada'
-      )
-      const monto_pagado = parseFloat(montoPagadoRaw) || 0
+      // Estado: Retirado de asesoría tiene prioridad
+      const estado = estadoAsesoria.toLowerCase().includes('retir')
+        ? 'Retirado'
+        : mapearEstado(estadoCuota)
 
-      // ── Nro de cuota (Col 2)
-      const nroCuota = parseInt(getVal(r, 'Nro', 'nro', 'NRO', 'Numero', 'numero')) || (i + 1)
-
-      // ── Estado Asesoría (Col 7) — si es Retirado, override el estado de cuota
-      const estadoAsesoriaRaw = getVal(r, 'Estado Asesoría', 'Estado Asesoria', 'Estado Asesoría', 'EstadoAsesoria')
-
-      // ── Estado de la cuota (Col 10)
-      const estadoRaw = getVal(r,
-        'Estado de la cuota',
-        'Estado De La Cuota',
-        'estado de la cuota',
-        'Estado'
-      )
-
-      // Si Estado Asesoría = Retirado → siempre Retirado sin importar estado cuota
-      const estado = (() => {
-        const ea = (estadoAsesoriaRaw || '').toLowerCase()
-        if (ea.includes('retir')) return 'Retirado'
-        return mapearEstado(estadoRaw)
-      })()
-
-      return {
-        alumno_id,
-        numero_cuota: nroCuota,
-        fecha_vence,
-        monto,
-        moneda,
-        monto_pagado,
-        estado,
-      }
-    }).filter(r => r.alumno_id) // incluir filas con monto 0 (cuotas no iniciadas)
+      return { alumno_id, numero_cuota: nroCuota, fecha_vence, monto, moneda, monto_pagado, estado }
+    }).filter(r => r.alumno_id)
 
     if (!rows.length) {
       toast.error('No se encontraron cuotas válidas. ¿Ya importaste la base de alumnos?')
