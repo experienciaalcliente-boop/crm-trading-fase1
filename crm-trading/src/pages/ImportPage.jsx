@@ -254,9 +254,11 @@ export default function ImportPage() {
                   <tr key={i}>
                     {preview.headers.map(h => (
                       <td key={h} style={{ maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {/* Mostrar conversión de fecha en preview */}
+                        {/* Mostrar conversión automática en preview */}
                         {h.toLowerCase().includes('programa')
                           ? excelSerialToMesAnio(String(row[h] || ''))
+                          : (h.toLowerCase().includes('fecha') || h.toLowerCase().includes('date'))
+                          ? excelSerialToFecha(String(row[h] || ''))
                           : String(row[h] || '')}
                       </td>
                     ))}
