@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import { useRecaudacion } from '../hooks/useRecaudacion'
 import ModalPago from '../components/modules/ModalPago'
 import { Loader2, RefreshCw } from 'lucide-react'
