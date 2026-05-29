@@ -281,15 +281,6 @@ export default function ImportPage() {
         return 'PEN'
       })()
 
-      // ── Buscar por nombre exacto o por posición en el objeto
-      // Las claves del objeto vienen exactamente como en el Excel
-      const getVal = (row, ...nombres) => {
-        for (const n of nombres) {
-          if (row[n] !== undefined && row[n] !== null && row[n] !== '') return String(row[n])
-        }
-        return ''
-      }
-
       // ── Monto de la cuota en moneda acordada (Col 13)
       const montoRaw = getVal(r,
         'Monto de la cuota en moneda acordada',
