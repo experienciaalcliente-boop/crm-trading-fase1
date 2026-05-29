@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { fetchAlumnos, fetchSesionesHoy, fetchSesionesFecha, insertSesion, updateSesion, crearReunionZoom } from '../lib/api'
+import { fetchAlumnos, fetchSesionesHoy, fetchSesionesFecha, insertSesion, updateSesion, crearReunionZoom, deleteSesion } from '../lib/api'
 import toast from 'react-hot-toast'
 import { format } from 'date-fns'
 
@@ -163,6 +163,18 @@ export function useOrientacion() {
     }
   }, [tipifModal, tipifForm, cargarSesiones, cerrarTipificacion])
 
+  // ── Eliminar sesión ──
+  const eliminarSesion = useCallback(async (sesion) => {
+    if (!window.confirm(`¿Eliminar la sesión de ${sesion.alumno?.nombre}? También se cancelará la reunión de Zoom.`)) return
+    try {
+      await deleteSesion(sesion.id, sesion.zoom_meeting_id)
+      toast.success('Sesión eliminada y reunión Zoom cancelada ✓')
+      cargarSesiones()
+    } catch (err) {
+      toast.error('Error al eliminar: ' + err.message)
+    }
+  }, [cargarSesiones])
+
   const alumnosOpts = alumnos.map(a => ({ value: a.id, label: a.nombre, data: a }))
 
   // Stats del día
@@ -180,7 +192,7 @@ export function useOrientacion() {
     fechaVista, setFechaVista: (f) => { setFechaVista(f); cargarSesiones(f) },
     tipifModal, tipifForm, setTipifField,
     abrirTipificacion, cerrarTipificacion, guardarTipificacion,
-    stats, MOTIVOS, cargarSesiones,
+    stats, MOTIVOS, cargarSesiones, eliminarSesion,
   }
 }
 

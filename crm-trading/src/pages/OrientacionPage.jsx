@@ -1,17 +1,12 @@
 import { useOrientacion } from '../hooks/useOrientacion'
 import ModalTipificacion from '../components/modules/ModalTipificacion'
 import Select from 'react-select'
-import { Loader2, RefreshCw, Video, Clock, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Loader2, RefreshCw, Video, Clock, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react'
 import { format, addDays, subDays } from 'date-fns'
 import { es } from 'date-fns/locale'
 
-// Mismo rsStyles oscuro que FormLlamada
 const rsStyles = {
-  control: (base, state) => ({
-    ...base, background: '#1e2840',
-    border: `1.5px solid ${state.isFocused ? '#4e8fff' : '#2e3d5c'}`,
-    borderRadius: 8, minHeight: 38, boxShadow: state.isFocused ? '0 0 0 3px rgba(78,143,255,0.15)' : 'none',
-  }),
+  control: (base, state) => ({ ...base, background: '#1e2840', border: `1.5px solid ${state.isFocused ? '#4e8fff' : '#2e3d5c'}`, borderRadius: 8, minHeight: 38, boxShadow: state.isFocused ? '0 0 0 3px rgba(78,143,255,0.15)' : 'none' }),
   menu: (base) => ({ ...base, background: '#1e2840', border: '1.5px solid #2e3d5c', borderRadius: 10, boxShadow: '0 8px 28px rgba(0,0,0,0.5)', zIndex: 9999 }),
   menuList: (base) => ({ ...base, background: '#1e2840', borderRadius: 10, padding: 4 }),
   option: (base, state) => ({ ...base, background: state.isSelected ? 'rgba(78,143,255,0.25)' : state.isFocused ? 'rgba(78,143,255,0.15)' : '#1e2840', color: state.isSelected ? '#7ab3ff' : state.isFocused ? '#fff' : '#c8d8f0', borderRadius: 6, fontSize: 13, padding: '9px 12px' }),
@@ -35,16 +30,32 @@ function EstadoBadge({ estado }) {
   return <span style={{ background: s.bg, color: s.color, border: `1px solid ${s.border}`, padding: '2px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600 }}>{estado}</span>
 }
 
-const HORAS_DISPONIBLES = [
-  '09:00','09:30','10:00','10:30','11:00','11:30',
-  '12:00','12:30','14:30','15:00','15:30','16:00','16:30','17:00','17:30',
-]
+// Horarios cada 55 minutos (45 min sesión + 10 min margen entre sesiones)
+const HORAS_MANANA  = ['09:00','09:55','10:50','11:45']
+const HORAS_TARDE   = ['14:30','15:25','16:20','17:15']
+const TODAS_HORAS   = [...HORAS_MANANA, ...HORAS_TARDE]
+
+const ASESORAS = ['Fabiola M.', 'Katerin F.', 'Anael S.']
+
+function horaDisponible(hora, fechaSeleccionada) {
+  const hoy = format(new Date(), 'yyyy-MM-dd')
+  // Si la fecha es futura, todas las horas disponibles
+  if (fechaSeleccionada > hoy) return true
+  // Si es hoy, verificar si la hora ya pasó (con 15 min de margen)
+  if (fechaSeleccionada === hoy) {
+    const ahora = new Date()
+    const [h, m] = hora.split(':').map(Number)
+    const horaSlot = new Date()
+    horaSlot.setHours(h, m + 15, 0, 0) // 15 min de margen
+    return horaSlot > ahora
+  }
+  // Fecha pasada — ninguna hora disponible
+  return false
+}
 
 export default function OrientacionPage() {
   const o = useOrientacion()
   const fechaDisplay = format(new Date(o.fechaVista + 'T00:00:00'), "EEEE d 'de' MMMM, yyyy", { locale: es })
-
-  // Horas ya ocupadas
   const horasOcupadas = o.sesiones.map(s => s.hora_inicio?.slice(0,5))
 
   return (
@@ -52,8 +63,6 @@ export default function OrientacionPage() {
 
       {/* ── COLUMNA PRINCIPAL ── */}
       <div style={{ flex: 1, overflowY: 'auto', padding: 24, minWidth: 0 }}>
-
-        {/* Header */}
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 20 }}>
           <div>
             <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, color: '#e2e8f4', fontSize: 20 }}>Orientación Técnica</h1>
@@ -67,11 +76,11 @@ export default function OrientacionPage() {
         {/* Stats */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 10, marginBottom: 20 }}>
           {[
-            { label: 'Total',         value: o.stats.total,         color: '#7ab3ff' },
-            { label: 'Pendientes',    value: o.stats.pendientes,    color: '#506080' },
-            { label: 'Concretadas',   value: o.stats.concretadas,   color: '#2dd4a0' },
-            { label: 'Reprogramadas', value: o.stats.reprogramadas, color: '#f5b93a' },
-            { label: 'No conectaron', value: o.stats.noConectaron,  color: '#f07070' },
+            { label: 'Total',         value: o.stats.total,          color: '#7ab3ff' },
+            { label: 'Pendientes',    value: o.stats.pendientes,     color: '#506080' },
+            { label: 'Concretadas',   value: o.stats.concretadas,    color: '#2dd4a0' },
+            { label: 'Reprogramadas', value: o.stats.reprogramadas,  color: '#f5b93a' },
+            { label: 'No conectaron', value: o.stats.noConectaron,   color: '#f07070' },
           ].map(({ label, value, color }) => (
             <div key={label} className="crm-card" style={{ padding: '12px 14px' }}>
               <div style={{ fontSize: 10, fontWeight: 700, color: '#506080', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>{label}</div>
@@ -80,7 +89,7 @@ export default function OrientacionPage() {
           ))}
         </div>
 
-        {/* Navegación de fecha */}
+        {/* Navegación fecha */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
           <button className="crm-btn crm-btn-sm" onClick={() => o.setFechaVista(format(subDays(new Date(o.fechaVista + 'T00:00:00'), 1), 'yyyy-MM-dd'))}>
             <ChevronLeft size={14} />
@@ -95,7 +104,7 @@ export default function OrientacionPage() {
           </button>
         </div>
 
-        {/* Agenda del día */}
+        {/* Tabla sesiones */}
         <div className="crm-card">
           <div style={{ padding: '13px 18px', borderBottom: '1px solid rgba(255,255,255,0.07)', display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.02)', borderRadius: '12px 12px 0 0' }}>
             <Clock size={14} style={{ color: '#506080' }} />
@@ -118,7 +127,7 @@ export default function OrientacionPage() {
                 <thead>
                   <tr>
                     <th>Hora</th><th>Alumno</th><th>Programa</th><th>Motivo</th>
-                    <th>Zoom</th><th>Estado</th><th>Acción</th>
+                    <th>Agendado por</th><th>Zoom</th><th>Estado</th><th>Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -129,7 +138,8 @@ export default function OrientacionPage() {
                       </td>
                       <td style={{ fontWeight: 600, color: '#e2e8f4' }}>{s.alumno?.nombre || '—'}</td>
                       <td style={{ fontSize: 12 }}>{s.alumno?.programa || '—'}</td>
-                      <td style={{ fontSize: 12, maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.motivo}</td>
+                      <td style={{ fontSize: 12, maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.motivo}</td>
+                      <td style={{ fontSize: 12 }}>{s.agendado_por || '—'}</td>
                       <td>
                         {s.zoom_join_url
                           ? <a href={s.zoom_join_url} target="_blank" rel="noopener noreferrer"
@@ -140,12 +150,19 @@ export default function OrientacionPage() {
                       </td>
                       <td><EstadoBadge estado={s.estado} /></td>
                       <td>
-                        {s.estado === 'Pendiente' && (
-                          <button className="crm-btn crm-btn-sm" style={{ fontSize: 11 }}
-                            onClick={() => o.abrirTipificacion(s)}>
-                            Tipificar
+                        <div style={{ display: 'flex', gap: 6 }}>
+                          {s.estado === 'Pendiente' && (
+                            <button className="crm-btn crm-btn-sm" style={{ fontSize: 11 }}
+                              onClick={() => o.abrirTipificacion(s)}>
+                              Tipificar
+                            </button>
+                          )}
+                          <button
+                            onClick={() => o.eliminarSesion(s)}
+                            style={{ background: 'rgba(240,92,92,0.1)', border: '1px solid rgba(240,92,92,0.25)', color: '#f07070', padding: '4px 8px', borderRadius: 6, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11 }}>
+                            <Trash2 size={11} /> Eliminar
                           </button>
-                        )}
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -156,7 +173,7 @@ export default function OrientacionPage() {
         </div>
       </div>
 
-      {/* ── PANEL DERECHO: Formulario agendar ── */}
+      {/* ── PANEL DERECHO: Agendar ── */}
       <aside style={{ width: 300, flexShrink: 0, borderLeft: '1px solid rgba(255,255,255,0.07)', background: '#0f1520', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
         <div style={{ padding: '16px', borderBottom: '1px solid rgba(255,255,255,0.07)', background: 'rgba(255,255,255,0.02)' }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: '#e2e8f4' }}>Agendar sesión</div>
@@ -173,24 +190,56 @@ export default function OrientacionPage() {
           <div style={{ height: 12 }} />
           <Field label="Fecha">
             <input type="date" className="crm-input" value={o.form.fecha}
+              min={format(new Date(), 'yyyy-MM-dd')}
               onChange={e => o.setField('fecha', e.target.value)} />
           </Field>
 
           <div style={{ height: 12 }} />
-          <Field label="Horario disponible">
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-              {HORAS_DISPONIBLES.map(h => {
-                const ocupada = horasOcupadas.includes(h) && o.fechaVista === o.form.fecha
+          <Field label="Horario disponible (45 min c/u)">
+            {/* Mañana */}
+            <div style={{ fontSize: 10, color: '#3d5070', marginBottom: 5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+              Mañana · 9:00 – 12:40
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 8 }}>
+              {HORAS_MANANA.map(h => {
+                const ocupada  = horasOcupadas.includes(h) && o.fechaVista === o.form.fecha
+                const pasada   = !horaDisponible(h, o.form.fecha)
+                const disabled = ocupada || pasada
                 return (
-                  <button key={h} onClick={() => !ocupada && o.setField('hora', h)}
-                    disabled={ocupada}
+                  <button key={h} onClick={() => !disabled && o.setField('hora', h)} disabled={disabled}
                     style={{
                       padding: '5px 10px', borderRadius: 7, fontSize: 12, fontWeight: 500,
-                      cursor: ocupada ? 'not-allowed' : 'pointer', transition: 'all 0.15s',
-                      background: o.form.hora === h ? '#4e8fff' : ocupada ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.06)',
-                      border: `1px solid ${o.form.hora === h ? '#4e8fff' : ocupada ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.1)'}`,
-                      color: o.form.hora === h ? '#fff' : ocupada ? '#2e3d5c' : '#9aaccb',
+                      cursor: disabled ? 'not-allowed' : 'pointer', transition: 'all 0.15s',
+                      background: o.form.hora === h ? '#4e8fff' : disabled ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.06)',
+                      border: `1px solid ${o.form.hora === h ? '#4e8fff' : disabled ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.1)'}`,
+                      color: o.form.hora === h ? '#fff' : disabled ? '#2e3d5c' : '#9aaccb',
                       textDecoration: ocupada ? 'line-through' : 'none',
+                      opacity: pasada ? 0.35 : 1,
+                    }}>
+                    {h}
+                  </button>
+                )
+              })}
+            </div>
+            {/* Tarde */}
+            <div style={{ fontSize: 10, color: '#3d5070', marginBottom: 5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+              Tarde · 14:30 – 18:00
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+              {HORAS_TARDE.map(h => {
+                const ocupada  = horasOcupadas.includes(h) && o.fechaVista === o.form.fecha
+                const pasada   = !horaDisponible(h, o.form.fecha)
+                const disabled = ocupada || pasada
+                return (
+                  <button key={h} onClick={() => !disabled && o.setField('hora', h)} disabled={disabled}
+                    style={{
+                      padding: '5px 10px', borderRadius: 7, fontSize: 12, fontWeight: 500,
+                      cursor: disabled ? 'not-allowed' : 'pointer', transition: 'all 0.15s',
+                      background: o.form.hora === h ? '#4e8fff' : disabled ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.06)',
+                      border: `1px solid ${o.form.hora === h ? '#4e8fff' : disabled ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.1)'}`,
+                      color: o.form.hora === h ? '#fff' : disabled ? '#2e3d5c' : '#9aaccb',
+                      textDecoration: ocupada ? 'line-through' : 'none',
+                      opacity: pasada ? 0.35 : 1,
                     }}>
                     {h}
                   </button>
@@ -209,9 +258,10 @@ export default function OrientacionPage() {
 
           <div style={{ height: 12 }} />
           <Field label="Agendado por">
-            <input className="crm-input" value={o.form.agendado_por}
-              onChange={e => o.setField('agendado_por', e.target.value)}
-              placeholder="Nombre de la asesora" />
+            <select className="crm-input" value={o.form.agendado_por} onChange={e => o.setField('agendado_por', e.target.value)}>
+              <option value="">— Seleccionar asesora —</option>
+              {ASESORAS.map(a => <option key={a} value={a}>{a}</option>)}
+            </select>
           </Field>
 
           <div style={{ height: 16 }} />
@@ -223,12 +273,11 @@ export default function OrientacionPage() {
           </button>
 
           <div style={{ marginTop: 10, padding: '8px 10px', borderRadius: 8, background: 'rgba(78,143,255,0.06)', border: '1px solid rgba(78,143,255,0.15)', fontSize: 11, color: '#506080' }}>
-            💡 Duración: 45 minutos · Zona horaria: Lima
+            💡 Duración: 45 min + 10 min margen · Zona horaria: Lima
           </div>
         </div>
       </aside>
 
-      {/* Modal tipificación */}
       {o.tipifModal && (
         <ModalTipificacion
           sesion={o.tipifModal}

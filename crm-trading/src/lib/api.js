@@ -298,3 +298,25 @@ export async function fetchSesionesAlumno(alumnoId) {
   if (error) throw error
   return data || []
 }
+
+export async function cancelarReunionZoom(meetingId) {
+  const res = await fetch('/api/zoom-cancel', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ meeting_id: meetingId }),
+  })
+  if (!res.ok) {
+    const err = await res.json()
+    throw new Error(err.error || 'Error al cancelar reunión en Zoom')
+  }
+  return true
+}
+
+export async function deleteSesion(id, zoomMeetingId) {
+  if (zoomMeetingId) {
+    try { await cancelarReunionZoom(zoomMeetingId) } catch (e) { console.warn('No se pudo cancelar en Zoom:', e.message) }
+  }
+  const { error } = await supabase.from('sesiones_orientacion').delete().eq('id', id)
+  if (error) throw error
+  return true
+}
