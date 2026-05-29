@@ -285,9 +285,11 @@ export default function ImportPage() {
         return str.split(' ')[0].split('T')[0]
       })()
 
-      // Moneda — leer de 'Moneda acordada' (Col 12, índice 11)
-      // Valores: 'Dólares' → USD, 'Soles' → PEN
-      const monedaAcordada = String(r['Moneda acordada'] || vals[11] || '').toLowerCase()
+      // Moneda — buscar la clave que contenga 'moneda' ignorando tildes/mayúsculas
+      const monedaKey = Object.keys(r).find(k => 
+        k.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/\s/g,'') === 'monedaacordada'
+      )
+      const monedaAcordada = String(monedaKey ? r[monedaKey] : vals[11] || '').toLowerCase()
       const moneda = monedaAcordada.includes('dol') ? 'USD' : 'PEN'
 
       const monto        = parseFloat(montoVal)       || 0
