@@ -92,3 +92,11 @@ UNION ALL
 SELECT 'alumnos',            count(*) FROM alumnos
 UNION ALL
 SELECT 'registros_llamadas', count(*) FROM registros_llamadas;
+
+-- ── ACTUALIZACIÓN: columna rol en asesoras ────────────────────
+-- Ejecuta esto si quieres marcar el orientador correctamente:
+ALTER TABLE asesoras ADD COLUMN IF NOT EXISTS rol text DEFAULT 'asesora'
+  CHECK (rol IN ('asesora', 'orientador'));
+
+-- Marcar al orientador (cambia el nombre por el real):
+UPDATE asesoras SET rol = 'orientador' WHERE nombre ILIKE '%orientador%';

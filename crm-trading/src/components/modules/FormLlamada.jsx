@@ -54,7 +54,6 @@ const CUENTAS = [
   { value: 'Real',     label: 'Real'     },
   { value: 'Fondeo',   label: 'Fondeo'   },
   { value: 'No opera', label: 'No opera' },
-  { value: 'Balance',  label: 'Balance'  },
 ]
 const FASES = [
   { value: 'Primera fase', label: 'Primera fase' },

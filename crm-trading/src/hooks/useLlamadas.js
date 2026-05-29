@@ -71,7 +71,9 @@ export function useLlamadas() {
     data: a,
   }))
 
-  const asesorasOpts = asesoras.map(a => ({ value: a.id, label: a.nombre }))
+  const asesorasOpts = asesoras
+    .filter(a => !a.nombre.toLowerCase().includes('orientador') && !a.nombre.toLowerCase().includes('técnico') && !a.nombre.toLowerCase().includes('tecnico'))
+    .map(a => ({ value: a.id, label: a.nombre }))
 
   // ── Cambio de alumno → autocompletar ──
   const onAlumnoChange = useCallback(opt => {
