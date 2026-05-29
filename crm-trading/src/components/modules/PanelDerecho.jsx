@@ -1,111 +1,100 @@
-import { Users, TrendingUp, PhoneMissed, Phone } from 'lucide-react'
+import { TrendingUp, PhoneMissed, Phone } from 'lucide-react'
 
-export default function PanelDerecho({
-  asesoras, registrosHoy, stats,
-  asesoraPanel, setAsesoraPanel,
-}) {
+export default function PanelDerecho({ asesoras, registrosHoy, stats, asesoraPanel, setAsesoraPanel }) {
   const sinRespuesta = stats.sinRespuesta || []
 
   return (
-    <aside className="w-[280px] flex-shrink-0 border-l border-line bg-bg-2 flex flex-col overflow-y-auto">
+    <aside style={{ width: 280, flexShrink: 0, borderLeft: '1px solid #e4e9f2', background: '#fff', display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
 
       {/* Título */}
-      <div className="px-4 py-4 border-b border-line">
-        <div className="text-xs font-semibold text-white">Panel del día</div>
-        <div className="text-[10px] text-muted mt-0.5">Actualización en tiempo real</div>
+      <div style={{ padding: '16px', borderBottom: '1px solid #e4e9f2', background: '#f8faff' }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: '#1a2035' }}>Panel del día</div>
+        <div style={{ fontSize: 10, color: '#a0acc4', marginTop: 2 }}>Actualización en tiempo real</div>
       </div>
 
-      {/* Tabs asesoras */}
-      <div className="px-3 py-3 border-b border-line">
-        <div className="text-[10px] text-muted uppercase tracking-widest mb-2 px-1">Filtrar por asesora</div>
-        <div className="flex flex-wrap gap-1.5">
-          <button
-            onClick={() => setAsesoraPanel(null)}
-            style={asesoraPanel === null ? { backgroundColor:'rgba(78,143,255,0.15)', borderColor:'rgba(78,143,255,0.35)', color:'#4e8fff' } : {}}
-            className="px-2.5 py-1 rounded-full text-[11px] font-medium border border-line2 bg-bg-3 text-sub hover:text-white transition-all"
-          >
-            Todas
-          </button>
-          {asesoras.map(a => (
-            <button
-              key={a.id}
-              onClick={() => setAsesoraPanel(a.nombre === asesoraPanel ? null : a.nombre)}
-              style={asesoraPanel === a.nombre ? { backgroundColor:'rgba(78,143,255,0.15)', borderColor:'rgba(78,143,255,0.35)', color:'#4e8fff' } : {}}
-              className="px-2.5 py-1 rounded-full text-[11px] font-medium border border-line2 bg-bg-3 text-sub hover:text-white transition-all"
-            >
-              {a.nombre.split(' ')[0]}
-            </button>
-          ))}
+      {/* Tabs */}
+      <div style={{ padding: '12px', borderBottom: '1px solid #e4e9f2' }}>
+        <div style={{ fontSize: 10, fontWeight: 700, color: '#a0acc4', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>
+          Filtrar por asesora
+        </div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+          {['Todas', ...asesoras.map(a => a.nombre)].map(nombre => {
+            const isActive = nombre === 'Todas' ? asesoraPanel === null : asesoraPanel === nombre
+            return (
+              <button key={nombre}
+                onClick={() => setAsesoraPanel(nombre === 'Todas' ? null : (nombre === asesoraPanel ? null : nombre))}
+                style={{
+                  padding: '4px 12px', borderRadius: 20, fontSize: 11, fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s',
+                  background: isActive ? '#eef4ff' : '#f4f6fb',
+                  border: `1px solid ${isActive ? '#bdd1ff' : '#e4e9f2'}`,
+                  color: isActive ? '#2563eb' : '#6b7a99',
+                }}>
+                {nombre === 'Todas' ? nombre : nombre.split(' ')[0]}
+              </button>
+            )
+          })}
         </div>
       </div>
 
-      {/* Stats grid */}
-      <div className="grid grid-cols-2 gap-2 p-3 border-b border-line">
-        <StatMini icon={Phone}        label="Llamadas"      value={stats.total}            color="blue" />
-        <StatMini icon={TrendingUp}   label="Respondieron"  value={stats.respondieron}     color="green" />
-        <StatMini icon={PhoneMissed}  label="Sin respuesta" value={sinRespuesta.length}    color="red" />
-        <StatMini icon={TrendingUp}   label="Efectividad"   value={`${stats.efectividad}%`} color="amber" />
+      {/* Stats */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, padding: 12, borderBottom: '1px solid #e4e9f2' }}>
+        <StatMini icon={Phone}       label="Llamadas"      value={stats.total}            color="blue" />
+        <StatMini icon={TrendingUp}  label="Respondieron"  value={stats.respondieron}     color="green" />
+        <StatMini icon={PhoneMissed} label="Sin respuesta" value={sinRespuesta.length}    color="red" />
+        <StatMini icon={TrendingUp}  label="Efectividad"   value={`${stats.efectividad}%`} color="amber" />
       </div>
 
-      {/* Lista sin respuesta */}
-      <div className="px-4 py-2.5 border-b border-line">
-        <div className="text-[10px] font-semibold text-muted uppercase tracking-widest flex items-center gap-1.5">
-          <PhoneMissed size={10} />
+      {/* Sin respuesta */}
+      <div style={{ padding: '10px 14px 8px', borderBottom: '1px solid #e4e9f2', display: 'flex', alignItems: 'center', gap: 6 }}>
+        <PhoneMissed size={10} style={{ color: '#a0acc4' }} />
+        <span style={{ fontSize: 10, fontWeight: 700, color: '#8896b4', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
           Sin respuesta hoy
-          {sinRespuesta.length > 0 && (
-            <span style={{ backgroundColor:'rgba(240,92,92,0.15)', color:'#f05c5c' }} className="ml-auto text-[10px] px-1.5 py-0.5 rounded-full font-bold">
-              {sinRespuesta.length}
-            </span>
-          )}
-        </div>
-      </div>
-
-      <div className="flex-1 overflow-y-auto">
-        {!sinRespuesta.length ? (
-          <div className="flex flex-col items-center justify-center py-8 text-muted gap-1.5">
-            <div className="text-2xl">✓</div>
-            <p className="text-xs">¡Todos respondieron!</p>
-          </div>
-        ) : (
-          sinRespuesta.map(r => (
-            <div key={r.id} className="px-4 py-3 border-b border-line hover:bg-bg-3 transition-colors">
-              <div className="text-[13px] font-medium text-white truncate">
-                {r.alumno?.nombre || '—'}
-              </div>
-              <div className="text-[11px] text-muted mt-0.5 flex items-center gap-1.5">
-                <span className="truncate">{r.alumno?.programa || ''}</span>
-                {r.alumno?.semana_actual && (
-                  <><span>·</span><span>Sem. {r.alumno.semana_actual}</span></>
-                )}
-              </div>
-              <div className="text-[10px] text-muted/70 mt-0.5">{r.asesora?.nombre || ''}</div>
-            </div>
-          ))
+        </span>
+        {sinRespuesta.length > 0 && (
+          <span style={{ marginLeft: 'auto', background: '#fef0f0', color: '#d63030', border: '1px solid #f8c8c8', fontSize: 10, fontWeight: 700, padding: '1px 7px', borderRadius: 20 }}>
+            {sinRespuesta.length}
+          </span>
         )}
       </div>
 
-      {/* Footer total */}
-      <div className="p-3 border-t border-line">
-        <div className="text-[10px] text-muted flex justify-between">
-          <span>Total registros hoy</span>
-          <span className="text-sub font-medium">{registrosHoy.length}</span>
-        </div>
+      <div style={{ flex: 1, overflowY: 'auto' }}>
+        {!sinRespuesta.length ? (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '32px 16px', color: '#a0acc4', gap: 6 }}>
+            <div style={{ fontSize: 24, color: '#22c98e' }}>✓</div>
+            <p style={{ fontSize: 12 }}>¡Todos respondieron!</p>
+          </div>
+        ) : sinRespuesta.map(r => (
+          <div key={r.id} style={{ padding: '11px 14px', borderBottom: '1px solid #eef1f8', cursor: 'default', transition: 'background 0.15s' }}
+            onMouseEnter={e => e.currentTarget.style.background = '#f4f7ff'}
+            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: '#1a2035' }}>{r.alumno?.nombre || '—'}</div>
+            <div style={{ fontSize: 11, color: '#8896b4', marginTop: 2 }}>
+              {r.alumno?.programa || ''}{r.alumno?.semana_actual ? ` · Sem. ${r.alumno.semana_actual}` : ''}
+            </div>
+            <div style={{ fontSize: 10, color: '#b0bcd4', marginTop: 2 }}>{r.asesora?.nombre || ''}</div>
+          </div>
+        ))}
+      </div>
+
+      <div style={{ padding: '10px 14px', borderTop: '1px solid #e4e9f2', display: 'flex', justifyContent: 'space-between' }}>
+        <span style={{ fontSize: 11, color: '#a0acc4' }}>Total registros hoy</span>
+        <span style={{ fontSize: 11, color: '#4a5578', fontWeight: 600 }}>{registrosHoy.length}</span>
       </div>
     </aside>
   )
 }
 
 function StatMini({ icon: Icon, label, value, color }) {
-  const styles = {
-    blue:  { color:'#4e8fff',  borderColor:'rgba(78,143,255,0.2)',  backgroundColor:'rgba(78,143,255,0.05)' },
-    green: { color:'#2dd4a0',  borderColor:'rgba(45,212,160,0.2)',  backgroundColor:'rgba(45,212,160,0.05)' },
-    red:   { color:'#f05c5c',  borderColor:'rgba(240,92,92,0.2)',   backgroundColor:'rgba(240,92,92,0.05)'  },
-    amber: { color:'#f5a623',  borderColor:'rgba(245,166,35,0.2)',  backgroundColor:'rgba(245,166,35,0.05)' },
-  }
+  const s = {
+    blue:  { bg: '#eef4ff', border: '#bdd1ff', color: '#2563eb' },
+    green: { bg: '#e8faf3', border: '#b8edd6', color: '#0f9e65' },
+    red:   { bg: '#fef0f0', border: '#f8c8c8', color: '#d63030' },
+    amber: { bg: '#fffbeb', border: '#fcd97a', color: '#b45309' },
+  }[color]
   return (
-    <div style={{ ...styles[color], border:'1px solid' }} className="rounded-xl p-2.5">
-      <div className="text-[10px] font-semibold opacity-70 mb-1 uppercase tracking-wider">{label}</div>
-      <div style={{ color: styles[color].color }} className="text-xl font-display font-bold leading-none">{value}</div>
+    <div style={{ background: s.bg, border: `1px solid ${s.border}`, borderRadius: 10, padding: '10px 12px' }}>
+      <div style={{ fontSize: 10, fontWeight: 700, color: s.color, opacity: 0.7, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>{label}</div>
+      <div style={{ fontSize: 20, fontWeight: 700, color: s.color, lineHeight: 1, fontFamily: 'Syne, sans-serif' }}>{value}</div>
     </div>
   )
 }

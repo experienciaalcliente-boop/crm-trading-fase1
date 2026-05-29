@@ -10,48 +10,35 @@ export default function LlamadasPage() {
   const state = useLlamadas()
 
   if (state.loading) return (
-    <div className="flex items-center justify-center h-full gap-3 text-muted">
+    <div className="flex items-center justify-center h-full gap-3" style={{ color: '#a0acc4' }}>
       <Loader2 size={18} className="animate-spin" />
-      <span className="text-sm">Cargando datos...</span>
+      <span style={{ fontSize: 13 }}>Cargando datos...</span>
     </div>
   )
 
   const hoy = format(new Date(), "EEEE d 'de' MMMM, yyyy", { locale: es })
 
   return (
-    <div className="flex h-full">
-      {/* ── COLUMNA PRINCIPAL ── */}
-      <div className="flex-1 overflow-y-auto p-6 min-w-0">
-
+    <div style={{ display: 'flex', height: '100%' }}>
+      {/* Columna principal */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: 24, minWidth: 0 }}>
         {/* Header */}
-        <div className="flex items-start justify-between mb-6">
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 20 }}>
           <div>
-            <h1 className="font-display font-bold text-white text-xl">Registro de llamadas</h1>
-            <p className="text-sm text-muted capitalize mt-0.5">{hoy}</p>
+            <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, color: '#1a2035', fontSize: 20 }}>Registro de llamadas</h1>
+            <p style={{ fontSize: 13, color: '#8896b4', textTransform: 'capitalize', marginTop: 3 }}>{hoy}</p>
           </div>
-          <div className="flex gap-2">
-            <button className="crm-btn crm-btn-sm" onClick={state.limpiar}>
-              ↺ Limpiar
-            </button>
-            <button
-              className="crm-btn-primary crm-btn-sm"
-              onClick={state.guardar}
-              disabled={state.saving}
-            >
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button className="crm-btn crm-btn-sm" onClick={state.limpiar}>↺ Limpiar</button>
+            <button className="crm-btn-primary crm-btn-sm" onClick={state.guardar} disabled={state.saving}>
               {state.saving ? <Loader2 size={13} className="animate-spin" /> : '✓'}
               Guardar registro
             </button>
           </div>
         </div>
-
-        {/* Formulario */}
         <FormLlamada {...state} />
-
-        {/* Historial */}
         <HistorialAlumno historial={state.historial} alumno={state.form.alumno} />
       </div>
-
-      {/* ── PANEL DERECHO ── */}
       <PanelDerecho
         asesoras={state.asesoras}
         registrosHoy={state.registrosHoy}
