@@ -228,6 +228,7 @@ export async function upsertCuotas(rows) {
   const CHUNK = 200
   let total = 0
   for (let i = 0; i < rows.length; i += CHUNK) {
+    // Incluir monto_pagado en el upsert para reflejar pagos parciales ya existentes
     const { error } = await supabase
       .from('cuotas')
       .upsert(rows.slice(i, i + CHUNK), { onConflict: 'alumno_id,numero_cuota', ignoreDuplicates: false })

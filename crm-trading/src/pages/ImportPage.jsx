@@ -238,36 +238,77 @@ export default function ImportPage() {
       return 'No iniciada'
     }
 
+    // Helper: buscar columna ignorando espacios, tildes, mayúsculas y caracteres especiales
+    function buscarCol(row, ...fragmentos) {
+      const norm = s => String(s).toLowerCase()
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]/g, '') // eliminar todo excepto letras y números
+      for (const frag of fragmentos) {
+        const fragNorm = norm(frag)
+        const found = Object.keys(row).find(c => norm(c).includes(fragNorm))
+        if (found && row[found] !== undefined && row[found] !== '') {
+          return String(row[found]).trim()
+        }
+      }
+      return ''
+    }
+
     const rows = rawData.map((r, i) => {
-      // Buscar columna Alumno de forma más agresiva
-      const nombre = col(r, 'alumno', 'nombre', 'name', 'student') || ''
+      // Nombre del alumno
+      const nombre = buscarCol(r, 'alumno', 'nombre', 'name') || ''
       const alumno_id = alumnoMap[nombre.toLowerCase().trim()] || null
 
-      // Fecha — puede ser serial o texto
-      const fechaRaw = col(r, 'fecha', 'vence', 'fechavence', 'fechavencimiento', 'date')
+      // Fecha de vencimiento
+      const fechaRaw = buscarCol(r, 'fecha', 'vencimiento', 'vence')
 
-      // Monto — buscar columna de monto en moneda acordada primero
-      const montoRaw = col(r, 'montodelaenmonedaacordada', 'montocuotamonedaacordada',
-                            'montodeacuerdoalamoneda', 'monto', 'amount', 'importe',
-                            'cuotamonedaacordada')
-        || col(r, 'moneda acordada') || col(r, 'monto de la cuota en moneda acordada')
+      // Moneda acordada (USD o PEN)
+      const monedaRaw = buscarCol(r, 'monedaacordada', 'moneda acordada', 'moneda')
+      const moneda = monedaRaw ? monedaRaw.toUpperCase().trim().slice(0,3) : 'PEN'
 
-      // Moneda
-      const monedaRaw = col(r, 'moneda', 'monedaacordada', 'currency', 'moneda acordada')
+      // Monto: usar "Monto de la cuota en moneda acordada"
+      // que es el monto real según la moneda de pago de cada alumno
+      const montoRaw = buscarCol(r,
+        'montodelaenmonedaacordada',
+        'cuotaenmonedaacordada',
+        'montocuota',
+        'montodeacuerdo',
+      )
+      // Si no encontró, intentar con "monto de la cuota en soles" como fallback
+      const montoFallback = buscarCol(r, 'montosoles', 'cuotasoles', 'cuotaensoles')
+      const monto = parseFloat(montoRaw || montoFallback) || 0
+
+      // Monto ya pagado en moneda acordada
+      const montoPagadoRaw = buscarCol(r, 'montopagado', 'pagadoenmoneda', 'pagado')
+      const montoPagado = parseFloat(montoPagadoRaw) || 0
 
       // Número de cuota
-      const nroCuota = parseInt(col(r, 'nro', 'numero', 'cuota', 'numerocuota', 'nrodecuota', 'cuotaid')) || (i + 1)
+      const nroCuota = parseInt(buscarCol(r, 'nrodecuota', 'numerodecuota', 'nrocuota', 'nro', 'numero')) || (i + 1)
 
-      // Estado
-      const estadoRaw = col(r, 'estadodelacuota', 'estado', 'status', 'estado de la cuota')
+      // Estado de la cuota
+      const estadoRaw = buscarCol(r, 'estadodelacuota', 'estadocuota', 'estado')
+
+      // Calcular tipo de cambio implícito si hay monto en soles y monto en moneda acordada
+      // Útil para análisis futuros
+      const montoSolesRaw = buscarCol(r, 'montosoles', 'cuotaensoles', 'montoenso')
+      const montoSoles = parseFloat(montoSolesRaw) || 0
+      let tipoCambio = null
+      if (moneda === 'USD' && montoSoles > 0 && monto > 0) {
+        tipoCambio = Math.round((montoSoles / monto) * 100) / 100
+      }
 
       return {
         alumno_id,
         numero_cuota: nroCuota,
         fecha_vence:  excelSerialToFecha(fechaRaw) || new Date().toISOString().split('T')[0],
-        monto:        parseFloat(montoRaw) || 0,
-        moneda:       monedaRaw ? monedaRaw.toUpperCase().trim().slice(0,3) : 'PEN',
-        estado:       mapearEstado(estadoRaw),
+        monto,
+        moneda,
+        monto_pagado: montoPagado,
+        // Estado: si ya tiene monto pagado y es igual al monto total → Pagada
+        estado: montoPagado >= monto && monto > 0
+          ? 'Pagada'
+          : montoPagado > 0 && montoPagado < monto
+          ? 'Pago parcial'
+          : mapearEstado(estadoRaw),
       }
     }).filter(r => r.alumno_id && r.monto > 0)
 
