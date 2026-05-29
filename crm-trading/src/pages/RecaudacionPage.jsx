@@ -32,17 +32,25 @@ function isVencida(fecha) {
 
 export default function RecaudacionPage() {
   const r = useRecaudacion()
-  const [filtroDia, setFiltroDia] = useState('Todos los días')
+  const [filtroDia,    setFiltroDia]    = useState('Todos los días')
+  const [buscarAlumno, setBuscarAlumno] = useState('')
 
-  const cuotasFiltradas = filtroDia === 'Todos los días'
-    ? r.cuotas
-    : r.cuotas.filter(c => {
+  const cuotasFiltradas = r.cuotas
+    .filter(c => {
+      // Filtro día
+      if (filtroDia !== 'Todos los días') {
         if (!c.fecha_vence) return false
         const dia = new Date(c.fecha_vence + 'T00:00:00').getDate()
-        if (filtroDia === 'Día 5')  return dia === 5
-        if (filtroDia === 'Día 15') return dia === 15
-        return true
-      })
+        if (filtroDia === 'Día 5'  && dia !== 5)  return false
+        if (filtroDia === 'Día 15' && dia !== 15) return false
+      }
+      // Filtro búsqueda alumno
+      if (buscarAlumno.trim()) {
+        const nombre = (c.alumno?.nombre || '').toLowerCase()
+        if (!nombre.includes(buscarAlumno.toLowerCase())) return false
+      }
+      return true
+    })
 
   return (
     <div style={{ padding: 24 }}>
@@ -92,6 +100,15 @@ export default function RecaudacionPage() {
           ))}
         </div>
 
+        {/* Buscador de alumno */}
+        <input
+          type="text"
+          placeholder="🔍 Buscar alumno..."
+          value={buscarAlumno}
+          onChange={e => setBuscarAlumno(e.target.value)}
+          style={{ padding:'6px 12px', background:'#1e2840', border:'1.5px solid #2e3d5c', borderRadius:8, color:'#e2e8f4', fontSize:13, width:220 }}
+        />
+
         {/* Día de pago */}
         <div style={{ display: 'flex', gap: 6 }}>
           {DIAS_PAGO.map(d => (
@@ -138,6 +155,7 @@ export default function RecaudacionPage() {
                   <th>Programa</th>
                   <th>Cuota</th>
                   <th>Vence</th>
+                  <th>Moneda</th>
                   <th>Monto</th>
                   <th>Pagado</th>
                   <th>Estado</th>
@@ -158,11 +176,21 @@ export default function RecaudacionPage() {
                       <td style={{ fontSize: 12, color: vencida ? '#f07070' : '#9aaccb', whiteSpace: 'nowrap' }}>
                         {format(new Date(cuota.fecha_vence + 'T00:00:00'), 'dd MMM yyyy', { locale: es })}
                       </td>
+                      <td>
+                        <span style={{ 
+                          fontSize: 11, fontWeight: 700, padding: '2px 7px', borderRadius: 20,
+                          background: cuota.moneda === 'USD' ? 'rgba(78,143,255,0.15)' : 'rgba(46,204,138,0.15)',
+                          color: cuota.moneda === 'USD' ? '#7ab3ff' : '#2dd4a0',
+                          border: `1px solid ${cuota.moneda === 'USD' ? 'rgba(78,143,255,0.3)' : 'rgba(46,204,138,0.3)'}`,
+                        }}>
+                          {cuota.moneda}
+                        </span>
+                      </td>
                       <td style={{ fontWeight: 600, color: '#e2e8f4' }}>
-                        {cuota.moneda} {Number(cuota.monto).toFixed(2)}
+                        {Number(cuota.monto).toFixed(2)}
                       </td>
                       <td style={{ color: cuota.monto_pagado > 0 ? '#f5b93a' : '#3d5070' }}>
-                        {cuota.monto_pagado > 0 ? `${cuota.moneda} ${Number(cuota.monto_pagado).toFixed(2)}` : '—'}
+                        {cuota.monto_pagado > 0 ? Number(cuota.monto_pagado).toFixed(2) : '—'}
                       </td>
                       <td><EstadoBadge estado={cuota.estado} /></td>
                       <td>
