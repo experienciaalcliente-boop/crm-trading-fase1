@@ -222,8 +222,11 @@ export default function ImportPage() {
   async function procesarCuotas() {
     const { data: alumnosDB } = await supabase.from('alumnos').select('id, nombre')
     const alumnoMap = {}
-    // Mapa por nombre exacto en minúsculas
-    alumnosDB?.forEach(a => { alumnoMap[a.nombre.toLowerCase().trim()] = a.id })
+    // Normalizar: minúsculas + sin tildes + sin espacios extra
+    const normNombre = s => String(s || '').toLowerCase().trim()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // quitar tildes
+      .replace(/\s+/g, ' ') // espacios múltiples a uno
+    alumnosDB?.forEach(a => { alumnoMap[normNombre(a.nombre)] = a.id })
 
     // Mapeo de estados del archivo a los valores del sistema
     function mapearEstado(estadoRaw) {
@@ -256,7 +259,7 @@ export default function ImportPage() {
     const rows = rawData.map((r, i) => {
       // ── Columna ALUMNO (Col 5 en tu archivo)
       const nombre = buscarCol(r, 'alumno') || ''
-      const alumno_id = alumnoMap[nombre.toLowerCase().trim()] || null
+      const alumno_id = alumnoMap[normNombre(nombre)] || null
 
       // ── Columna FECHA (Col 3) — viene como "2026-05-05 00:00:00"
       const fechaRaw = buscarCol(r, 'fecha')
