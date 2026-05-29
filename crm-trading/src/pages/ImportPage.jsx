@@ -285,23 +285,22 @@ export default function ImportPage() {
         return str.split(' ')[0].split('T')[0]
       })()
 
-      // Moneda — iterar todas las claves buscando 'moneda' y 'acordada'
-      let monedaAcordada = ''
-      for (const k of Object.keys(r)) {
-        const kNorm = k.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/\s/g,'')
-        if (kNorm.includes('moneda') && kNorm.includes('acordada')) {
-          monedaAcordada = String(r[k] || '').toLowerCase()
-          break
-        }
-      }
-      // Si no encontró, usar posición 11
-      if (!monedaAcordada) monedaAcordada = String(vals[11] || '').toLowerCase()
-      if (i === 0) console.log('DEBUG moneda fila1:', monedaAcordada, '| vals[11]:', vals[11], '| todas las claves:', Object.keys(r))
-      const moneda = monedaAcordada.includes('dol') ? 'USD' : 'PEN'
+      // Moneda — 'Dólares' tiene tilde en la o, hay que normalizar antes de comparar
+      const monedaValRaw = r['Moneda acordada'] || r['Moneda Acordada'] || vals[11] || ''
+      const monedaNorm = String(monedaValRaw)
+        .normalize('NFD')                    // descomponer caracteres acentuados
+        .replace(/[\u0300-\u036f]/g, '')   // eliminar tildes → 'Dolares'
+        .toLowerCase()                        // → 'dolares'
+      const moneda = monedaNorm.startsWith('dol') ? 'USD' : 'PEN'
 
-      const monto        = parseFloat(montoVal)       || 0
-      const monto_pagado = parseFloat(montoPagadoVal) || 0
-      const nroCuota     = parseInt(nroVal)            || (i + 1)
+      // Leer también por nombre de clave como respaldo
+      const montoFinal      = montoVal      !== '' ? montoVal      : r['Monto de la cuota en moneda acordada']
+      const montoPagadoFinal= montoPagadoVal !== '' ? montoPagadoVal : r['Monto pagado en moneda acordada']
+      const nroFinal        = nroVal        !== '' ? nroVal        : r['Nro']
+
+      const monto        = parseFloat(montoFinal)       || 0
+      const monto_pagado = parseFloat(montoPagadoFinal) || 0
+      const nroCuota     = parseInt(nroFinal)            || (i + 1)
 
       // Estado: Retirado de asesoría tiene prioridad
       const estado = estadoAsesoria.toLowerCase().includes('retir')
