@@ -133,12 +133,8 @@ export function useLlamadas() {
       if (form.retiro?.value === 'Sí' && !form.monto_retiro) faltantes.push('Monto retirado')
 
       if (faltantes.length > 0) {
-        toast.error(
-          '⚠ Faltan los siguientes campos:
-• ' + faltantes.join('
-• '),
-          { duration: 5000, style: { whiteSpace: 'pre-line', maxWidth: 320 } }
-        )
+        const msg = 'Faltan campos: ' + faltantes.join(', ')
+        toast.error(msg, { duration: 5000 })
         return
       }
     }
