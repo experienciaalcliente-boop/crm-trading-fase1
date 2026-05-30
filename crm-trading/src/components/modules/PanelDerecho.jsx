@@ -2,7 +2,7 @@ import { TrendingUp, PhoneMissed, Phone } from 'lucide-react'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 
-export default function PanelDerecho({ asesoras, registrosHoy, stats, asesoraPanel, setAsesoraPanel }) {
+export default function PanelDerecho({ asesoras, asesorasPanelOpts, registrosHoy, stats, asesoraPanel, setAsesoraPanel, onSeleccionarAlumno }) {
   const sinRespuesta = stats.sinRespuesta || []
   const hoy = new Date().toISOString().split('T')[0]
 
