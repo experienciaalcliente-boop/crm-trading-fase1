@@ -75,8 +75,7 @@ export async function fetchSinResponderAcumulado() {
       alumno:alumnos(id, nombre, programa, semana_actual),
       asesora:asesoras(nombre, rol)
     `)
-    .order('alumno_id')
-    .order('created_at', { ascending: false })
+    .order('created_at', { ascending: false }) // más reciente primero
   if (error) throw error
 
   // Agrupar por alumno y quedarse solo con el último registro de cada uno
@@ -97,7 +96,7 @@ export async function fetchHistorialAlumno(alumnoId) {
     .from('registros_llamadas')
     .select('*')
     .eq('alumno_id', alumnoId)
-    .order('fecha', { ascending: false })
+    .order('created_at', { ascending: false }) // orden por timestamp exacto
     .limit(50)
   if (error) throw error
   return data

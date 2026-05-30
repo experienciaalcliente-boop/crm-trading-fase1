@@ -179,6 +179,34 @@ export function useLlamadas() {
     }
   }, [form])
 
+  // ── Seleccionar alumno desde el panel derecho ──
+  const seleccionarDesdePanelDerecho = useCallback((registro) => {
+    const alumno = registro.alumno
+    if (!alumno) return
+
+    // Buscar el programa del alumno
+    const alumnoData = alumnos.find(a => a.id === registro.alumno_id)
+    if (!alumnoData) return
+
+    const progOpt = programasOpts.find(p => p.value === alumnoData.programa)
+    const alumnoOpt = { value: alumnoData.id, label: alumnoData.nombre, data: alumnoData }
+    const asesoraOpt = asesorasOpts.find(a => a.label === registro.asesora?.nombre) || null
+
+    setForm(f => ({
+      ...f,
+      programa: progOpt || null,
+      alumno:   alumnoOpt,
+      semana:   alumnoData.semana_actual || '',
+      asesora:  asesoraOpt,
+    }))
+
+    // Cargar historial
+    fetchHistorialAlumno(alumnoData.id).then(setHistorial).catch(console.error)
+
+    // Scroll al formulario
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }, [alumnos, programasOpts, asesorasOpts])
+
   const recargarHistorial = useCallback((alumnoId) => {
     if (alumnoId) fetchHistorialAlumno(alumnoId).then(setHistorial).catch(console.error)
   }, [])
@@ -211,7 +239,7 @@ export function useLlamadas() {
     alumnos, asesoras, asesorasForm, registrosHoy, historial,
     form, setField, onAlumnoChange, onProgramaChange,
     programasOpts, alumnosOpts, asesorasOpts,
-    guardar, limpiar, recargarHistorial,
+    guardar, limpiar, recargarHistorial, seleccionarDesdePanelDerecho,
     loading, saving,
     asesoraPanel, setAsesoraPanel, stats, sinResponder,
     asesorasPanelOpts,

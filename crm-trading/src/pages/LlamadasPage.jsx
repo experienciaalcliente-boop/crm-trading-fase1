@@ -57,6 +57,7 @@ export default function LlamadasPage() {
         stats={state.stats}
         asesoraPanel={state.asesoraPanel}
         setAsesoraPanel={state.setAsesoraPanel}
+        onSeleccionarAlumno={state.seleccionarDesdePanelDerecho}
       />
     </div>
   )
