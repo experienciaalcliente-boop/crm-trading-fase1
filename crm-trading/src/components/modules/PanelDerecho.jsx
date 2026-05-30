@@ -75,12 +75,13 @@ export default function PanelDerecho({ asesoras, registrosHoy, stats, asesoraPan
           const esHoy = r.fecha === hoy
           const diasAtras = Math.floor((new Date(hoy) - new Date(r.fecha)) / (1000*60*60*24))
           return (
-            <div key={r.id} style={{ padding:'11px 14px', borderBottom:'1px solid rgba(255,255,255,0.05)', transition:'background 0.15s', cursor:'default' }}
-              onMouseEnter={e => e.currentTarget.style.background='rgba(78,143,255,0.05)'}
-              onMouseLeave={e => e.currentTarget.style.background='transparent'}>
+            <div key={r.id}
+              onClick={() => onSeleccionarAlumno && onSeleccionarAlumno(r)}
+              style={{ padding:'11px 14px', borderBottom:'1px solid rgba(255,255,255,0.05)', transition:'all 0.15s', cursor: onSeleccionarAlumno ? 'pointer' : 'default' }}
+              onMouseEnter={e => { e.currentTarget.style.background='rgba(78,143,255,0.08)'; e.currentTarget.style.borderLeft='2px solid #4e8fff' }}
+              onMouseLeave={e => { e.currentTarget.style.background='transparent'; e.currentTarget.style.borderLeft='none' }}>
               <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:2 }}>
-                <div style={{ fontSize:13, fontWeight:600, color:'#e2e8f4' }}>{r.alumno?.nombre || '—'}</div>
-                {/* Badge de cuándo fue el último intento */}
+                <div style={{ fontSize:13, fontWeight:600, color:'#e2e8f4', flex:1, marginRight:6 }}>{r.alumno?.nombre || '—'}</div>
                 <span style={{
                   fontSize:10, fontWeight:600, padding:'1px 7px', borderRadius:20,
                   background: esHoy ? 'rgba(245,166,35,0.15)' : diasAtras <= 1 ? 'rgba(240,92,92,0.15)' : 'rgba(255,255,255,0.06)',
@@ -93,7 +94,14 @@ export default function PanelDerecho({ asesoras, registrosHoy, stats, asesoraPan
               <div style={{ fontSize:11, color:'#506080' }}>
                 {r.alumno?.programa || ''}{r.alumno?.semana_actual ? ` · Sem. ${r.alumno.semana_actual}` : ''}
               </div>
-              <div style={{ fontSize:10, color:'#3d5070', marginTop:2 }}>{r.asesora?.nombre || ''}</div>
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginTop:3 }}>
+                <div style={{ fontSize:10, color:'#3d5070' }}>{r.asesora?.nombre || ''}</div>
+                {onSeleccionarAlumno && (
+                  <span style={{ fontSize:9, color:'#4e8fff', background:'rgba(78,143,255,0.12)', border:'1px solid rgba(78,143,255,0.25)', padding:'1px 7px', borderRadius:10, fontWeight:700 }}>
+                    ✎ Registrar
+                  </span>
+                )}
+              </div>
             </div>
           )
         })}
