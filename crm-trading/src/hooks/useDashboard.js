@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { fetchDashboardLlamadas, fetchDashboardRecaudacion, fetchDashboardOrientacion } from '../lib/api'
+import { fetchDashboardLlamadas, fetchDashboardRecaudacion, fetchDashboardOrientacion, fetchAlumnosActivos } from '../lib/api'
 import { supabase } from '../lib/supabase'
 import toast from 'react-hot-toast'
 
@@ -9,18 +9,21 @@ export function useDashboard() {
   const [sesiones,    setSesiones]    = useState([])
   const [loading,     setLoading]     = useState(true)
   const [lastUpdate,  setLastUpdate]  = useState(new Date())
+  const [alumnosActivos, setAlumnosActivos] = useState([])
 
   const cargar = useCallback(async () => {
     setLoading(true)
     try {
-      const [l, c, s] = await Promise.all([
+      const [l, c, s, al] = await Promise.all([
         fetchDashboardLlamadas(),
         fetchDashboardRecaudacion(),
         fetchDashboardOrientacion(),
+        fetchAlumnosActivos(),
       ])
       setLlamadas(l)
       setCuotas(c)
       setSesiones(s)
+      setAlumnosActivos(al)
       setLastUpdate(new Date())
     } catch (err) {
       toast.error('Error al cargar dashboard')
@@ -55,21 +58,51 @@ export function useDashboard() {
   // ── MÉTRICAS LLAMADAS ──────────────────────────────────────
   const llamadasHoy    = llamadas.filter(r => r.fecha === hoy)
   const totalLlamadas  = llamadas.length
-  const respondieron   = llamadas.filter(r => r.respondio === 'Sí').length
-  const contactabilidad = totalLlamadas > 0 ? Math.round((respondieron / totalLlamadas) * 100) : 0
 
-  // Contactabilidad por programa
-  const programas = [...new Set(llamadas.map(r => r.alumno?.programa).filter(Boolean))]
+  // Total alumnos activos (base real, excluye retirados)
+  const totalAlumnosActivos = alumnosActivos.length
+
+  // Alumnos que respondieron AL MENOS UNA VEZ (este mes)
+  const inicioMes = new Date(); inicioMes.setDate(1); inicioMes.setHours(0,0,0,0)
+  const inicioMesStr = inicioMes.toISOString().split('T')[0]
+  const alumnosQueRespondieronMes = new Set(
+    llamadas.filter(r => r.respondio === 'Sí' && r.fecha >= inicioMesStr).map(r => r.alumno?.nombre).filter(Boolean)
+  )
+  const contactabilidad = totalAlumnosActivos > 0
+    ? Math.round((alumnosQueRespondieronMes.size / totalAlumnosActivos) * 100) : 0
+
+  // Contactabilidad por programa — alumnos que respondieron vs alumnos del programa
+  const programas = [...new Set(alumnosActivos.map(a => a.programa).filter(Boolean))]
   const contactabilidadPorPrograma = programas.map(prog => {
-    const regs = llamadas.filter(r => r.alumno?.programa === prog)
-    const resp = regs.filter(r => r.respondio === 'Sí').length
-    return { programa: prog, total: regs.length, respondieron: resp, pct: regs.length > 0 ? Math.round((resp / regs.length) * 100) : 0 }
+    const alumnosProg = alumnosActivos.filter(a => a.programa === prog)
+    const respondieronProg = new Set(
+      llamadas.filter(r => r.alumno?.programa === prog && r.respondio === 'Sí' && r.fecha >= inicioMesStr)
+        .map(r => r.alumno?.nombre).filter(Boolean)
+    )
+    return {
+      programa: prog,
+      total: alumnosProg.length,
+      respondieron: respondieronProg.size,
+      pct: alumnosProg.length > 0 ? Math.round((respondieronProg.size / alumnosProg.length) * 100) : 0
+    }
   }).sort((a, b) => b.total - a.total)
 
   // Tipos de cuenta
   const tiposCuenta = { Demo: 0, Real: 0, Fondeo: 0, 'No opera': 0 }
   llamadas.filter(r => r.cuenta).forEach(r => { if (tiposCuenta[r.cuenta] !== undefined) tiposCuenta[r.cuenta]++ })
   const totalCuentas = Object.values(tiposCuenta).reduce((a, b) => a + b, 0)
+
+  // Tipos de cuenta por programa
+  const cuentasPorPrograma = programas.map(prog => {
+    const regs = llamadas.filter(r => r.alumno?.programa === prog && r.cuenta)
+    return {
+      programa: prog,
+      Demo:      regs.filter(r => r.cuenta === 'Demo').length,
+      Real:      regs.filter(r => r.cuenta === 'Real').length,
+      Fondeo:    regs.filter(r => r.cuenta === 'Fondeo').length,
+      'No opera':regs.filter(r => r.cuenta === 'No opera').length,
+    }
+  }).filter(p => p.Demo + p.Real + p.Fondeo + p['No opera'] > 0)
 
   // Distribución de capital real (rangos)
   const cuentasReales = llamadas.filter(r => r.cuenta === 'Real' && r.capital_real > 0)
@@ -174,9 +207,9 @@ export function useDashboard() {
     loading, cargar, lastUpdate,
     hoy, programas,
     // Llamadas
-    totalLlamadas, respondieron, contactabilidad,
+    totalLlamadas, totalAlumnosActivos, alumnosQueRespondieronMes, respondieron: alumnosQueRespondieronMes.size, contactabilidad,
     contactabilidadPorPrograma, tiposCuenta, totalCuentas,
-    rangosCapital, cuentasReales, fasesFondeo, retiros, rangosRetiro,
+    rangosCapital, cuentasReales, fasesFondeo, retiros, rangosRetiro, cuentasPorPrograma,
     beneficioTotal, llamadasHoy, statsPorAsesora,
     // Recaudación
     totalCuotas, cuotasPagadas, cuotasParciales, cuotasPendientes,

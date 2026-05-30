@@ -42,7 +42,11 @@ export default function LlamadasPage() {
         <FormLlamada {...state} />
 
         {/* Historial — automático según alumno seleccionado arriba */}
-        <HistorialAlumno historial={state.historial} alumno={state.form.alumno} />
+        <HistorialAlumno 
+          historial={state.historial} 
+          alumno={state.form.alumno}
+          onRefresh={() => state.form.alumno && state.recargarHistorial(state.form.alumno.value)}
+        />
       </div>
 
       {/* Panel derecho — solo asesoras de llamadas */}

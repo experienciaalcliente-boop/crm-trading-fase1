@@ -389,3 +389,24 @@ export async function fetchDashboardOrientacion() {
   if (error) throw error
   return data || []
 }
+
+export async function fetchAlumnosActivos() {
+  const { data, error } = await supabase
+    .from('alumnos')
+    .select('id, nombre, programa, estado')
+    .eq('activo', true)
+    .in('estado', ['Activo', 'En Curso', 'En Seguimiento', 'en curso', 'en seguimiento', 'activo'])
+  if (error) throw error
+  return data || []
+}
+
+export async function updateBeneficio(registroId, beneficio) {
+  const { data, error } = await supabase
+    .from('registros_llamadas')
+    .update({ beneficio: parseFloat(beneficio) })
+    .eq('id', registroId)
+    .select()
+    .single()
+  if (error) throw error
+  return data
+}

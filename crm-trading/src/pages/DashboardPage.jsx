@@ -86,8 +86,8 @@ export default function DashboardPage() {
 
       {/* KPIs generales */}
       <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:10, marginBottom:4 }}>
-        <MetricCard label="Total llamadas" value={d.totalLlamadas} sub={`${d.respondieron} respondieron`} color="#7ab3ff" accent="#4e8fff" />
-        <MetricCard label="Contactabilidad" value={`${d.contactabilidad}%`} sub="Histórico general" color="#2dd4a0" accent="#2dd4a0" />
+        <MetricCard label="Alumnos activos" value={d.totalAlumnosActivos} sub="En curso + en seguimiento" color="#7ab3ff" accent="#4e8fff" />
+        <MetricCard label="Contactabilidad" value={`${d.contactabilidad}%`} sub={`${d.respondieron} respondieron este mes`} color="#2dd4a0" accent="#2dd4a0" />
         <MetricCard label="Beneficio total" value={`$${fmt(d.beneficioTotal)}`} sub="Acumulado" color="#f5b93a" accent="#f5b93a" />
         <MetricCard label="Sesiones Orient." value={d.totalSesiones} sub={`${d.sesionesConcretadas} concretadas`} color="#b89eff" accent="#b89eff" />
       </div>
@@ -129,6 +129,31 @@ export default function DashboardPage() {
               <Legend wrapperStyle={{ fontSize:11, color:'#9aaccb' }} />
             </PieChart>
           </ResponsiveContainer>
+        </div>
+
+        <div className="crm-card" style={{ padding:18 }}>
+          <div style={{ fontSize:12, fontWeight:700, color:'#7a8aaa', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:14 }}>Tipos de cuenta por programa</div>
+          <div style={{ overflowX:'auto', maxHeight:180, overflowY:'auto' }}>
+            <table style={{ width:'100%', borderCollapse:'collapse', fontSize:11 }}>
+              <thead>
+                <tr>{['Programa','Demo','Real','Fondeo','No opera'].map(h=>(
+                  <th key={h} style={{ padding:'4px 6px', textAlign:'left', color:'#3d5070', fontWeight:700, textTransform:'uppercase', fontSize:9, letterSpacing:'0.06em', borderBottom:'1px solid rgba(255,255,255,0.07)', whiteSpace:'nowrap' }}>{h}</th>
+                ))}</tr>
+              </thead>
+              <tbody>
+                {d.cuentasPorPrograma.map(p => (
+                  <tr key={p.programa} style={{ borderBottom:'1px solid rgba(255,255,255,0.04)' }}>
+                    <td style={{ padding:'5px 6px', color:'#9aaccb', fontWeight:500, whiteSpace:'nowrap' }}>{p.programa}</td>
+                    {['Demo','Real','Fondeo','No opera'].map(t => (
+                      <td key={t} style={{ padding:'5px 6px', color: p[t] > 0 ? '#e2e8f4' : '#3d5070', textAlign:'center', fontWeight: p[t] > 0 ? 600 : 400 }}>
+                        {p[t] > 0 ? p[t] : '—'}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
 
         <div className="crm-card" style={{ padding:18 }}>

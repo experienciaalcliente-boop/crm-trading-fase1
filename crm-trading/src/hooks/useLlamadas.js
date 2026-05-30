@@ -179,6 +179,10 @@ export function useLlamadas() {
     }
   }, [form])
 
+  const recargarHistorial = useCallback((alumnoId) => {
+    if (alumnoId) fetchHistorialAlumno(alumnoId).then(setHistorial).catch(console.error)
+  }, [])
+
   const limpiar = useCallback(() => {
     setForm({ ...FORM_INICIAL, codigo: '...' })
     setHistorial([])
@@ -207,7 +211,7 @@ export function useLlamadas() {
     alumnos, asesoras, asesorasForm, registrosHoy, historial,
     form, setField, onAlumnoChange, onProgramaChange,
     programasOpts, alumnosOpts, asesorasOpts,
-    guardar, limpiar,
+    guardar, limpiar, recargarHistorial,
     loading, saving,
     asesoraPanel, setAsesoraPanel, stats, sinResponder,
     asesorasPanelOpts,
