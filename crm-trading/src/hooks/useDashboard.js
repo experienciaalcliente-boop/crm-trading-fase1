@@ -129,20 +129,27 @@ export function useDashboard() {
     }
   }).filter(p => p.Demo + p.Real + p.Fondeo + p['No opera'] > 0)
 
-  // Distribución de capital real (rangos) — por alumno único, capital más reciente
+  // Distribución de capital real (rangos) — todos los alumnos con cuenta Real
   const cuentasReales = Object.values(ultimoRegistroPorAlumno)
-    .filter(r => r.cuenta === 'Real' && r.capital_real > 0)
+    .filter(r => r.cuenta === 'Real')
+  const totalCuentasReales = cuentasReales.length
+
   const rangosCapital = [
-    { label: '$0-50',      min: 0,    max: 50,   count: 0 },
-    { label: '$50-100',    min: 50,   max: 100,  count: 0 },
-    { label: '$100-500',   min: 100,  max: 500,  count: 0 },
-    { label: '$500-1000',  min: 500,  max: 1000, count: 0 },
-    { label: '+$1000',     min: 1000, max: Infinity, count: 0 },
+    { label: '$0-50',      min: 0,    max: 50,        count: 0 },
+    { label: '$50-100',    min: 50,   max: 100,       count: 0 },
+    { label: '$100-500',   min: 100,  max: 500,       count: 0 },
+    { label: '$500-1000',  min: 500,  max: 1000,      count: 0 },
+    { label: '+$1000',     min: 1000, max: Infinity,  count: 0 },
+    { label: 'Sin dato',   min: -1,   max: -1,        count: 0 },
   ]
   cuentasReales.forEach(r => {
     const c = parseFloat(r.capital_real)
-    const rango = rangosCapital.find(rg => c >= rg.min && c < rg.max)
-    if (rango) rango.count++
+    if (!r.capital_real || isNaN(c) || c === 0) {
+      rangosCapital.find(rg => rg.label === 'Sin dato').count++
+    } else {
+      const rango = rangosCapital.find(rg => rg.min >= 0 && c >= rg.min && c < rg.max)
+      if (rango) rango.count++
+    }
   })
 
   // Fondeo por fase — alumno único con su fase más reciente
@@ -235,7 +242,7 @@ export function useDashboard() {
     // Llamadas
     totalLlamadas, totalAlumnosActivos, alumnosQueRespondieronMes, respondieron: alumnosQueRespondieronMes.size, contactabilidad,
     contactabilidadPorPrograma, tiposCuenta, totalCuentas,
-    rangosCapital, cuentasReales, fasesFondeo, retiros, rangosRetiro, cuentasPorPrograma,
+    rangosCapital, cuentasReales, totalCuentasReales, fasesFondeo, retiros, rangosRetiro, cuentasPorPrograma,
     beneficioTotal, llamadasHoy, statsPorAsesora,
     // Recaudación
     totalCuotas, cuotasPagadas, cuotasParciales, cuotasPendientes,

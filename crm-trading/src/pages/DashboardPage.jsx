@@ -175,13 +175,14 @@ export default function DashboardPage() {
         </div>
 
         <div className="crm-card" style={{ padding:18 }}>
-          <div style={{ fontSize:12, fontWeight:700, color:'#7a8aaa', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:14 }}>Distribución capital real (USD)</div>
+          <div style={{ fontSize:12, fontWeight:700, color:'#7a8aaa', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:6 }}>Distribución capital real (USD)</div>
+          <div style={{ fontSize:11, color:'#3d5070', marginBottom:12 }}>Total cuentas reales: <span style={{ color:'#7ab3ff', fontWeight:700 }}>{d.totalCuentasReales}</span></div>
           {d.rangosCapital.map(r => (
             <div key={r.label} style={{ display:'flex', justifyContent:'space-between', padding:'6px 0', borderBottom:'1px solid rgba(255,255,255,0.05)' }}>
-              <span style={{ fontSize:12, color:'#9aaccb' }}>{r.label}</span>
+              <span style={{ fontSize:12, color: r.label === 'Sin dato' ? '#506080' : '#9aaccb', fontStyle: r.label === 'Sin dato' ? 'italic' : 'normal' }}>{r.label}</span>
               <div style={{ display:'flex', gap:10 }}>
-                <span style={{ fontSize:12, color:'#e2e8f4', fontWeight:600 }}>{r.count}</span>
-                <span style={{ fontSize:11, color:'#506080' }}>{d.cuentasReales.length > 0 ? Math.round(r.count/d.cuentasReales.length*100) : 0}%</span>
+                <span style={{ fontSize:12, color: r.count > 0 ? '#e2e8f4' : '#3d5070', fontWeight:600 }}>{r.count}</span>
+                <span style={{ fontSize:11, color:'#506080' }}>{d.totalCuentasReales > 0 ? Math.round(r.count/d.totalCuentasReales*100) : 0}%</span>
               </div>
             </div>
           ))}
