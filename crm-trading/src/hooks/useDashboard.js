@@ -152,12 +152,24 @@ export function useDashboard() {
     }
   })
 
-  // Fondeo por fase — alumno único con su fase más reciente
-  const cuentasFondeo = Object.values(ultimoRegistroPorAlumno).filter(r => r.cuenta === 'Fondeo')
+  // Fondeo por fase — mismo criterio que cuentasPorPrograma
+  // Usar ultPorAlumnoProg para cada programa y sumar todos los de Fondeo
+  const todosUltimosPorPrograma = {}
+  programas.forEach(prog => {
+    const ultPorAlumnoProg = {}
+    llamadas
+      .filter(r => r.alumno?.programa === prog && r.cuenta)
+      .forEach(r => {
+        if (!ultPorAlumnoProg[r.alumno.nombre]) ultPorAlumnoProg[r.alumno.nombre] = r
+      })
+    Object.assign(todosUltimosPorPrograma, ultPorAlumnoProg)
+  })
+  const cuentasFondeo = Object.values(todosUltimosPorPrograma).filter(r => r.cuenta === 'Fondeo')
   const fasesFondeo = {
     'Primera fase': cuentasFondeo.filter(r => r.fase_fondeo === 'Primera fase').length,
     'Segunda fase': cuentasFondeo.filter(r => r.fase_fondeo === 'Segunda fase').length,
     'Aprobado':     cuentasFondeo.filter(r => r.fase_fondeo === 'Aprobado').length,
+    'Sin dato':     cuentasFondeo.filter(r => !r.fase_fondeo).length,
   }
 
   // Retiros por rango

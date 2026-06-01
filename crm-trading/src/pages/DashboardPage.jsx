@@ -190,18 +190,23 @@ export default function DashboardPage() {
 
         <div className="crm-card" style={{ padding:18 }}>
           <div style={{ fontSize:12, fontWeight:700, color:'#7a8aaa', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:14 }}>Fondeo por fase</div>
-          {Object.entries(d.fasesFondeo).map(([fase, count], i) => (
-            <div key={fase} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'8px 0', borderBottom:'1px solid rgba(255,255,255,0.05)' }}>
-              <span style={{ fontSize:12, color:'#9aaccb' }}>{fase}</span>
-              <div style={{ display:'flex', gap:10, alignItems:'center' }}>
-                <span style={{ fontSize:14, fontWeight:700, color:COLORS[i] }}>{count}</span>
-                <span style={{ fontSize:11, color:'#506080' }}>
-                  {Object.values(d.fasesFondeo).reduce((a,b)=>a+b,0) > 0
-                    ? Math.round(count/Object.values(d.fasesFondeo).reduce((a,b)=>a+b,0)*100) : 0}%
-                </span>
+          {(() => {
+            const totalFondeo = Object.values(d.fasesFondeo).reduce((a,b)=>a+b,0)
+            return Object.entries(d.fasesFondeo).map(([fase, count], i) => (
+              <div key={fase} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'8px 0', borderBottom:'1px solid rgba(255,255,255,0.05)' }}>
+                <span style={{ fontSize:12, color: fase === 'Sin dato' ? '#506080' : '#9aaccb', fontStyle: fase === 'Sin dato' ? 'italic' : 'normal' }}>{fase}</span>
+                <div style={{ display:'flex', gap:10, alignItems:'center' }}>
+                  <span style={{ fontSize:14, fontWeight:700, color: fase === 'Sin dato' ? '#3d5070' : COLORS[i] }}>{count}</span>
+                  <span style={{ fontSize:11, color:'#506080' }}>
+                    {totalFondeo > 0 ? Math.round(count/totalFondeo*100) : 0}%
+                  </span>
+                </div>
               </div>
-            </div>
-          ))}
+            ))
+          })()}
+          <div style={{ marginTop:8, paddingTop:8, borderTop:'1px solid rgba(255,255,255,0.07)', fontSize:11, color:'#506080' }}>
+            Total fondeo: <span style={{ color:'#f5b93a', fontWeight:700 }}>{Object.values(d.fasesFondeo).reduce((a,b)=>a+b,0)}</span>
+          </div>
           <div style={{ marginTop:14, fontSize:11, color:'#506080', borderTop:'1px solid rgba(255,255,255,0.07)', paddingTop:10 }}>
             <div style={{ fontWeight:700, color:'#7a8aaa', marginBottom:6 }}>Retiros registrados: {d.retiros.length}</div>
             {d.rangosRetiro.map(r => (
