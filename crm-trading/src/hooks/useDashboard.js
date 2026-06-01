@@ -59,9 +59,14 @@ export function useDashboard() {
 
   const hoy = new Date().toISOString().split('T')[0]
 
+  // ── FILTRAR TODOS LOS DATOS POR MES SELECCIONADO ──────────
+  const llamadasMes    = llamadas.filter(r => r.fecha >= inicioMesStr && r.fecha <= finMesStr)
+  const cuotasMes      = cuotas  // cuotas no tienen fecha de llamada, se muestran siempre
+  const sesionesMes    = sesiones.filter(s => s.fecha >= inicioMesStr && s.fecha <= finMesStr)
+
   // ── MÉTRICAS LLAMADAS ──────────────────────────────────────
   const llamadasHoy    = llamadas.filter(r => r.fecha === hoy)
-  const totalLlamadas  = llamadas.length
+  const totalLlamadas  = llamadasMes.length
 
   // Total alumnos activos (base real, excluye retirados)
   const totalAlumnosActivos = alumnosActivos.length
@@ -72,7 +77,7 @@ export function useDashboard() {
   const finMes = new Date(anioFiltro, mesFiltroNum, 0) // último día del mes
   const finMesStr = `${mesFiltro}-${String(finMes.getDate()).padStart(2,'0')}`
   const alumnosQueRespondieronMes = new Set(
-    llamadas.filter(r => r.respondio === 'Sí' && r.fecha >= inicioMesStr && r.fecha <= finMesStr).map(r => r.alumno?.nombre).filter(Boolean)
+    llamadasMes.filter(r => r.respondio === 'Sí').map(r => r.alumno?.nombre).filter(Boolean)
   )
   const contactabilidad = totalAlumnosActivos > 0
     ? Math.round((alumnosQueRespondieronMes.size / totalAlumnosActivos) * 100) : 0
@@ -82,7 +87,7 @@ export function useDashboard() {
   const contactabilidadPorPrograma = programas.map(prog => {
     const alumnosProg = alumnosActivos.filter(a => a.programa === prog)
     const respondieronProg = new Set(
-      llamadas.filter(r => r.alumno?.programa === prog && r.respondio === 'Sí' && r.fecha >= inicioMesStr && r.fecha <= finMesStr)
+      llamadasMes.filter(r => r.alumno?.programa === prog && r.respondio === 'Sí')
         .map(r => r.alumno?.nombre).filter(Boolean)
     )
     return {
@@ -96,8 +101,8 @@ export function useDashboard() {
   // Último registro CON CUENTA por alumno (ignorar registros sin cuenta registrada)
   // Esto garantiza coherencia con la tabla por programa
   const ultimoRegistroPorAlumno = {}
-  llamadas.forEach(r => {
-    if (!r.alumno?.nombre || !r.cuenta) return // solo registros con cuenta
+  llamadasMes.forEach(r => {
+    if (!r.alumno?.nombre || !r.cuenta) return
     if (!ultimoRegistroPorAlumno[r.alumno.nombre]) {
       ultimoRegistroPorAlumno[r.alumno.nombre] = r
     }
@@ -112,7 +117,7 @@ export function useDashboard() {
   const cuentasPorPrograma = programas.map(prog => {
     // Último registro por alumno dentro de este programa
     const ultPorAlumnoProg = {}
-    llamadas
+    llamadasMes
       .filter(r => r.alumno?.programa === prog && r.cuenta)
       .forEach(r => {
         if (!ultPorAlumnoProg[r.alumno.nombre]) {
@@ -157,7 +162,7 @@ export function useDashboard() {
   const todosUltimosPorPrograma = {}
   programas.forEach(prog => {
     const ultPorAlumnoProg = {}
-    llamadas
+    llamadasMes
       .filter(r => r.alumno?.programa === prog && r.cuenta)
       .forEach(r => {
         if (!ultPorAlumnoProg[r.alumno.nombre]) ultPorAlumnoProg[r.alumno.nombre] = r
@@ -173,7 +178,7 @@ export function useDashboard() {
   }
 
   // Retiros por rango
-  const retiros = llamadas.filter(r => r.retiro === 'Sí' && r.monto_retiro > 0)
+  const retiros = llamadasMes.filter(r => r.retiro === 'Sí' && r.monto_retiro > 0)
   const rangosRetiro = [
     { label: '$0-100',    min: 0,   max: 100,  count: 0 },
     { label: '$100-500',  min: 100, max: 500,  count: 0 },
@@ -187,7 +192,7 @@ export function useDashboard() {
   })
 
   // Beneficio total
-  const beneficioTotal = llamadas.filter(r => r.beneficio > 0).reduce((s, r) => s + parseFloat(r.beneficio || 0), 0)
+  const beneficioTotal = llamadasMes.filter(r => r.beneficio > 0).reduce((s, r) => s + parseFloat(r.beneficio || 0), 0)
 
   // Por asesora hoy
   const asesoras = [...new Set(llamadasHoy.map(r => r.asesora?.nombre).filter(Boolean))]
@@ -222,19 +227,19 @@ export function useDashboard() {
   }).filter(p => p.total > 0).sort((a,b) => b.total - a.total)
 
   // ── MÉTRICAS ORIENTACIÓN ──────────────────────────────────
-  const totalSesiones      = sesiones.length
-  const sesionesConcretadas= sesiones.filter(s => s.estado === 'Concretada').length
-  const sesionesReprogram  = sesiones.filter(s => s.estado === 'Reprogramada').length
-  const sesionesNoConecto  = sesiones.filter(s => s.estado === 'No se conectó').length
-  const alumnosUnicos      = new Set(sesiones.map(s => s.alumno?.nombre).filter(Boolean)).size
+  const totalSesiones      = sesionesMes.length
+  const sesionesConcretadas= sesionesMes.filter(s => s.estado === 'Concretada').length
+  const sesionesReprogram  = sesionesMes.filter(s => s.estado === 'Reprogramada').length
+  const sesionesNoConecto  = sesionesMes.filter(s => s.estado === 'No se conectó').length
+  const alumnosUnicos      = new Set(sesionesMes.map(s => s.alumno?.nombre).filter(Boolean)).size
 
   // Motivos frecuentes
   const motivosCount = {}
-  sesiones.forEach(s => { if (s.motivo) motivosCount[s.motivo] = (motivosCount[s.motivo]||0)+1 })
+  sesionesMes.forEach(s => { if (s.motivo) motivosCount[s.motivo] = (motivosCount[s.motivo]||0)+1 })
   const motivosFrecuentes = Object.entries(motivosCount).sort((a,b)=>b[1]-a[1]).slice(0,5)
 
   // Herramientas
-  const concretadas = sesiones.filter(s => s.estado === 'Concretada')
+  const concretadas = sesionesMes.filter(s => s.estado === 'Concretada')
   const herramientas = {
     'MT5':           concretadas.filter(s => s.tiene_mt5).length,
     'TradingView':   concretadas.filter(s => s.tiene_tradingview).length,
@@ -245,7 +250,7 @@ export function useDashboard() {
   // Sesiones por programa
   const sesionesPorPrograma = programas.map(prog => ({
     programa: prog,
-    total: sesiones.filter(s => s.alumno?.programa === prog).length,
+    total: sesionesMes.filter(s => s.alumno?.programa === prog).length,
   })).filter(p => p.total > 0).sort((a,b) => b.total - a.total)
 
   return {
