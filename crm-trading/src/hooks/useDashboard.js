@@ -93,13 +93,13 @@ export function useDashboard() {
     }
   }).sort((a, b) => b.total - a.total)
 
-  // Tipos de cuenta — por alumno único, usando su registro más reciente
-  // (el historial ya viene ordenado por created_at desc, entonces el primero es el más reciente)
+  // Último registro CON CUENTA por alumno (ignorar registros sin cuenta registrada)
+  // Esto garantiza coherencia con la tabla por programa
   const ultimoRegistroPorAlumno = {}
   llamadas.forEach(r => {
-    if (!r.alumno?.nombre) return
+    if (!r.alumno?.nombre || !r.cuenta) return // solo registros con cuenta
     if (!ultimoRegistroPorAlumno[r.alumno.nombre]) {
-      ultimoRegistroPorAlumno[r.alumno.nombre] = r // ya viene desc, el primero es el más reciente
+      ultimoRegistroPorAlumno[r.alumno.nombre] = r
     }
   })
   const tiposCuenta = { Demo: 0, Real: 0, Fondeo: 0, 'No opera': 0 }
