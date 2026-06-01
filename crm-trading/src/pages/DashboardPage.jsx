@@ -76,10 +76,28 @@ export default function DashboardPage() {
       <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', marginBottom:8 }}>
         <div>
           <h1 style={{ fontFamily:'Syne,sans-serif', fontWeight:700, color:'#e2e8f4', fontSize:22 }}>Dashboard ejecutivo</h1>
-          <p style={{ fontSize:13, color:'#506080', textTransform:'capitalize', marginTop:3 }}>{hoyDisplay}</p>
+          <p style={{ fontSize:13, color:'#506080', textTransform:'capitalize', marginTop:3 }}>
+            {hoyDisplay} · Mostrando: <span style={{ color:'#7ab3ff' }}>{new Date(d.mesFiltro + '-01T00:00:00').toLocaleDateString('es-PE', { month:'long', year:'numeric' })}</span>
+          </p>
         </div>
         <div style={{ display:'flex', alignItems:'center', gap:10 }}>
           <span style={{ fontSize:11, color:'#3d5070' }}>Actualizado: {format(d.lastUpdate, 'HH:mm:ss')}</span>
+          <select
+            value={d.mesFiltro}
+            onChange={e => d.setMesFiltro(e.target.value)}
+            style={{ padding:'6px 10px', background:'#1e2840', border:'1.5px solid #2e3d5c', borderRadius:8, color:'#e2e8f4', fontSize:13, cursor:'pointer' }}>
+            {(() => {
+              const opts = []
+              const now = new Date()
+              for (let i = 0; i < 12; i++) {
+                const d2 = new Date(now.getFullYear(), now.getMonth() - i, 1)
+                const val = `${d2.getFullYear()}-${String(d2.getMonth()+1).padStart(2,'0')}`
+                const label = d2.toLocaleDateString('es-PE', { month:'long', year:'numeric' })
+                opts.push(<option key={val} value={val}>{label}</option>)
+              }
+              return opts
+            })()}
+          </select>
           <button className="crm-btn crm-btn-sm" onClick={d.cargar}><RefreshCw size={13} /> Actualizar</button>
         </div>
       </div>

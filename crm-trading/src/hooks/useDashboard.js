@@ -4,6 +4,10 @@ import { supabase } from '../lib/supabase'
 import toast from 'react-hot-toast'
 
 export function useDashboard() {
+  const [mesFiltro,   setMesFiltro]   = useState(() => {
+    const d = new Date()
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`
+  })
   const [llamadas,    setLlamadas]    = useState([])
   const [cuotas,      setCuotas]      = useState([])
   const [sesiones,    setSesiones]    = useState([])
@@ -62,11 +66,13 @@ export function useDashboard() {
   // Total alumnos activos (base real, excluye retirados)
   const totalAlumnosActivos = alumnosActivos.length
 
-  // Alumnos que respondieron AL MENOS UNA VEZ (este mes)
-  const inicioMes = new Date(); inicioMes.setDate(1); inicioMes.setHours(0,0,0,0)
-  const inicioMesStr = inicioMes.toISOString().split('T')[0]
+  // Rango del mes filtrado
+  const [anioFiltro, mesFiltroNum] = mesFiltro.split('-').map(Number)
+  const inicioMesStr = `${mesFiltro}-01`
+  const finMes = new Date(anioFiltro, mesFiltroNum, 0) // último día del mes
+  const finMesStr = `${mesFiltro}-${String(finMes.getDate()).padStart(2,'0')}`
   const alumnosQueRespondieronMes = new Set(
-    llamadas.filter(r => r.respondio === 'Sí' && r.fecha >= inicioMesStr).map(r => r.alumno?.nombre).filter(Boolean)
+    llamadas.filter(r => r.respondio === 'Sí' && r.fecha >= inicioMesStr && r.fecha <= finMesStr).map(r => r.alumno?.nombre).filter(Boolean)
   )
   const contactabilidad = totalAlumnosActivos > 0
     ? Math.round((alumnosQueRespondieronMes.size / totalAlumnosActivos) * 100) : 0
@@ -76,7 +82,7 @@ export function useDashboard() {
   const contactabilidadPorPrograma = programas.map(prog => {
     const alumnosProg = alumnosActivos.filter(a => a.programa === prog)
     const respondieronProg = new Set(
-      llamadas.filter(r => r.alumno?.programa === prog && r.respondio === 'Sí' && r.fecha >= inicioMesStr)
+      llamadas.filter(r => r.alumno?.programa === prog && r.respondio === 'Sí' && r.fecha >= inicioMesStr && r.fecha <= finMesStr)
         .map(r => r.alumno?.nombre).filter(Boolean)
     )
     return {
@@ -204,7 +210,7 @@ export function useDashboard() {
   })).filter(p => p.total > 0).sort((a,b) => b.total - a.total)
 
   return {
-    loading, cargar, lastUpdate,
+    loading, cargar, lastUpdate, mesFiltro, setMesFiltro,
     hoy, programas,
     // Llamadas
     totalLlamadas, totalAlumnosActivos, alumnosQueRespondieronMes, respondieron: alumnosQueRespondieronMes.size, contactabilidad,
