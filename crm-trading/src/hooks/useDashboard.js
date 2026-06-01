@@ -93,25 +93,45 @@ export function useDashboard() {
     }
   }).sort((a, b) => b.total - a.total)
 
-  // Tipos de cuenta
+  // Tipos de cuenta — por alumno único, usando su registro más reciente
+  // (el historial ya viene ordenado por created_at desc, entonces el primero es el más reciente)
+  const ultimoRegistroPorAlumno = {}
+  llamadas.forEach(r => {
+    if (!r.alumno?.nombre) return
+    if (!ultimoRegistroPorAlumno[r.alumno.nombre]) {
+      ultimoRegistroPorAlumno[r.alumno.nombre] = r // ya viene desc, el primero es el más reciente
+    }
+  })
   const tiposCuenta = { Demo: 0, Real: 0, Fondeo: 0, 'No opera': 0 }
-  llamadas.filter(r => r.cuenta).forEach(r => { if (tiposCuenta[r.cuenta] !== undefined) tiposCuenta[r.cuenta]++ })
+  Object.values(ultimoRegistroPorAlumno).forEach(r => {
+    if (r.cuenta && tiposCuenta[r.cuenta] !== undefined) tiposCuenta[r.cuenta]++
+  })
   const totalCuentas = Object.values(tiposCuenta).reduce((a, b) => a + b, 0)
 
-  // Tipos de cuenta por programa
+  // Tipos de cuenta por programa — alumno único con su último registro
   const cuentasPorPrograma = programas.map(prog => {
-    const regs = llamadas.filter(r => r.alumno?.programa === prog && r.cuenta)
+    // Último registro por alumno dentro de este programa
+    const ultPorAlumnoProg = {}
+    llamadas
+      .filter(r => r.alumno?.programa === prog && r.cuenta)
+      .forEach(r => {
+        if (!ultPorAlumnoProg[r.alumno.nombre]) {
+          ultPorAlumnoProg[r.alumno.nombre] = r
+        }
+      })
+    const unicos = Object.values(ultPorAlumnoProg)
     return {
-      programa: prog,
-      Demo:      regs.filter(r => r.cuenta === 'Demo').length,
-      Real:      regs.filter(r => r.cuenta === 'Real').length,
-      Fondeo:    regs.filter(r => r.cuenta === 'Fondeo').length,
-      'No opera':regs.filter(r => r.cuenta === 'No opera').length,
+      programa:   prog,
+      Demo:       unicos.filter(r => r.cuenta === 'Demo').length,
+      Real:       unicos.filter(r => r.cuenta === 'Real').length,
+      Fondeo:     unicos.filter(r => r.cuenta === 'Fondeo').length,
+      'No opera': unicos.filter(r => r.cuenta === 'No opera').length,
     }
   }).filter(p => p.Demo + p.Real + p.Fondeo + p['No opera'] > 0)
 
-  // Distribución de capital real (rangos)
-  const cuentasReales = llamadas.filter(r => r.cuenta === 'Real' && r.capital_real > 0)
+  // Distribución de capital real (rangos) — por alumno único, capital más reciente
+  const cuentasReales = Object.values(ultimoRegistroPorAlumno)
+    .filter(r => r.cuenta === 'Real' && r.capital_real > 0)
   const rangosCapital = [
     { label: '$0-50',      min: 0,    max: 50,   count: 0 },
     { label: '$50-100',    min: 50,   max: 100,  count: 0 },
@@ -125,8 +145,8 @@ export function useDashboard() {
     if (rango) rango.count++
   })
 
-  // Fondeo por fase
-  const cuentasFondeo = llamadas.filter(r => r.cuenta === 'Fondeo')
+  // Fondeo por fase — alumno único con su fase más reciente
+  const cuentasFondeo = Object.values(ultimoRegistroPorAlumno).filter(r => r.cuenta === 'Fondeo')
   const fasesFondeo = {
     'Primera fase': cuentasFondeo.filter(r => r.fase_fondeo === 'Primera fase').length,
     'Segunda fase': cuentasFondeo.filter(r => r.fase_fondeo === 'Segunda fase').length,
