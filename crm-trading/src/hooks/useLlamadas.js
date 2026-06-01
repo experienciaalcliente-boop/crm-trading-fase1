@@ -3,9 +3,10 @@ import { fetchAlumnos, fetchAsesorasLlamadas, fetchAsesoras, fetchRegistrosHoy, 
 import toast from 'react-hot-toast'
 import { format } from 'date-fns'
 
-const FORM_INICIAL = {
+// Función para obtener siempre la fecha actual del día
+const formInicial = () => ({
   codigo: '',
-  fecha: format(new Date(), 'yyyy-MM-dd'),
+  fecha: new Date().toISOString().split('T')[0], // siempre fecha de HOY
   programa: null,
   alumno: null,
   semana: '',
@@ -20,7 +21,7 @@ const FORM_INICIAL = {
   retiro: null,
   monto_retiro: '',
   observaciones: '',
-}
+})
 
 export function useLlamadas() {
   const [alumnos,         setAlumnos]         = useState([])
@@ -28,7 +29,7 @@ export function useLlamadas() {
   const [asesorasForm,    setAsesorasForm]    = useState([])   // solo llamadas (para form)
   const [registrosHoy,    setRegistrosHoy]    = useState([])
   const [historial,       setHistorial]       = useState([])
-  const [form,            setForm]            = useState(FORM_INICIAL)
+  const [form,            setForm]            = useState(formInicial())
   const [loading,         setLoading]         = useState(true)
   const [saving,          setSaving]          = useState(false)
   const [asesoraPanel,    setAsesoraPanel]    = useState(null)
@@ -167,7 +168,7 @@ export function useLlamadas() {
 
       // Recargar historial y lista sin responder
       const alumnoId = form.alumno.value
-      setForm({ ...FORM_INICIAL, codigo: '...' })
+      setForm({ ...formInicial(), codigo: '...' })
       fetchSinResponderAcumulado().then(setSinResponder).catch(console.error)
       // Mantener historial visible un momento y luego limpiar
       fetchHistorialAlumno(alumnoId).then(setHistorial).catch(console.error)
@@ -212,7 +213,7 @@ export function useLlamadas() {
   }, [])
 
   const limpiar = useCallback(() => {
-    setForm({ ...FORM_INICIAL, codigo: '...' })
+    setForm({ ...formInicial(), codigo: '...' })
     setHistorial([])
   }, [])
 
