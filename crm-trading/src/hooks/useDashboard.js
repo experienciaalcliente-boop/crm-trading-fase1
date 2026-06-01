@@ -60,6 +60,11 @@ export function useDashboard() {
   const hoy = new Date().toISOString().split('T')[0]
 
   // ── FILTRAR TODOS LOS DATOS POR MES SELECCIONADO ──────────
+  // Rango del mes filtrado
+  const [anioFiltro, mesFiltroNum] = mesFiltro.split('-').map(Number)
+  const inicioMesStr = `${mesFiltro}-01`
+  const finMes = new Date(anioFiltro, mesFiltroNum, 0)
+  const finMesStr = `${mesFiltro}-${String(finMes.getDate()).padStart(2,'0')}`
   const llamadasMes    = llamadas.filter(r => r.fecha >= inicioMesStr && r.fecha <= finMesStr)
   const cuotasMes      = cuotas  // cuotas no tienen fecha de llamada, se muestran siempre
   const sesionesMes    = sesiones.filter(s => s.fecha >= inicioMesStr && s.fecha <= finMesStr)
@@ -71,11 +76,7 @@ export function useDashboard() {
   // Total alumnos activos (base real, excluye retirados)
   const totalAlumnosActivos = alumnosActivos.length
 
-  // Rango del mes filtrado
-  const [anioFiltro, mesFiltroNum] = mesFiltro.split('-').map(Number)
-  const inicioMesStr = `${mesFiltro}-01`
-  const finMes = new Date(anioFiltro, mesFiltroNum, 0) // último día del mes
-  const finMesStr = `${mesFiltro}-${String(finMes.getDate()).padStart(2,'0')}`
+
   const alumnosQueRespondieronMes = new Set(
     llamadasMes.filter(r => r.respondio === 'Sí').map(r => r.alumno?.nombre).filter(Boolean)
   )
