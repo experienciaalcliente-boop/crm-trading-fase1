@@ -231,13 +231,13 @@ export default function ImportPage() {
     // Mapeo de estados del archivo a los valores del sistema
     function mapearEstado(estadoRaw) {
       if (!estadoRaw) return 'No iniciada'
-      const e = estadoRaw.toLowerCase().trim()
-      if (e.includes('pagad') || e.includes('paid') || e === 'completo') return 'Pagada'
-      if (e.includes('parcial') || e.includes('partial')) return 'Pago parcial'
-      if (e.includes('prorrog') || e.includes('prórroga') || e.includes('prorroga')) return 'Prórroga'
-      if (e.includes('reserva') || e.includes('reserve')) return 'Reserva académica'
+      const e = estadoRaw.toLowerCase().trim().replace(/_/g, ' ') // snake_case → spaces
+      if (e === 'pagada' || e === 'pagado' || e.includes('paid') || e === 'completo') return 'Pagada'
+      if (e === 'iniciada' || e === 'pago parcial' || e.includes('parcial')) return 'Pago parcial'
+      if (e === 'no iniciada' || e === 'no_iniciada' || e.includes('pendiente') || e.includes('pending')) return 'No iniciada'
+      if (e.includes('prorrog') || e.includes('prórroga')) return 'Prórroga'
+      if (e.includes('reserva')) return 'Reserva académica'
       if (e.includes('retir') || e.includes('baja')) return 'Retirado'
-      if (e.includes('pendiente') || e.includes('pending') || e.includes('iniciada') || e === '') return 'No iniciada'
       return 'No iniciada'
     }
 
@@ -307,7 +307,16 @@ export default function ImportPage() {
         ? 'Retirado'
         : mapearEstado(estadoCuota)
 
-      return { alumno_id, numero_cuota: nroCuota, fecha_vence, monto, moneda, monto_pagado, estado }
+      // Guardar también monto en soles para calcular tipo de cambio
+      const montoSolesVal = vals[8] // Col 9: Monto de la cuota en soles
+      const monto_soles = parseFloat(montoSolesVal) || monto
+
+      // Tipo de cambio implícito (para conversión en dashboard)
+      const tipo_cambio = (moneda === 'USD' && monto > 0 && monto_soles > 0)
+        ? Math.round((monto_soles / monto) * 100) / 100
+        : 1
+
+      return { alumno_id, numero_cuota: nroCuota, fecha_vence, monto, moneda, monto_pagado, estado, monto_soles, tipo_cambio }
     }).filter(r => r.alumno_id)
 
     if (!rows.length) {

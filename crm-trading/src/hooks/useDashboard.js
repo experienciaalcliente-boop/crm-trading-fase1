@@ -194,7 +194,23 @@ export function useDashboard() {
   })
 
   // Beneficio total
-  const beneficioTotal = llamadasMes.filter(r => r.beneficio > 0).reduce((s, r) => s + parseFloat(r.beneficio || 0), 0)
+  // Mapa de tipo de cambio por alumno (calculado desde cuotas: monto_soles / monto_usd)
+  const tcPorAlumno = {}
+  cuotas.forEach(c => {
+    if (c.tipo_cambio && c.tipo_cambio > 1 && c.alumno?.nombre) {
+      tcPorAlumno[c.alumno.nombre] = parseFloat(c.tipo_cambio)
+    }
+  })
+  const TC_DEFAULT = 3.6 // TC más común según análisis
+
+  // Beneficio total en SOLES (beneficios registrados en USD → convertir con TC del alumno)
+  const beneficioTotal = llamadasMes
+    .filter(r => r.beneficio > 0)
+    .reduce((s, r) => {
+      const ben = parseFloat(r.beneficio || 0)
+      const tc = tcPorAlumno[r.alumno?.nombre] || TC_DEFAULT
+      return s + (ben * tc)
+    }, 0)
 
   // Por asesora hoy
   const asesoras = [...new Set(llamadasHoy.map(r => r.asesora?.nombre).filter(Boolean))]
@@ -213,12 +229,23 @@ export function useDashboard() {
   const cuotasReservas = cuotasMes.filter(c => c.estado === 'Reserva académica').length
   const cuotasRetirados= cuotasMes.filter(c => c.estado === 'Retirado').length
 
-  // Montos
-  const montoTotalPEN  = cuotasMes.filter(c => c.moneda === 'PEN').reduce((s,c) => s + parseFloat(c.monto||0), 0)
-  const montoTotalUSD  = cuotasMes.filter(c => c.moneda === 'USD').reduce((s,c) => s + parseFloat(c.monto||0), 0)
-  const montoPagadoPEN = cuotasMes.filter(c => c.moneda === 'PEN').reduce((s,c) => s + parseFloat(c.monto_pagado||0), 0)
-  const montoPagadoUSD = cuotasMes.filter(c => c.moneda === 'USD').reduce((s,c) => s + parseFloat(c.monto_pagado||0), 0)
+  // Montos en SOLES — usar monto_soles si disponible, sino convertir con TC del alumno
+  const montoTotalPEN = cuotasMes.reduce((s, c) => {
+    const mSoles = parseFloat(c.monto_soles || 0)
+    if (mSoles > 0) return s + mSoles
+    // fallback: si no hay monto_soles, convertir
+    const tc = tcPorAlumno[c.alumno?.nombre] || TC_DEFAULT
+    return s + (parseFloat(c.monto||0) * (c.moneda === 'USD' ? tc : 1))
+  }, 0)
+  const montoPagadoPEN = cuotasMes.reduce((s, c) => {
+    const pagado = parseFloat(c.monto_pagado||0)
+    const tc = tcPorAlumno[c.alumno?.nombre] || TC_DEFAULT
+    return s + (pagado * (c.moneda === 'USD' ? tc : 1))
+  }, 0)
   const saldoPendientePEN = montoTotalPEN - montoPagadoPEN
+  // Mantener también en USD para referencia
+  const montoTotalUSD  = cuotasMes.filter(c => c.moneda === 'USD').reduce((s,c) => s + parseFloat(c.monto||0), 0)
+  const montoPagadoUSD = cuotasMes.filter(c => c.moneda === 'USD').reduce((s,c) => s + parseFloat(c.monto_pagado||0), 0)
   const saldoPendienteUSD = montoTotalUSD - montoPagadoUSD
 
   // Recaudación por programa

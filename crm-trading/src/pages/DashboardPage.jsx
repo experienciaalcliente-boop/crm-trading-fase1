@@ -106,7 +106,7 @@ export default function DashboardPage() {
       <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:10, marginBottom:4 }}>
         <MetricCard label="Alumnos activos" value={d.totalAlumnosActivos} sub="En curso + en seguimiento" color="#7ab3ff" accent="#4e8fff" />
         <MetricCard label="Contactabilidad" value={`${d.contactabilidad}%`} sub={`${d.respondieron} respondieron este mes`} color="#2dd4a0" accent="#2dd4a0" />
-        <MetricCard label="Beneficio total" value={`$${fmt(d.beneficioTotal)}`} sub="Acumulado" color="#f5b93a" accent="#f5b93a" />
+        <MetricCard label="Beneficio total" value={`S/ ${fmt(d.beneficioTotal)}`} sub="Convertido a soles" color="#f5b93a" accent="#f5b93a" />
         <MetricCard label="Sesiones Orient." value={d.totalSesiones} sub={`${d.sesionesConcretadas} concretadas`} color="#b89eff" accent="#b89eff" />
       </div>
 
@@ -236,9 +236,10 @@ export default function DashboardPage() {
       {/* Montos */}
       <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16, marginBottom:16 }}>
         <div className="crm-card" style={{ padding:18 }}>
-          <div style={{ fontSize:12, fontWeight:700, color:'#7a8aaa', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:14 }}>Resumen en Soles (PEN)</div>
+          <div style={{ fontSize:12, fontWeight:700, color:'#7a8aaa', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:4 }}>Resumen consolidado en Soles</div>
+          <div style={{ fontSize:10, color:'#3d5070', marginBottom:12 }}>USD convertido con TC por alumno (3.5 o 3.6)</div>
           {[
-            { label:'Total cuotas',       value:`S/ ${fmt(d.montoTotalPEN)}`,    color:'#e2e8f4' },
+            { label:'Total a recaudar',   value:`S/ ${fmt(d.montoTotalPEN)}`,    color:'#e2e8f4' },
             { label:'Recaudado',          value:`S/ ${fmt(d.montoPagadoPEN)}`,   color:'#2dd4a0' },
             { label:'Saldo pendiente',    value:`S/ ${fmt(d.saldoPendientePEN)}`, color:'#f07070' },
           ].map(({ label, value, color }) => (
