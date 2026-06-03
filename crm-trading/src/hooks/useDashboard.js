@@ -66,7 +66,8 @@ export function useDashboard() {
   const finMes = new Date(anioFiltro, mesFiltroNum, 0)
   const finMesStr = `${mesFiltro}-${String(finMes.getDate()).padStart(2,'0')}`
   const llamadasMes    = llamadas.filter(r => r.fecha >= inicioMesStr && r.fecha <= finMesStr)
-  const cuotasMes      = cuotas  // cuotas no tienen fecha de llamada, se muestran siempre
+  // Cuotas filtradas por mes — fecha_vence dentro del mes seleccionado
+  const cuotasMes = cuotas.filter(c => c.fecha_vence >= inicioMesStr && c.fecha_vence <= finMesStr)
   const sesionesMes    = sesiones.filter(s => s.fecha >= inicioMesStr && s.fecha <= finMesStr)
 
   // ── MÉTRICAS LLAMADAS ──────────────────────────────────────
@@ -204,25 +205,25 @@ export function useDashboard() {
   })
 
   // ── MÉTRICAS RECAUDACIÓN ──────────────────────────────────
-  const totalCuotas    = cuotas.length
-  const cuotasPagadas  = cuotas.filter(c => c.estado === 'Pagada').length
-  const cuotasParciales= cuotas.filter(c => c.estado === 'Pago parcial').length
-  const cuotasPendientes = cuotas.filter(c => c.estado === 'No iniciada').length
-  const cuotasProrrogas= cuotas.filter(c => c.estado === 'Prórroga').length
-  const cuotasReservas = cuotas.filter(c => c.estado === 'Reserva académica').length
-  const cuotasRetirados= cuotas.filter(c => c.estado === 'Retirado').length
+  const totalCuotas    = cuotasMes.length
+  const cuotasPagadas  = cuotasMes.filter(c => c.estado === 'Pagada').length
+  const cuotasParciales= cuotasMes.filter(c => c.estado === 'Pago parcial').length
+  const cuotasPendientes = cuotasMes.filter(c => c.estado === 'No iniciada').length
+  const cuotasProrrogas= cuotasMes.filter(c => c.estado === 'Prórroga').length
+  const cuotasReservas = cuotasMes.filter(c => c.estado === 'Reserva académica').length
+  const cuotasRetirados= cuotasMes.filter(c => c.estado === 'Retirado').length
 
   // Montos
-  const montoTotalPEN  = cuotas.filter(c => c.moneda === 'PEN').reduce((s,c) => s + parseFloat(c.monto||0), 0)
-  const montoTotalUSD  = cuotas.filter(c => c.moneda === 'USD').reduce((s,c) => s + parseFloat(c.monto||0), 0)
-  const montoPagadoPEN = cuotas.filter(c => c.moneda === 'PEN').reduce((s,c) => s + parseFloat(c.monto_pagado||0), 0)
-  const montoPagadoUSD = cuotas.filter(c => c.moneda === 'USD').reduce((s,c) => s + parseFloat(c.monto_pagado||0), 0)
+  const montoTotalPEN  = cuotasMes.filter(c => c.moneda === 'PEN').reduce((s,c) => s + parseFloat(c.monto||0), 0)
+  const montoTotalUSD  = cuotasMes.filter(c => c.moneda === 'USD').reduce((s,c) => s + parseFloat(c.monto||0), 0)
+  const montoPagadoPEN = cuotasMes.filter(c => c.moneda === 'PEN').reduce((s,c) => s + parseFloat(c.monto_pagado||0), 0)
+  const montoPagadoUSD = cuotasMes.filter(c => c.moneda === 'USD').reduce((s,c) => s + parseFloat(c.monto_pagado||0), 0)
   const saldoPendientePEN = montoTotalPEN - montoPagadoPEN
   const saldoPendienteUSD = montoTotalUSD - montoPagadoUSD
 
   // Recaudación por programa
   const recaudacionPorPrograma = programas.map(prog => {
-    const cs = cuotas.filter(c => c.alumno?.programa === prog)
+    const cs = cuotasMes.filter(c => c.alumno?.programa === prog)
     const pagadas = cs.filter(c => c.estado === 'Pagada').length
     return { programa: prog, total: cs.length, pagadas, pct: cs.length > 0 ? Math.round((pagadas/cs.length)*100) : 0 }
   }).filter(p => p.total > 0).sort((a,b) => b.total - a.total)
