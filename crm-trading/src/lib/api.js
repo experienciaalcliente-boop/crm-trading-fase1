@@ -378,7 +378,8 @@ export async function fetchDashboardRecaudacion() {
   const { data, error } = await supabase
     .from('cuotas')
     .select(`
-      id, estado, monto, monto_pagado, moneda,
+      id, estado, monto, monto_pagado, moneda, fecha_vence,
+      monto_soles, tipo_cambio,
       alumno:alumnos(nombre, programa)
     `)
   if (error) throw error

@@ -67,7 +67,10 @@ export function useDashboard() {
   const finMesStr = `${mesFiltro}-${String(finMes.getDate()).padStart(2,'0')}`
   const llamadasMes    = llamadas.filter(r => r.fecha >= inicioMesStr && r.fecha <= finMesStr)
   // Cuotas filtradas por mes — fecha_vence dentro del mes seleccionado
-  const cuotasMes = cuotas.filter(c => c.fecha_vence >= inicioMesStr && c.fecha_vence <= finMesStr)
+  const cuotasMes = cuotas.filter(c => {
+    if (!c.fecha_vence) return false
+    return c.fecha_vence >= inicioMesStr && c.fecha_vence <= finMesStr
+  })
   const sesionesMes    = sesiones.filter(s => s.fecha >= inicioMesStr && s.fecha <= finMesStr)
 
   // ── MÉTRICAS LLAMADAS ──────────────────────────────────────
