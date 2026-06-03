@@ -100,13 +100,31 @@ export default function RecaudacionPage() {
           ))}
         </div>
 
+        {/* Selector de mes */}
+        <select
+          value={r.filtroMes}
+          onChange={e => r.setFiltroMes(e.target.value)}
+          style={{ padding:'6px 10px', background:'#1e2840', border:'1.5px solid #2e3d5c', borderRadius:8, color:'#e2e8f4', fontSize:13, cursor:'pointer' }}>
+          {(() => {
+            const opts = []
+            const now = new Date()
+            for (let i = 0; i < 12; i++) {
+              const d2 = new Date(now.getFullYear(), now.getMonth() - i, 1)
+              const val = `${d2.getFullYear()}-${String(d2.getMonth()+1).padStart(2,'0')}`
+              const label = d2.toLocaleDateString('es-PE', { month:'long', year:'numeric' })
+              opts.push(<option key={val} value={val}>{label}</option>)
+            }
+            return opts
+          })()}
+        </select>
+
         {/* Buscador de alumno */}
         <input
           type="text"
           placeholder="🔍 Buscar alumno..."
           value={buscarAlumno}
           onChange={e => setBuscarAlumno(e.target.value)}
-          style={{ padding:'6px 12px', background:'#1e2840', border:'1.5px solid #2e3d5c', borderRadius:8, color:'#e2e8f4', fontSize:13, width:220 }}
+          style={{ padding:'6px 12px', background:'#1e2840', border:'1.5px solid #2e3d5c', borderRadius:8, color:'#e2e8f4', fontSize:13, width:200 }}
         />
 
         {/* Día de pago */}

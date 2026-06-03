@@ -153,7 +153,7 @@ export function suscribirRegistrosHoy(callback) {
 // RECAUDACIÓN
 // ─────────────────────────────────────────
 
-export async function fetchCuotas({ estado, programa, ordenVencidas } = {}) {
+export async function fetchCuotas({ estado, programa, ordenVencidas, mes } = {}) {
   let query = supabase
     .from('cuotas')
     .select(`
@@ -163,6 +163,15 @@ export async function fetchCuotas({ estado, programa, ordenVencidas } = {}) {
     .order('fecha_vence', { ascending: true })
 
   if (estado && estado !== 'Todos') query = query.eq('estado', estado)
+
+  // Filtro por mes — busca cuotas cuya fecha_vence cae en ese mes
+  if (mes) {
+    const [anio, mesNum] = mes.split('-').map(Number)
+    const inicio = `${mes}-01`
+    const finDia = new Date(anio, mesNum, 0).getDate()
+    const fin    = `${mes}-${String(finDia).padStart(2,'0')}`
+    query = query.gte('fecha_vence', inicio).lte('fecha_vence', fin)
+  }
 
   const { data, error } = await query
   if (error) throw error

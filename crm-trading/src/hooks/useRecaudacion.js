@@ -8,13 +8,17 @@ export function useRecaudacion() {
   const [saving,        setSaving]        = useState(false)
   const [filtroEstado,  setFiltroEstado]  = useState('Todos')
   const [filtroPrograma,setFiltroPrograma]= useState('Todos')
+  const [filtroMes,     setFiltroMes]     = useState(() => {
+    const d = new Date()
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`
+  })
   const [modalData,     setModalData]     = useState(null) // cuota seleccionada
   const [cuotasAlumno,  setCuotasAlumno]  = useState([])
 
   const cargar = useCallback(async () => {
     setLoading(true)
     try {
-      const data = await fetchCuotas({ estado: filtroEstado, programa: filtroPrograma, ordenVencidas: true })
+      const data = await fetchCuotas({ estado: filtroEstado, programa: filtroPrograma, ordenVencidas: true, mes: filtroMes })
       setCuotas(data)
     } catch (err) {
       toast.error('Error al cargar cuotas')
@@ -22,7 +26,7 @@ export function useRecaudacion() {
     } finally {
       setLoading(false)
     }
-  }, [filtroEstado, filtroPrograma])
+  }, [filtroEstado, filtroPrograma, filtroMes])
 
   useEffect(() => { cargar() }, [cargar])
 
@@ -101,6 +105,7 @@ export function useRecaudacion() {
     cuotas, loading, saving, stats, programas,
     filtroEstado, setFiltroEstado,
     filtroPrograma, setFiltroPrograma,
+    filtroMes, setFiltroMes,
     modalData, abrirModal, cerrarModal,
     setFormField, guardarPago,
     cuotasAlumno, cargar,
