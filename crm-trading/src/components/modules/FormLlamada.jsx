@@ -198,6 +198,15 @@ export default function FormLlamada({ form, setField, onAlumnoChange, onPrograma
           <span>Registro en modo <strong>No contestó</strong> — solo se guardará la observación. Los demás campos están bloqueados.</span>
         </div>
       )}
+      {/* Botón agregar compromiso — visible cuando hay alumno seleccionado */}
+      {onNuevoCompromiso && state?.form?.alumno && (
+        <button onClick={onNuevoCompromiso}
+          style={{ marginTop:12, width:'100%', padding:'8px 0', borderRadius:10, cursor:'pointer',
+            background:'rgba(124,58,237,0.1)', border:'1px solid rgba(124,58,237,0.25)',
+            color:'#b89eff', fontSize:12, fontWeight:600, display:'flex', alignItems:'center', justifyContent:'center', gap:6 }}>
+          📋 + Registrar compromiso de esta llamada
+        </button>
+      )}
     </div>
   )
 }

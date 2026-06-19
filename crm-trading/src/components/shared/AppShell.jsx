@@ -1,14 +1,15 @@
 import { Outlet, NavLink } from 'react-router-dom'
-import { Phone, Upload, BarChart2, CreditCard, MonitorSmartphone, ChevronRight } from 'lucide-react'
+import { Phone, Upload, BarChart2, CreditCard, MonitorSmartphone, ChevronRight, GraduationCap } from 'lucide-react'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 
 const NAV = [
-  { to: '/dashboard',   icon: BarChart2,          label: 'Dashboard',        sub: 'Vista ejecutiva'      },
-  { to: '/llamadas',    icon: Phone,               label: 'Seguimiento',      sub: 'Registro de llamadas' },
-  { to: '/recaudacion', icon: CreditCard,           label: 'Recaudación',      sub: 'Cuotas y pagos'       },
-  { to: '/orientacion', icon: MonitorSmartphone,    label: 'Orient. Técnica',  sub: 'Agenda y sesiones'    },
-  { to: '/importar',    icon: Upload,               label: 'Importar',         sub: 'CSV / Excel'          },
+  { to:'/dashboard',   icon:BarChart2,          label:'Dashboard',       sub:'Vista ejecutiva'      },
+  { to:'/llamadas',    icon:Phone,               label:'Seguimiento',     sub:'Registro de llamadas' },
+  { to:'/recaudacion', icon:CreditCard,          label:'Recaudación',     sub:'Cuotas y pagos'       },
+  { to:'/orientacion', icon:MonitorSmartphone,   label:'Orient. Técnica', sub:'Agenda y sesiones'    },
+  { to:'/onboarding',  icon:GraduationCap,       label:'Onboarding',      sub:'Próximas promociones' },
+  { to:'/importar',    icon:Upload,              label:'Importar',        sub:'CSV / Excel'          },
 ]
 
 export default function AppShell() {
@@ -16,6 +17,8 @@ export default function AppShell() {
   return (
     <div style={{ display:'flex', height:'100vh', overflow:'hidden', background:'#0b0e14' }}>
       <aside style={{ width:220, flexShrink:0, background:'#0f1520', borderRight:'1px solid rgba(255,255,255,0.07)', display:'flex', flexDirection:'column' }}>
+
+        {/* Logo */}
         <div style={{ padding:'18px 16px', borderBottom:'1px solid rgba(255,255,255,0.07)' }}>
           <div style={{ display:'flex', alignItems:'center', gap:10 }}>
             <div style={{ width:32, height:32, borderRadius:8, background:'#4e8fff', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:700, color:'#fff', fontSize:14 }}>A</div>
@@ -25,8 +28,10 @@ export default function AppShell() {
             </div>
           </div>
         </div>
+
+        {/* Nav */}
         <nav style={{ flex:1, padding:12, overflowY:'auto' }}>
-          {NAV.map(({ to, icon: Icon, label, sub }) => (
+          {NAV.map(({ to, icon:Icon, label, sub }) => (
             <NavLink key={to} to={to} style={({ isActive }) => ({
               display:'flex', alignItems:'center', gap:10, padding:'9px 10px',
               borderRadius:10, marginBottom:2, textDecoration:'none', transition:'all 0.15s',
@@ -45,11 +50,14 @@ export default function AppShell() {
             </NavLink>
           ))}
         </nav>
+
+        {/* Footer */}
         <div style={{ padding:'12px 16px', borderTop:'1px solid rgba(255,255,255,0.07)' }}>
           <div style={{ fontSize:11, color:'#3d5070', textTransform:'capitalize' }}>{hoy}</div>
-          <div style={{ fontSize:10, color:'#2a3450', marginTop:2 }}>v1.0 — Todos los módulos activos</div>
+          <div style={{ fontSize:10, color:'#2a3450', marginTop:2 }}>v3.1 · Fase C activa</div>
         </div>
       </aside>
+
       <main style={{ flex:1, overflowY:'auto', background:'#0b0e14' }}>
         <Outlet />
       </main>
