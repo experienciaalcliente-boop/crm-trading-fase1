@@ -408,8 +408,7 @@ export async function fetchDashboardOrientacion() {
 export async function fetchAlumnosActivos() {
   const { data, error } = await supabase
     .from('alumnos')
-    .select('id, nombre, programa, estado')
-    .eq('activo', true)
+    .select('id, nombre, programa, estado, semana_actual, asesora, riesgo_nivel, riesgo_score, ultimo_contacto_at, nivel_atencion, estado_operativo, fecha_inicio')
     .in('estado', ['Activo', 'En Curso', 'En Seguimiento', 'en curso', 'en seguimiento', 'activo'])
   if (error) throw error
   return data || []
