@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { fetchAlumnos, fetchAsesorasLlamadas, fetchAsesoras, fetchRegistrosHoy, fetchHistorialAlumno, fetchNextCodigo, insertRegistroLlamada, suscribirRegistrosHoy, fetchSinResponderAcumulado } from '../lib/api'
+import { fetchAlumnos, fetchAsesorasLlamadas, fetchAsesoras, fetchRegistrosHoy, fetchHistorialAlumno, fetchNextCodigo, insertRegistroLlamada, suscribirRegistrosHoy, fetchSinResponderAcumulado, calcularSemanaRegistro } from '../lib/api'
 import toast from 'react-hot-toast'
 import { format } from 'date-fns'
 
@@ -96,10 +96,19 @@ export function useLlamadas() {
       return
     }
     const alumno = opt.data
+    // Calcular semana automáticamente si hay fecha_inicio
+    let semanaAuto = alumno.semana_actual || ''
+    if (alumno.fecha_inicio) {
+      const inicio = new Date(alumno.fecha_inicio + 'T00:00:00')
+      const hoy = new Date()
+      const diffDias = Math.floor((hoy - inicio) / (1000 * 60 * 60 * 24))
+      const semCalc = Math.ceil((diffDias + 1) / 7)
+      if (semCalc >= 1 && semCalc <= 24) semanaAuto = String(semCalc)
+    }
     setForm(f => ({
       ...f,
       alumno: opt,
-      semana: alumno.semana_actual || '',
+      semana: semanaAuto,
       asesora: asesorasOpts.find(a => a.label === alumno.asesora) || f.asesora,
     }))
     // Historial se carga automáticamente al seleccionar alumno
@@ -146,10 +155,15 @@ export function useLlamadas() {
     try {
       // Generar código fresco en el momento exacto de guardar
       const codigoFresco = await fetchNextCodigo()
+      // Calcular semana automáticamente desde fecha_inicio del alumno
+      const alumnoData = alumnos.find(a => a.id === form.alumno.value)
+      const semanaReg = calcularSemanaRegistro(form.fecha, alumnoData?.fecha_inicio)
+
       const payload = {
-        codigo:       codigoFresco,
-        fecha:        form.fecha,
-        alumno_id:    form.alumno.value,
+        codigo:          codigoFresco,
+        fecha:           form.fecha,
+        semana_registro: semanaReg,
+        alumno_id:       form.alumno.value,
         asesora_id:   form.asesora.value,
         semana:       form.semana,
         respondio:    form.respondio.value,

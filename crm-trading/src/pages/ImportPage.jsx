@@ -120,15 +120,29 @@ export default function ImportPage() {
   // ── Procesar alumnos ────────────────────────────────────────
   async function procesarAlumnos() {
     const rows = rawData
-      .map(r => ({
-        nombre:        col(r, 'nombre', 'name', 'alumno'),
-        // Convertir número serial de Excel a Mes-AA
-        programa:      excelSerialToMesAnio(col(r, 'programa', 'program')),
-        semana_actual: col(r, 'semana', 'week') || '0',
-        asesora:       col(r, 'asesora', 'asesor', 'advisor'),
-        estado:        col(r, 'estado', 'status') || 'Activo',
-        activo:        true,
-      }))
+      .map(r => {
+        const fechaInicioRaw = col(r, 'fechainicio', 'fecha de inicio', 'inicio', 'start', 'fecha inicio')
+        let fecha_inicio = null
+        if (fechaInicioRaw) {
+          const num = parseInt(fechaInicioRaw)
+          if (!isNaN(num) && num > 40000 && num < 60000) {
+            fecha_inicio = new Date((num - 25569) * 86400 * 1000).toISOString().split('T')[0]
+          } else {
+            fecha_inicio = fechaInicioRaw.toString().split(' ')[0].split('T')[0] || null
+          }
+        }
+        const codigoRaw = col(r, 'codalumno', 'codigo', 'cod', 'id', 'código')
+        return {
+          nombre:        col(r, 'nombre', 'name', 'alumno'),
+          programa:      excelSerialToMesAnio(col(r, 'programa', 'program')),
+          semana_actual: col(r, 'semana', 'week') || '0',
+          asesora:       col(r, 'asesora', 'asesor', 'advisor'),
+          estado:        col(r, 'estado', 'status') || 'Activo',
+          activo:        true,
+          codigo_alumno: codigoRaw || null,
+          fecha_inicio,
+        }
+      })
       .filter(r => r.nombre && r.programa)
 
     if (!rows.length) { toast.error('No se encontraron filas válidas'); return }

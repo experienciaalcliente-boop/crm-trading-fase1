@@ -109,6 +109,12 @@ export async function insertRegistroLlamada(payload) {
     .select()
     .single()
   if (error) throw error
+
+  // Actualizar último contacto si respondió
+  if (payload.respondio === 'Sí' && payload.alumno_id) {
+    await actualizarUltimoContacto(payload.alumno_id, 'llamada')
+  }
+
   return data
 }
 
@@ -418,4 +424,170 @@ export async function updateBeneficio(registroId, beneficio) {
     .single()
   if (error) throw error
   return data
+}
+
+
+// ─────────────────────────────────────────────────────────────
+// FASE A — Último contacto + Compromisos + Onboarding
+// ─────────────────────────────────────────────────────────────
+
+// Actualiza ultimo_contacto_at en el alumno
+export async function actualizarUltimoContacto(alumnoId, tipo) {
+  const hoy = new Date().toISOString().split('T')[0]
+  const { error } = await supabase
+    .from('alumnos')
+    .update({ ultimo_contacto_at: hoy, ultimo_contacto_tipo: tipo })
+    .eq('id', alumnoId)
+  if (error) console.error('Error actualizando último contacto:', error)
+}
+
+// Calcula semana_registro para una llamada
+export function calcularSemanaRegistro(fechaLlamada, fechaInicioProg) {
+  if (!fechaLlamada || !fechaInicioProg) return null
+  const inicio = new Date(fechaInicioProg + 'T00:00:00')
+  const llamada = new Date(fechaLlamada + 'T00:00:00')
+  const diffDias = Math.floor((llamada - inicio) / (1000 * 60 * 60 * 24))
+  const semana = Math.ceil((diffDias + 1) / 7)
+  if (semana < 1 || semana > 24) return null
+  return semana
+}
+
+// Compromisos
+export async function fetchCompromisosAlumno(alumnoId) {
+  const { data, error } = await supabase
+    .from('compromisos')
+    .select('*, asesora:asesoras(nombre)')
+    .eq('alumno_id', alumnoId)
+    .order('fecha_limite', { ascending: true })
+  if (error) throw error
+  return data || []
+}
+
+export async function fetchCompromisosHoy() {
+  const hoy = new Date().toISOString().split('T')[0]
+  const en3dias = new Date(Date.now() + 3 * 86400000).toISOString().split('T')[0]
+  const { data, error } = await supabase
+    .from('compromisos')
+    .select('*, alumno:alumnos(nombre, programa), asesora:asesoras(nombre)')
+    .eq('estado', 'Pendiente')
+    .lte('fecha_limite', en3dias)
+    .order('fecha_limite')
+  if (error) throw error
+  return data || []
+}
+
+export async function insertCompromiso(payload) {
+  const { data, error } = await supabase
+    .from('compromisos')
+    .insert([payload])
+    .select()
+    .single()
+  if (error) throw error
+  return data
+}
+
+export async function updateCompromiso(id, payload) {
+  const { data, error } = await supabase
+    .from('compromisos')
+    .update({ ...payload, updated_at: new Date().toISOString() })
+    .eq('id', id)
+    .select()
+    .single()
+  if (error) throw error
+  return data
+}
+
+// Onboarding
+export async function fetchOnboardingAlumno(alumnoId) {
+  const { data, error } = await supabase
+    .from('onboarding_pasos')
+    .select('*')
+    .eq('alumno_id', alumnoId)
+    .order('created_at')
+  if (error) throw error
+  return data || []
+}
+
+export async function upsertOnboardingPasos(alumnoId) {
+  const PASOS = [
+    'terminos_condiciones',
+    'ficha_alumno',
+    'acceso_aula',
+    'evaluacion_dedicacion',
+    'asignacion_contenido',
+    'ingreso_whatsapp',
+  ]
+  const rows = PASOS.map(paso => ({ alumno_id: alumnoId, paso, estado: 'Pendiente' }))
+  const { error } = await supabase
+    .from('onboarding_pasos')
+    .upsert(rows, { onConflict: 'alumno_id,paso', ignoreDuplicates: true })
+  if (error) throw error
+}
+
+export async function updateOnboardingPaso(alumnoId, paso, payload) {
+  const { data, error } = await supabase
+    .from('onboarding_pasos')
+    .update({ ...payload, updated_at: new Date().toISOString() })
+    .eq('alumno_id', alumnoId)
+    .eq('paso', paso)
+    .select()
+    .single()
+  if (error) throw error
+  return data
+}
+
+// Fetch alumnos con datos completos para dashboard
+export async function fetchAlumnosConRiesgo() {
+  const { data, error } = await supabase
+    .from('alumnos')
+    .select('id, nombre, programa, estado, semana_actual, asesora, riesgo_nivel, riesgo_score, ultimo_contacto_at, nivel_atencion, estado_operativo, fecha_inicio')
+    .in('estado', ['Activo', 'En Curso', 'En Seguimiento', 'activo', 'en curso', 'en seguimiento'])
+    .order('riesgo_score', { ascending: false })
+  if (error) throw error
+  return data || []
+}
+
+// Calcular score de riesgo en el frontend (no requiere tabla nueva)
+export function calcularRiesgo(alumno, cuotas = [], llamadas = []) {
+  let score = 0
+  const hoy = new Date()
+  const hoyStr = hoy.toISOString().split('T')[0]
+
+  // Días sin contacto efectivo
+  if (alumno.ultimo_contacto_at) {
+    const diasSin = Math.floor((hoy - new Date(alumno.ultimo_contacto_at)) / (1000 * 60 * 60 * 24))
+    if (diasSin >= 21) score += 40
+    else if (diasSin >= 15) score += 25
+    else if (diasSin >= 7) score += 15
+  } else {
+    score += 25 // nunca contactado
+  }
+
+  // Cuotas vencidas
+  const cuotasVencidas = cuotas.filter(c =>
+    c.fecha_vence < hoyStr && c.estado !== 'Pagada' && c.estado !== 'Retirado'
+  )
+  if (cuotasVencidas.length >= 2) score += 25
+  else if (cuotasVencidas.length === 1) score += 15
+
+  // Avance bajo en semana avanzada
+  const semana = alumno.semana_actual || 0
+  const ultimaLlamada = llamadas[0]
+  if (ultimaLlamada) {
+    if (semana >= 8 && (ultimaLlamada.avance || 0) < 30) score += 15
+  }
+
+  // En Demo en semana 12+
+  if (semana >= 12 && ultimaLlamada?.cuenta === 'Demo') score += 10
+
+  // Fue crítico antes
+  if (alumno.nivel_atencion === 'Crítico') score += 10
+
+  score = Math.min(score, 100)
+
+  let nivel = 'Bajo'
+  if (score >= 56) nivel = 'Alto'
+  else if (score >= 26) nivel = 'Medio'
+
+  return { score, nivel }
 }

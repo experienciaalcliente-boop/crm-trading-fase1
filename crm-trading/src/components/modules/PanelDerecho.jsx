@@ -1,4 +1,5 @@
 import { TrendingUp, PhoneMissed, Phone } from 'lucide-react'
+import { UltimoContactoBadge } from '../shared/Badges'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 
@@ -82,14 +83,7 @@ export default function PanelDerecho({ asesoras, asesorasPanelOpts, registrosHoy
               onMouseLeave={e => { e.currentTarget.style.background='transparent'; e.currentTarget.style.borderLeft='none' }}>
               <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:2 }}>
                 <div style={{ fontSize:13, fontWeight:600, color:'#e2e8f4', flex:1, marginRight:6 }}>{r.alumno?.nombre || '—'}</div>
-                <span style={{
-                  fontSize:10, fontWeight:600, padding:'1px 7px', borderRadius:20,
-                  background: esHoy ? 'rgba(245,166,35,0.15)' : diasAtras <= 1 ? 'rgba(240,92,92,0.15)' : 'rgba(255,255,255,0.06)',
-                  color: esHoy ? '#f5b93a' : diasAtras <= 1 ? '#f07070' : '#506080',
-                  border: `1px solid ${esHoy ? 'rgba(245,166,35,0.3)' : diasAtras <= 1 ? 'rgba(240,92,92,0.3)' : 'rgba(255,255,255,0.08)'}`,
-                }}>
-                  {esHoy ? 'Hoy' : diasAtras === 1 ? 'Ayer' : `Hace ${diasAtras}d`}
-                </span>
+                <UltimoContactoBadge fecha={r.fecha} />
               </div>
               <div style={{ fontSize:11, color:'#506080' }}>
                 {r.alumno?.programa || ''}{r.alumno?.semana_actual ? ` · Sem. ${r.alumno.semana_actual}` : ''}
