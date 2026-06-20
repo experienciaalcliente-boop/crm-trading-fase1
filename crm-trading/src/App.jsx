@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './context/AuthContext'
+import ErrorBoundary from './components/shared/ErrorBoundary'
 import AppShell          from './components/shared/AppShell'
 import LoginPage         from './pages/LoginPage'
 import LlamadasPage      from './pages/LlamadasPage'
@@ -36,8 +37,8 @@ function ProtectedApp() {
       <Routes>
         <Route element={<AppShell />}>
           <Route index element={<Navigate to="/dashboard" replace />} />
-          <Route path="/dashboard"      element={<DashboardPage />} />
-          <Route path="/llamadas"       element={<LlamadasPage />} />
+          <Route path="/dashboard"      element={<ErrorBoundary><DashboardPage /></ErrorBoundary>} />
+          <Route path="/llamadas"       element={<ErrorBoundary><LlamadasPage /></ErrorBoundary>} />
           <Route path="/recaudacion"    element={<RecaudacionPage />} />
           <Route path="/orientacion"    element={<OrientacionPage />} />
           <Route path="/onboarding"     element={<OnboardingPage />} />
