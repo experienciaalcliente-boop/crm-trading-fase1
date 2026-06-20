@@ -112,7 +112,7 @@ export function useLlamadas() {
       asesora: asesorasOpts.find(a => a.label === alumno.asesora) || f.asesora,
     }))
     // Historial se carga automáticamente al seleccionar alumno
-    fetchHistorialAlumno(alumno.id).then(setHistorial).catch(console.error)
+    fetchHistorialAlumno(alumno.id).then(d => setHistorial((d||[]).filter(Boolean))).catch(console.error)
   }, [asesorasOpts])
 
   // ── Cambio de programa → limpiar alumno e historial ──
@@ -216,14 +216,14 @@ export function useLlamadas() {
     }))
 
     // Cargar historial
-    fetchHistorialAlumno(alumnoData.id).then(setHistorial).catch(console.error)
+    fetchHistorialAlumno(alumnoData.id).then(d => setHistorial((d||[]).filter(Boolean))).catch(console.error)
 
     // Scroll al formulario
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }, [alumnos, programasOpts, asesorasOpts])
 
   const recargarHistorial = useCallback((alumnoId) => {
-    if (alumnoId) fetchHistorialAlumno(alumnoId).then(setHistorial).catch(console.error)
+    if (alumnoId) fetchHistorialAlumno(alumnoId).then(d => setHistorial((d||[]).filter(Boolean))).catch(console.error)
   }, [])
 
   const limpiar = useCallback(() => {

@@ -119,15 +119,15 @@ export default function HistorialAlumno({ historial, alumno, onRefresh }) {
               </tr>
             </thead>
             <tbody>
-              {historial.map(r => (
+              {historial.filter(Boolean).map(r => (
                 <tr key={r.id}>
                   <td style={{ whiteSpace:'nowrap', fontSize:12 }}>
-                    {format(new Date(r.fecha + 'T00:00:00'), 'dd MMM yyyy', { locale: es })}
+                    {r.fecha ? format(new Date(r.fecha + 'T00:00:00'), 'dd MMM yyyy', { locale: es }) : '—'}
                   </td>
-                  <td>{r.semana || '—'}</td>
+                  <td>{r.semana_registro || r.semana || '—'}</td>
                   <td><BadgeRespondio val={r.respondio} /></td>
                   <td>{r.avance != null ? `${r.avance}%` : '—'}</td>
-                  <td><BadgeCuenta val={r.cuenta} /></td>
+                  <td><BadgeCuenta val={r.cuenta || null} /></td>
                   <td>
                     <EditBeneficio registro={r} onUpdated={onRefresh} />
                   </td>

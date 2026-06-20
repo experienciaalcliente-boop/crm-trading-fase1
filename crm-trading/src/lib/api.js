@@ -94,12 +94,12 @@ export async function fetchSinResponderAcumulado() {
 export async function fetchHistorialAlumno(alumnoId) {
   const { data, error } = await supabase
     .from('registros_llamadas')
-    .select('*')
+    .select('*, asesora:asesoras(nombre)')
     .eq('alumno_id', alumnoId)
-    .order('created_at', { ascending: false }) // orden por timestamp exacto
+    .order('created_at', { ascending: false })
     .limit(50)
   if (error) throw error
-  return data
+  return (data || []).filter(Boolean)
 }
 
 export async function insertRegistroLlamada(payload) {
