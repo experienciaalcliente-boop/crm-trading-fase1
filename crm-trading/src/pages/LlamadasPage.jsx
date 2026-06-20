@@ -7,6 +7,15 @@ import CompromisosPanel from '../components/modules/CompromisosPanel'
 import CompromisosModal from '../components/modules/CompromisosModal'
 
 export default function LlamadasPage() {
+  try {
+    return <LlamadasPageInner />
+  } catch(e) {
+    console.error('LlamadasPage crash:', e)
+    return <div style={{padding:24, color:'#f07070'}}>Error: {e.message}</div>
+  }
+}
+
+function LlamadasPageInner() {
   const state = useLlamadas()
   const comp  = useCompromisos()
 
@@ -16,6 +25,8 @@ export default function LlamadasPage() {
       asesora_id: state.form.asesora?.value || null,
     })
   }
+
+  if (!state) return null
 
   return (
     <div style={{ display:'flex', height:'100%' }}>
