@@ -18,10 +18,11 @@ export function useLlamadasProgramadas() {
         .eq('fecha', hoy)
         .eq('estado', 'Pendiente')
         .order('hora')
-      if (error) throw error
+      // Si la tabla no existe aún, ignorar el error silenciosamente
+      if (error) { console.warn('llamadas_programadas:', error.message); return }
       setLlamadas(data || [])
     } catch (err) {
-      console.error(err)
+      console.warn('useLlamadasProgramadas:', err.message)
     } finally {
       setLoading(false)
     }

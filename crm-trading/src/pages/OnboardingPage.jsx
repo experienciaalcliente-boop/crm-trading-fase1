@@ -1,5 +1,5 @@
 import { useOnboarding } from '../hooks/useOnboarding'
-import { Loader2, RefreshCw, ChevronRight, X, CheckCircle, Clock, AlertTriangle } from 'lucide-react'
+import { Loader2, RefreshCw, ChevronRight, CheckCircle, AlertTriangle } from 'lucide-react'
 import { format, differenceInDays } from 'date-fns'
 import { es } from 'date-fns/locale'
 

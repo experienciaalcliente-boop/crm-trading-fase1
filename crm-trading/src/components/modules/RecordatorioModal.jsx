@@ -1,4 +1,4 @@
-import { Phone, Calendar, CheckCircle, XCircle, Clock } from 'lucide-react'
+import { Phone, Calendar, CheckCircle, XCircle } from 'lucide-react'
 
 export default function RecordatorioModal({ llamada, onAccion, onCerrar }) {
   if (!llamada) return null
