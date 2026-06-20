@@ -72,6 +72,37 @@ function EditBeneficio({ registro, onUpdated }) {
   )
 }
 
+
+function SafeRow({ r, onRefresh }) {
+  try {
+    return (
+      <tr>
+        <td style={{ whiteSpace:'nowrap', fontSize:12 }}>
+          {r.fecha ? format(new Date(r.fecha + 'T00:00:00'), 'dd MMM yyyy', { locale: es }) : '—'}
+        </td>
+        <td>{r.semana_registro || r.semana || '—'}</td>
+        <td><BadgeRespondio val={r.respondio} /></td>
+        <td>{r.avance != null ? `${r.avance}%` : '—'}</td>
+        <td><BadgeCuenta val={r.cuenta || null} /></td>
+        <td>
+          <EditBeneficio registro={r} onUpdated={onRefresh} />
+        </td>
+        <td>
+          {r.retiro === 'Sí'
+            ? <span className="badge badge-amber">${Number(r.monto_retiro||0).toFixed(2)}</span>
+            : r.retiro === 'No' ? <span className="badge badge-gray">No</span> : '—'}
+        </td>
+        <td style={{ fontSize:12, color:'#9aaccb', whiteSpace:'pre-wrap', wordBreak:'break-word', maxWidth:300, lineHeight:1.5 }}>
+          {r.observaciones || '—'}
+        </td>
+      </tr>
+    )
+  } catch(e) {
+    console.error('SafeRow error:', e, r)
+    return <tr><td colSpan={8} style={{ color:'#f07070', fontSize:11 }}>Error en fila</td></tr>
+  }
+}
+
 export default function HistorialAlumno({ historial, alumno, onRefresh }) {
   const navigate = useNavigate()
   return (
@@ -119,28 +150,8 @@ export default function HistorialAlumno({ historial, alumno, onRefresh }) {
               </tr>
             </thead>
             <tbody>
-              {historial.filter(Boolean).map(r => (
-                <tr key={r.id}>
-                  <td style={{ whiteSpace:'nowrap', fontSize:12 }}>
-                    {r.fecha ? format(new Date(r.fecha + 'T00:00:00'), 'dd MMM yyyy', { locale: es }) : '—'}
-                  </td>
-                  <td>{r.semana_registro || r.semana || '—'}</td>
-                  <td><BadgeRespondio val={r.respondio} /></td>
-                  <td>{r.avance != null ? `${r.avance}%` : '—'}</td>
-                  <td><BadgeCuenta val={r.cuenta || null} /></td>
-                  <td>
-                    <EditBeneficio registro={r} onUpdated={onRefresh} />
-                  </td>
-                  <td>
-                    {r.retiro === 'Sí'
-                      ? <span className="badge badge-amber">${Number(r.monto_retiro||0).toFixed(2)}</span>
-                      : r.retiro === 'No' ? <span className="badge badge-gray">No</span> : '—'}
-                  </td>
-                  {/* Observaciones completas — sin truncar */}
-                  <td style={{ fontSize:12, color:'#9aaccb', whiteSpace:'pre-wrap', wordBreak:'break-word', maxWidth:300, lineHeight:1.5 }}>
-                    {r.observaciones || '—'}
-                  </td>
-                </tr>
+              {historial.filter(r => r && r.id).map(r => (
+                <SafeRow key={r.id} r={r} onRefresh={onRefresh} />
               ))}
             </tbody>
           </table>
