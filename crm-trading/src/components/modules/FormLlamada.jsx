@@ -66,7 +66,10 @@ const FASES = [
 
 const divider = <div style={{ height: 1, background: 'rgba(255,255,255,0.07)', margin: '4px 0 16px' }} />
 
-export default function FormLlamada({ form, setField, onAlumnoChange, onProgramaChange, programasOpts, alumnosOpts, asesorasOpts }) {
+export default function FormLlamada({ state, onNuevoCompromiso }) {
+  const { form, setField, onAlumnoChange, onProgramaChange, programasOpts, alumnosOpts, asesorasOpts, guardar, limpiar, saving } = state || {}
+  if (!form) return null
+
   const cuenta     = form.cuenta?.value
   const retiro     = form.retiro?.value
   const respondio  = form.respondio?.value
@@ -198,8 +201,20 @@ export default function FormLlamada({ form, setField, onAlumnoChange, onPrograma
           <span>Registro en modo <strong>No contestó</strong> — solo se guardará la observación. Los demás campos están bloqueados.</span>
         </div>
       )}
+      {/* Botones de acción */}
+      <div style={{ display:'flex', gap:10, marginTop:16 }}>
+        <button onClick={limpiar}
+          style={{ padding:'9px 18px', borderRadius:8, background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.1)', color:'#9aaccb', cursor:'pointer', fontSize:13, fontWeight:600 }}>
+          Limpiar
+        </button>
+        <button onClick={guardar} disabled={saving}
+          style={{ flex:1, padding:'9px 0', borderRadius:8, background: saving ? '#1e2840' : '#4e8fff', border:'none', color:'#fff', cursor: saving ? 'not-allowed' : 'pointer', fontSize:13, fontWeight:700 }}>
+          {saving ? 'Guardando...' : '✓ Registrar llamada'}
+        </button>
+      </div>
+
       {/* Botón agregar compromiso — visible cuando hay alumno seleccionado */}
-      {onNuevoCompromiso && state?.form?.alumno && (
+      {onNuevoCompromiso && form?.alumno && (
         <button onClick={onNuevoCompromiso}
           style={{ marginTop:12, width:'100%', padding:'8px 0', borderRadius:10, cursor:'pointer',
             background:'rgba(124,58,237,0.1)', border:'1px solid rgba(124,58,237,0.25)',
