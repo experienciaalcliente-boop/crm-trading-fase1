@@ -548,6 +548,9 @@ export async function fetchAlumnosConRiesgo() {
 
 // Calcular score de riesgo en el frontend (no requiere tabla nueva)
 export function calcularRiesgo(alumno, cuotas = [], llamadas = []) {
+  // Guard: si no hay alumno válido, retornar score 0
+  if (!alumno) return { score: 0, nivel: 'Bajo' }
+
   let score = 0
   const hoy = new Date()
   const hoyStr = hoy.toISOString().split('T')[0]
@@ -559,25 +562,28 @@ export function calcularRiesgo(alumno, cuotas = [], llamadas = []) {
     else if (diasSin >= 15) score += 25
     else if (diasSin >= 7) score += 15
   } else {
-    score += 25 // nunca contactado
+    score += 25
   }
 
-  // Cuotas vencidas
-  const cuotasVencidas = cuotas.filter(c =>
+  // Cuotas vencidas — guard contra elementos undefined
+  const cuotasSeguras = Array.isArray(cuotas) ? cuotas.filter(c => c && c.fecha_vence) : []
+  const cuotasVencidas = cuotasSeguras.filter(c =>
     c.fecha_vence < hoyStr && c.estado !== 'Pagada' && c.estado !== 'Retirado'
   )
   if (cuotasVencidas.length >= 2) score += 25
   else if (cuotasVencidas.length === 1) score += 15
 
-  // Avance bajo en semana avanzada
-  const semana = alumno.semana_actual || 0
-  const ultimaLlamada = llamadas[0]
-  if (ultimaLlamada) {
-    if (semana >= 8 && (ultimaLlamada.avance || 0) < 30) score += 15
+  // Avance bajo en semana avanzada — guard contra llamadas undefined
+  const llamadasSeguras = Array.isArray(llamadas) ? llamadas.filter(Boolean) : []
+  const semana = parseInt(alumno.semana_actual) || 0
+  const ultimaLlamada = llamadasSeguras[0]
+
+  if (ultimaLlamada && semana >= 8) {
+    if ((ultimaLlamada.avance || 0) < 30) score += 15
   }
 
-  // En Demo en semana 12+
-  if (semana >= 12 && ultimaLlamada?.cuenta === 'Demo') score += 10
+  // En Demo en semana 12+ — acceso seguro
+  if (semana >= 12 && ultimaLlamada && ultimaLlamada.cuenta === 'Demo') score += 10
 
   // Fue crítico antes
   if (alumno.nivel_atencion === 'Crítico') score += 10
