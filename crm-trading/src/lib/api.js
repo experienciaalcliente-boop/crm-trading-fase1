@@ -590,3 +590,104 @@ export function calcularRiesgo(alumno, cuotas = [], llamadas = []) {
 
   return { score, nivel }
 }
+
+// ─────────────────────────────────────────────────────────────
+// FASE D — Ficha 360°, Timeline, Validación
+// ─────────────────────────────────────────────────────────────
+
+export async function fetchAlumnoCompleto(alumnoId) {
+  const [
+    { data: alumno },
+    { data: llamadas },
+    { data: cuotas },
+    { data: sesiones },
+    { data: compromisos },
+    { data: onboarding },
+    { data: validacion },
+    { data: timeline },
+  ] = await Promise.all([
+    supabase.from('alumnos').select('*').eq('id', alumnoId).single(),
+    supabase.from('registros_llamadas').select('*').eq('alumno_id', alumnoId).order('created_at', { ascending: false }).limit(50),
+    supabase.from('cuotas').select('*').eq('alumno_id', alumnoId).order('fecha_vence'),
+    supabase.from('sesiones_orientacion').select('*').eq('alumno_id', alumnoId).order('fecha', { ascending: false }),
+    supabase.from('compromisos').select('*, asesora:asesoras(nombre)').eq('alumno_id', alumnoId).order('fecha_limite'),
+    supabase.from('onboarding_pasos').select('*').eq('alumno_id', alumnoId),
+    supabase.from('validaciones').select('*').eq('alumno_id', alumnoId).maybeSingle(),
+    supabase.from('timeline_alumno').select('*').eq('alumno_id', alumnoId).order('created_at', { ascending: false }).limit(100),
+  ])
+  return { alumno, llamadas: llamadas||[], cuotas: cuotas||[], sesiones: sesiones||[], compromisos: compromisos||[], onboarding: onboarding||[], validacion, timeline: timeline||[] }
+}
+
+export async function fetchAlumnoById(id) {
+  const { data, error } = await supabase.from('alumnos').select('*').eq('id', id).single()
+  if (error) throw error
+  return data
+}
+
+export async function buscarAlumnos(query) {
+  const { data, error } = await supabase
+    .from('alumnos')
+    .select('id, nombre, programa, estado, asesora, semana_actual, riesgo_nivel, ultimo_contacto_at')
+    .ilike('nombre', `%${query}%`)
+    .limit(10)
+  if (error) throw error
+  return data || []
+}
+
+// Validación
+export async function upsertValidacion(alumnoId, payload) {
+  const { data, error } = await supabase
+    .from('validaciones')
+    .upsert({ alumno_id: alumnoId, ...payload }, { onConflict: 'alumno_id' })
+    .select().single()
+  if (error) throw error
+  return data
+}
+
+// Timeline
+export async function insertTimeline(payload) {
+  const { error } = await supabase.from('timeline_alumno').insert([payload])
+  if (error) console.error('Timeline insert error:', error)
+}
+
+// Users config (roles)
+export async function fetchUserByPin(pin) {
+  const { data, error } = await supabase
+    .from('users_config')
+    .select('*, asesora:asesoras(id, nombre)')
+    .eq('pin', pin)
+    .eq('activo', true)
+    .single()
+  if (error) return null
+  return data
+}
+
+export async function fetchUserByDniPin(dni, pin) {
+  const { data, error } = await supabase
+    .from('users_config')
+    .select('*, asesora:asesoras(id, nombre)')
+    .eq('dni', dni)
+    .eq('pin', pin)
+    .eq('activo', true)
+    .single()
+  if (error) return null
+  return data
+}
+
+export async function fetchAllUsers() {
+  const { data, error } = await supabase
+    .from('users_config')
+    .select('*, asesora:asesoras(nombre)')
+    .order('nombre')
+  if (error) throw error
+  return data || []
+}
+
+export async function upsertUser(payload) {
+  const { data, error } = await supabase
+    .from('users_config')
+    .upsert(payload, { onConflict: 'email' })
+    .select().single()
+  if (error) throw error
+  return data
+}

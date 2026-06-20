@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { History, Edit2, Check, X } from 'lucide-react'
+import { History, Edit2, Check, X, ExternalLink } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { updateBeneficio } from '../../lib/api'
 import toast from 'react-hot-toast'
 
@@ -72,6 +73,7 @@ function EditBeneficio({ registro, onUpdated }) {
 }
 
 export default function HistorialAlumno({ historial, alumno, onRefresh }) {
+  const navigate = useNavigate()
   return (
     <div className="crm-card" style={{ marginTop:16 }}>
       <div style={{ padding:'13px 18px', borderBottom:'1px solid rgba(255,255,255,0.07)', display:'flex', alignItems:'center', justifyContent:'space-between', background:'rgba(255,255,255,0.02)', borderRadius:'12px 12px 0 0' }}>
@@ -79,7 +81,16 @@ export default function HistorialAlumno({ historial, alumno, onRefresh }) {
           <History size={14} style={{ color:'#506080' }} />
           <span style={{ fontSize:13, fontWeight:700, color:'#e2e8f4' }}>Historial del alumno</span>
         </div>
-        <span style={{ fontSize:12, color:'#506080' }}>{alumno ? alumno.label : '— selecciona un alumno arriba —'}</span>
+        <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+          <span style={{ fontSize:12, color:'#506080' }}>{alumno ? alumno.label : '— selecciona un alumno arriba —'}</span>
+          {alumno && (
+            <button onClick={() => navigate(`/alumno/${alumno.value}`)}
+              style={{ background:'none', border:'none', cursor:'pointer', color:'#4e8fff', display:'flex', alignItems:'center', gap:3, fontSize:11 }}
+              title="Ver ficha completa">
+              <ExternalLink size={12} /> Ficha 360°
+            </button>
+          )}
+        </div>
       </div>
 
       {!alumno ? (
