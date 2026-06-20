@@ -51,15 +51,21 @@ export function useDashboard() {
 
   const hoy = new Date().toISOString().split('T')[0]
 
+  // Safety: if data is still loading or empty, return safe defaults
+  const safeAlumnosActivos = alumnosActivos || []
+  const safeLlamadas = llamadas || []
+  const safeCuotas = cuotas || []
+  const safeSesiones = sesiones || []
+
   // ── Rango del mes ─────────────────────────────────────────
   const [anioFiltro, mesFiltroNum] = mesFiltro.split('-').map(Number)
   const inicioMesStr = `${mesFiltro}-01`
   const finMes = new Date(anioFiltro, mesFiltroNum, 0)
   const finMesStr = `${mesFiltro}-${String(finMes.getDate()).padStart(2,'0')}`
-  const llamadasMes = llamadas.filter(r => r.fecha >= inicioMesStr && r.fecha <= finMesStr)
-  const cuotasMes   = cuotas.filter(c => c.fecha_vence >= inicioMesStr && c.fecha_vence <= finMesStr)
-  const sesionesMes = sesiones.filter(s => s.fecha >= inicioMesStr && s.fecha <= finMesStr)
-  const llamadasHoy = llamadas.filter(r => r.fecha === hoy)
+  const llamadasMes = safeLlamadas.filter(r => r?.fecha >= inicioMesStr && r?.fecha <= finMesStr)
+  const cuotasMes   = safeCuotas.filter(c => c?.fecha_vence >= inicioMesStr && c?.fecha_vence <= finMesStr)
+  const sesionesMes = safeSesiones.filter(s => s?.fecha >= inicioMesStr && s?.fecha <= finMesStr)
+  const llamadasHoy = safeLlamadas.filter(r => r?.fecha === hoy)
 
   // ── Tipo de cambio por alumno ─────────────────────────────
   const tcPorAlumno = {}
@@ -70,20 +76,21 @@ export function useDashboard() {
   const TC_DEFAULT = 3.6
 
   // ── Programas ─────────────────────────────────────────────
-  const programas = [...new Set(alumnosActivos.map(a => a.programa).filter(Boolean))]
+  const programas = [...new Set(safeAlumnosActivos.map(a => a?.programa).filter(Boolean))]
 
   // ── SCORE DE RIESGO — calculado en frontend por alumno ────
   // Historial de llamadas por alumno (todas, no solo del mes)
   const llamadasPorAlumno = {}
-  llamadas.forEach(r => {
+  safeLlamadas.forEach(r => {
     if (!r.alumno?.nombre) return
     if (!llamadasPorAlumno[r.alumno.nombre]) llamadasPorAlumno[r.alumno.nombre] = []
     llamadasPorAlumno[r.alumno.nombre].push(r)
   })
 
-  const alumnosConRiesgo = alumnosActivos.map(al => {
+  const alumnosConRiesgo = safeAlumnosActivos.map(al => {
+    if (!al?.nombre) return { ...al, riesgo_score: 0, riesgo_nivel: 'Bajo' }
     const hists = llamadasPorAlumno[al.nombre] || []
-    const cuotasAl = cuotas.filter(c => c.alumno?.nombre === al.nombre)
+    const cuotasAl = safeCuotas.filter(c => c?.alumno?.nombre === al.nombre)
     const { score, nivel } = calcularRiesgo(al, cuotasAl, hists)
     return { ...al, riesgo_score: score, riesgo_nivel: nivel }
   })
@@ -126,13 +133,13 @@ export function useDashboard() {
   // ── PIPELINE Demo → Real → Fondeo ─────────────────────────
   // Último registro CON cuenta por alumno (historial completo, no solo del mes)
   const ultimoRegPorAlumno = {}
-  llamadas.forEach(r => {
-    if (!r.alumno?.nombre || !r.cuenta) return
+  safeLlamadas.forEach(r => {
+    if (!r?.alumno?.nombre || !r?.cuenta) return
     if (!ultimoRegPorAlumno[r.alumno.nombre]) ultimoRegPorAlumno[r.alumno.nombre] = r
   })
 
   const pipeline = { Demo: 0, Real: 0, Fondeo: 0, 'No opera': 0, 'Sin registro': 0 }
-  alumnosActivos.forEach(al => {
+  safeAlumnosActivos.forEach(al => {
     if (!al || !al.nombre) return
     const ult = ultimoRegPorAlumno[al.nombre]
     if (!ult || !ult.cuenta) { pipeline['Sin registro']++; return }
@@ -143,7 +150,7 @@ export function useDashboard() {
   // Pipeline por programa
   const pipelinePorPrograma = programas.map(prog => {
     const ultProg = {}
-    llamadas.filter(r => r.alumno?.programa === prog && r.cuenta).forEach(r => {
+    safeLlamadas.filter(r => r?.alumno?.programa === prog && r?.cuenta).forEach(r => {
       if (!ultProg[r.alumno.nombre]) ultProg[r.alumno.nombre] = r
     })
     const unicos = Object.values(ultProg)
@@ -157,7 +164,7 @@ export function useDashboard() {
   }).filter(p => p.Demo + p.Real + p.Fondeo + p['No opera'] > 0)
 
   // Alumnos estancados en Demo (semana 12+)
-  const alumnosDemoEstancados = alumnosActivos.filter(al => {
+  const alumnosDemoEstancados = safeAlumnosActivos.filter(al => {
     if (!al?.nombre) return false
     const ult = ultimoRegPorAlumno[al.nombre]
     const semana = parseInt(al.semana_actual) || 0
@@ -166,7 +173,7 @@ export function useDashboard() {
 
   // ── INDICADOR DE ACTIVACIÓN ───────────────────────────────
   // Activado = tiene cuenta + avance >= 20% + contactado en 14 días
-  const alumnosActivados = alumnosActivos.filter(al => {
+  const alumnosActivados = safeAlumnosActivos.filter(al => {
     if (!al?.nombre) return false
     const ult = ultimoRegPorAlumno[al.nombre]
     if (!ult?.cuenta || ult.cuenta === 'No opera') return false
@@ -179,8 +186,9 @@ export function useDashboard() {
     ? Math.round((alumnosActivados.length / totalAlumnosActivos) * 100) : 0
 
   const activacionPorPrograma = programas.map(prog => {
-    const alumnosProg = alumnosActivos.filter(a => a.programa === prog)
+    const alumnosProg = safeAlumnosActivos.filter(a => a?.programa === prog)
     const activadosProg = alumnosProg.filter(al => {
+      if (!al?.nombre) return false
       if (!al?.nombre) return false
       const ult = ultimoRegPorAlumno[al.nombre]
       if (!ult?.cuenta || ult.cuenta === 'No opera') return false
@@ -198,9 +206,9 @@ export function useDashboard() {
   })
 
   // ── DESEMPEÑO POR ASESORA ─────────────────────────────────
-  const todasAsesoras = [...new Set(alumnosActivos.map(a => a.asesora).filter(Boolean))]
+  const todasAsesoras = [...new Set(safeAlumnosActivos.map(a => a?.asesora).filter(Boolean))]
   const desempenoPorAsesora = todasAsesoras.map(asesora => {
-    const misAlumnos = alumnosActivos.filter(a => a.asesora === asesora)
+    const misAlumnos = safeAlumnosActivos.filter(a => a?.asesora === asesora)
     const misLlamadas = llamadasMes.filter(r => r.asesora?.nombre === asesora)
     const misLlamadasAll = llamadas.filter(r => r.asesora?.nombre === asesora)
 
