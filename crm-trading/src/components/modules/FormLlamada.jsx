@@ -1,3 +1,4 @@
+// v-2026-06-20 16:06:13
 import Select from 'react-select'
 
 // Estilos inline para React-Select
