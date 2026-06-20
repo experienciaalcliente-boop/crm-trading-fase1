@@ -133,8 +133,9 @@ export function useDashboard() {
 
   const pipeline = { Demo: 0, Real: 0, Fondeo: 0, 'No opera': 0, 'Sin registro': 0 }
   alumnosActivos.forEach(al => {
+    if (!al || !al.nombre) return
     const ult = ultimoRegPorAlumno[al.nombre]
-    if (!ult) { pipeline['Sin registro']++; return }
+    if (!ult || !ult.cuenta) { pipeline['Sin registro']++; return }
     if (pipeline[ult.cuenta] !== undefined) pipeline[ult.cuenta]++
     else pipeline['Sin registro']++
   })
@@ -157,6 +158,7 @@ export function useDashboard() {
 
   // Alumnos estancados en Demo (semana 12+)
   const alumnosDemoEstancados = alumnosActivos.filter(al => {
+    if (!al?.nombre) return false
     const ult = ultimoRegPorAlumno[al.nombre]
     const semana = parseInt(al.semana_actual) || 0
     return ult?.cuenta === 'Demo' && semana >= 12
@@ -165,6 +167,7 @@ export function useDashboard() {
   // ── INDICADOR DE ACTIVACIÓN ───────────────────────────────
   // Activado = tiene cuenta + avance >= 20% + contactado en 14 días
   const alumnosActivados = alumnosActivos.filter(al => {
+    if (!al?.nombre) return false
     const ult = ultimoRegPorAlumno[al.nombre]
     if (!ult?.cuenta || ult.cuenta === 'No opera') return false
     if ((ult.avance || 0) < 20) return false
@@ -178,6 +181,7 @@ export function useDashboard() {
   const activacionPorPrograma = programas.map(prog => {
     const alumnosProg = alumnosActivos.filter(a => a.programa === prog)
     const activadosProg = alumnosProg.filter(al => {
+      if (!al?.nombre) return false
       const ult = ultimoRegPorAlumno[al.nombre]
       if (!ult?.cuenta || ult.cuenta === 'No opera') return false
       if ((ult.avance || 0) < 20) return false
