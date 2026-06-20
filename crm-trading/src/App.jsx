@@ -8,6 +8,7 @@ import OrientacionPage   from './pages/OrientacionPage'
 import DashboardPage     from './pages/DashboardPage'
 import OnboardingPage    from './pages/OnboardingPage'
 import FichaAlumnoPage   from './pages/FichaAlumnoPage'
+import MiPerfilPage      from './pages/MiPerfilPage'
 import ImportPage        from './pages/ImportPage'
 import SetupPage         from './pages/SetupPage'
 import { useLlamadasProgramadas } from './hooks/useLlamadasProgramadas'
@@ -42,6 +43,7 @@ function ProtectedApp() {
           <Route path="/onboarding"     element={<OnboardingPage />} />
           <Route path="/alumno/:id"     element={<FichaAlumnoPage />} />
           <Route path="/importar"       element={<ImportPage />} />
+          <Route path="/perfil"         element={<MiPerfilPage />} />
         </Route>
       </Routes>
       {lp.recordatorio && (

@@ -691,3 +691,24 @@ export async function upsertUser(payload) {
   if (error) throw error
   return data
 }
+
+export async function updatePin(dni, pinActual, pinNuevo) {
+  // Verificar pin actual
+  const user = await fetchUserByDniPin(dni, pinActual)
+  if (!user) throw new Error('PIN actual incorrecto')
+  const { error } = await supabase
+    .from('users_config')
+    .update({ pin: pinNuevo })
+    .eq('dni', dni)
+  if (error) throw error
+  return true
+}
+
+export async function resetPin(userId, pinNuevo) {
+  const { error } = await supabase
+    .from('users_config')
+    .update({ pin: pinNuevo })
+    .eq('id', userId)
+  if (error) throw error
+  return true
+}

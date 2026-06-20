@@ -1,5 +1,6 @@
 import { Outlet, NavLink } from 'react-router-dom'
-import { Phone, Upload, BarChart2, CreditCard, MonitorSmartphone, ChevronRight, GraduationCap, LogOut } from 'lucide-react'
+import { Phone, Upload, BarChart2, CreditCard, MonitorSmartphone, ChevronRight, GraduationCap, LogOut, UserCircle } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { useAuth } from '../../context/AuthContext'
@@ -23,6 +24,7 @@ const ROL_COLORS = {
 export default function AppShell() {
   const hoy = format(new Date(), "EEEE d 'de' MMMM", { locale: es })
   const { user, logout } = useAuth()
+  const navigate = useNavigate()
   const rol = user?.rol || 'supervisor'
 
   const navFiltrado = NAV.filter(n => n.roles.includes(rol))
@@ -73,10 +75,16 @@ export default function AppShell() {
                 <div style={{ fontSize:12, fontWeight:600, color:'#e2e8f4' }}>{user.nombre}</div>
                 <div style={{ fontSize:10, color: ROL_COLORS[user.rol] || '#506080', marginTop:1, fontWeight:600, textTransform:'capitalize' }}>{user.rol}</div>
               </div>
-              <button onClick={logout} title="Cerrar sesión"
-                style={{ background:'none', border:'none', cursor:'pointer', color:'#3d5070', padding:4, display:'flex' }}>
-                <LogOut size={14} />
-              </button>
+              <div style={{ display:'flex', gap:4 }}>
+                <button onClick={() => navigate('/perfil')} title="Mi perfil / Cambiar PIN"
+                  style={{ background:'none', border:'none', cursor:'pointer', color:'#3d5070', padding:4, display:'flex' }}>
+                  <UserCircle size={14} />
+                </button>
+                <button onClick={logout} title="Cerrar sesión"
+                  style={{ background:'none', border:'none', cursor:'pointer', color:'#3d5070', padding:4, display:'flex' }}>
+                  <LogOut size={14} />
+                </button>
+              </div>
             </div>
           )}
           <div style={{ fontSize:10, color:'#2a3450', textTransform:'capitalize' }}>{hoy}</div>
