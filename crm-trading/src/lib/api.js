@@ -1,4 +1,4 @@
-// v-2026-06-20 16:06:13
+// v-20260622-1614
 import { supabase } from '../lib/supabase'
 
 // ─────────────────────────────────────────
@@ -307,6 +307,14 @@ export async function fetchSesionesFecha(fecha) {
     .order('hora_inicio')
   if (error) throw error
   return data || []
+}
+
+export async function updateSesionZoomUrl(id, zoom_join_url) {
+  const { error } = await supabase
+    .from('sesiones_orientacion')
+    .update({ zoom_join_url })
+    .eq('id', id)
+  if (error) throw error
 }
 
 export async function insertSesion(payload) {

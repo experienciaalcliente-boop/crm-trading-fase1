@@ -57,8 +57,8 @@ export default function RecaudacionPage() {
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 20 }}>
         <div>
-          <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, color: '#e2e8f4', fontSize: 20 }}>Recaudación</h1>
-          <p style={{ fontSize: 13, color: '#506080', marginTop: 3 }}>Gestión de cuotas y pagos</p>
+          <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, color: 'var(--text-primary)', fontSize: 20 }}>Recaudación</h1>
+          <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 3 }}>Gestión de cuotas y pagos</p>
         </div>
         <button className="crm-btn crm-btn-sm" onClick={r.cargar}>
           <RefreshCw size={13} /> Actualizar
@@ -76,7 +76,7 @@ export default function RecaudacionPage() {
           { label: 'Prórrogas',     value: r.stats.prorrogas,  color: '#b89eff' },
         ].map(({ label, value, color }) => (
           <div key={label} className="crm-card" style={{ padding: '14px 16px' }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: '#506080', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>{label}</div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>{label}</div>
             <div style={{ fontSize: 24, fontWeight: 700, color, fontFamily: 'Syne, sans-serif', lineHeight: 1 }}>{value}</div>
           </div>
         ))}
@@ -104,7 +104,7 @@ export default function RecaudacionPage() {
         <select
           value={r.filtroMes}
           onChange={e => r.setFiltroMes(e.target.value)}
-          style={{ padding:'6px 10px', background:'#1e2840', border:'1.5px solid #2e3d5c', borderRadius:8, color:'#e2e8f4', fontSize:13, cursor:'pointer' }}>
+          style={{ padding:'6px 10px', background:'var(--bg-input)', border:'1.5px solid #2e3d5c', borderRadius:8, color:'var(--text-primary)', fontSize:13, cursor:'pointer' }}>
           {(() => {
             const opts = []
             const now = new Date()
@@ -124,7 +124,7 @@ export default function RecaudacionPage() {
           placeholder="🔍 Buscar alumno..."
           value={buscarAlumno}
           onChange={e => setBuscarAlumno(e.target.value)}
-          style={{ padding:'6px 12px', background:'#1e2840', border:'1.5px solid #2e3d5c', borderRadius:8, color:'#e2e8f4', fontSize:13, width:200 }}
+          style={{ padding:'6px 12px', background:'var(--bg-input)', border:'1.5px solid #2e3d5c', borderRadius:8, color:'var(--text-primary)', fontSize:13, width:200 }}
         />
 
         {/* Día de pago */}
@@ -147,7 +147,7 @@ export default function RecaudacionPage() {
         <select
           value={r.filtroPrograma}
           onChange={e => r.setFiltroPrograma(e.target.value)}
-          style={{ padding: '6px 12px', background: '#1e2840', border: '1.5px solid #2e3d5c', borderRadius: 8, color: '#e2e8f4', fontSize: 13, marginLeft: 'auto' }}>
+          style={{ padding: '6px 12px', background: 'var(--bg-input)', border: '1.5px solid #2e3d5c', borderRadius: 8, color: 'var(--text-primary)', fontSize: 13, marginLeft: 'auto' }}>
           <option value="Todos">Todos los programas</option>
           {r.programas.map(p => <option key={p} value={p}>{p}</option>)}
         </select>
@@ -156,11 +156,11 @@ export default function RecaudacionPage() {
       {/* Tabla */}
       <div className="crm-card">
         {r.loading ? (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 60, gap: 10, color: '#506080' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 60, gap: 10, color: 'var(--text-muted)' }}>
             <Loader2 size={18} className="animate-spin" /><span style={{ fontSize: 13 }}>Cargando cuotas...</span>
           </div>
         ) : !cuotasFiltradas.length ? (
-          <div style={{ textAlign: 'center', padding: 60, color: '#3d5070' }}>
+          <div style={{ textAlign: 'center', padding: 60, color: 'var(--text-muted)' }}>
             <div style={{ fontSize: 28, marginBottom: 8 }}>💳</div>
             <p style={{ fontSize: 13 }}>No hay cuotas con ese filtro</p>
           </div>
@@ -185,7 +185,7 @@ export default function RecaudacionPage() {
                   const vencida = isVencida(cuota.fecha_vence) && cuota.estado !== 'Pagada'
                   return (
                     <tr key={cuota.id}>
-                      <td style={{ fontWeight: 600, color: '#e2e8f4' }}>
+                      <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
                         {vencida && <span style={{ color: '#f07070', marginRight: 5 }}>⚠</span>}
                         {cuota.alumno?.nombre || '—'}
                       </td>
@@ -204,7 +204,7 @@ export default function RecaudacionPage() {
                           {cuota.moneda}
                         </span>
                       </td>
-                      <td style={{ fontWeight: 600, color: '#e2e8f4' }}>
+                      <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
                         {Number(cuota.monto).toFixed(2)}
                       </td>
                       <td style={{ color: cuota.monto_pagado > 0 ? '#f5b93a' : '#3d5070' }}>

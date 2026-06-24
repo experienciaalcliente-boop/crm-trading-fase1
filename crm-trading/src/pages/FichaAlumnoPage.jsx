@@ -33,7 +33,7 @@ const TIPO_TIMELINE = {
   onboarding:     { icon:'🎓', color:'#4e8fff' },
   validacion:     { icon:'✅', color:'#2dd4a0' },
   compromiso:     { icon:'🤝', color:'#f07070' },
-  nota:           { icon:'📝', color:'#506080' },
+  nota:           { icon:'📝', color:'var(--text-muted)' },
 }
 
 function Seccion({ title, children, color = '#4e8fff' }) {
@@ -48,7 +48,7 @@ function Seccion({ title, children, color = '#4e8fff' }) {
 function InfoRow({ label, value, color }) {
   return (
     <div style={{ display:'flex', justifyContent:'space-between', padding:'6px 0', borderBottom:'1px solid rgba(255,255,255,0.04)' }}>
-      <span style={{ fontSize:12, color:'#506080' }}>{label}</span>
+      <span style={{ fontSize:12, color:'var(--text-muted)' }}>{label}</span>
       <span style={{ fontSize:12, color: color || '#e2e8f4', fontWeight:500 }}>{value || '—'}</span>
     </div>
   )
@@ -77,13 +77,13 @@ export default function FichaAlumnoPage() {
   useEffect(() => { cargar() }, [id])
 
   if (loading) return (
-    <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'100%', gap:10, color:'#506080' }}>
+    <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'100%', gap:10, color:'var(--text-muted)' }}>
       <Loader2 size={18} className="animate-spin" /><span>Cargando ficha...</span>
     </div>
   )
 
   if (!data?.alumno) return (
-    <div style={{ padding:24, color:'#506080' }}>Alumno no encontrado</div>
+    <div style={{ padding:24, color:'var(--text-muted)' }}>Alumno no encontrado</div>
   )
 
   const { alumno, llamadas, cuotas, sesiones, compromisos, onboarding, validacion, timeline } = data
@@ -140,16 +140,16 @@ export default function FichaAlumnoPage() {
   return (
     <div style={{ height:'100%', overflowY:'auto' }}>
       {/* Header */}
-      <div style={{ background:'#0f1520', borderBottom:'1px solid rgba(255,255,255,0.07)', padding:'16px 24px', position:'sticky', top:0, zIndex:10 }}>
+      <div style={{ background:'var(--bg-surface)', borderBottom:'1px solid var(--border-default)', padding:'16px 24px', position:'sticky', top:0, zIndex:10 }}>
         <div style={{ display:'flex', alignItems:'center', gap:12 }}>
-          <button onClick={() => navigate(-1)} style={{ background:'none', border:'none', cursor:'pointer', color:'#506080', display:'flex', alignItems:'center', gap:6, fontSize:13 }}>
+          <button onClick={() => navigate(-1)} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--text-muted)', display:'flex', alignItems:'center', gap:6, fontSize:13 }}>
             <ArrowLeft size={16} /> Volver
           </button>
           <div style={{ width:1, height:20, background:'rgba(255,255,255,0.1)' }} />
           <div style={{ flex:1 }}>
-            <h1 style={{ fontFamily:'Syne,sans-serif', fontWeight:700, color:'#e2e8f4', fontSize:18, margin:0 }}>{alumno.nombre}</h1>
+            <h1 style={{ fontFamily:'Syne,sans-serif', fontWeight:700, color:'var(--text-primary)', fontSize:18, margin:0 }}>{alumno.nombre}</h1>
             <div style={{ display:'flex', alignItems:'center', gap:8, marginTop:4, flexWrap:'wrap' }}>
-              <span style={{ fontSize:12, color:'#506080' }}>{alumno.programa} · Sem. {semanaCalc}</span>
+              <span style={{ fontSize:12, color:'var(--text-muted)' }}>{alumno.programa} · Sem. {semanaCalc}</span>
               <CicloVidaBadge estadoOperativo={alumno.estado_operativo || 'Activo'} />
               <RiesgoBadge nivel={nivel} score={score} />
               <UltimoContactoBadge fecha={alumno.ultimo_contacto_at} />
@@ -207,7 +207,7 @@ export default function FichaAlumnoPage() {
             <div className="crm-card" style={{ padding:18 }}>
               <Seccion title="Onboarding" color="#7ab3ff">
                 <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:10 }}>
-                  <span style={{ fontSize:12, color:'#9aaccb' }}>Avance</span>
+                  <span style={{ fontSize:12, color:'var(--text-secondary)' }}>Avance</span>
                   <span style={{ fontSize:18, fontWeight:700, color: avanceOnboarding===100?'#2dd4a0':'#7ab3ff', fontFamily:'Syne,sans-serif' }}>{avanceOnboarding}%</span>
                 </div>
                 <div style={{ height:6, background:'rgba(255,255,255,0.06)', borderRadius:3, overflow:'hidden', marginBottom:12 }}>
@@ -285,7 +285,7 @@ export default function FichaAlumnoPage() {
               <thead><tr><th>Fecha</th><th>Sem.</th><th>Respondió</th><th>Avance</th><th>Cuenta</th><th>Beneficio</th><th>Observaciones</th></tr></thead>
               <tbody>
                 {llamadas.length === 0 ? (
-                  <tr><td colSpan={7} style={{ textAlign:'center', color:'#3d5070', padding:30 }}>Sin registros</td></tr>
+                  <tr><td colSpan={7} style={{ textAlign:'center', color:'var(--text-muted)', padding:30 }}>Sin registros</td></tr>
                 ) : llamadas.map(r => (
                   <tr key={r.id}>
                     <td style={{ whiteSpace:'nowrap', fontSize:12 }}>{format(new Date(r.fecha + 'T00:00:00'), 'dd MMM yy', { locale:es })}</td>
@@ -294,7 +294,7 @@ export default function FichaAlumnoPage() {
                     <td style={{ textAlign:'center' }}>{r.avance != null ? `${r.avance}%` : '—'}</td>
                     <td><span style={{ fontSize:11, color:'#b89eff' }}>{r.cuenta || '—'}</span></td>
                     <td style={{ color:'#2dd4a0' }}>{r.beneficio ? `$${r.beneficio}` : '—'}</td>
-                    <td style={{ fontSize:11, color:'#9aaccb', maxWidth:200, whiteSpace:'pre-wrap', wordBreak:'break-word' }}>{r.observaciones || '—'}</td>
+                    <td style={{ fontSize:11, color:'var(--text-secondary)', maxWidth:200, whiteSpace:'pre-wrap', wordBreak:'break-word' }}>{r.observaciones || '—'}</td>
                   </tr>
                 ))}
               </tbody>
@@ -309,7 +309,7 @@ export default function FichaAlumnoPage() {
               <thead><tr><th>#</th><th>Vence</th><th>Moneda</th><th>Monto</th><th>Pagado</th><th>Estado</th></tr></thead>
               <tbody>
                 {cuotas.length === 0 ? (
-                  <tr><td colSpan={6} style={{ textAlign:'center', color:'#3d5070', padding:30 }}>Sin cuotas</td></tr>
+                  <tr><td colSpan={6} style={{ textAlign:'center', color:'var(--text-muted)', padding:30 }}>Sin cuotas</td></tr>
                 ) : cuotas.map(c => {
                   const vencida = c.fecha_vence < new Date().toISOString().split('T')[0] && c.estado !== 'Pagada'
                   return (
@@ -335,7 +335,7 @@ export default function FichaAlumnoPage() {
               <thead><tr><th>Fecha</th><th>Motivo</th><th>Estado</th><th>MT5</th><th>Broker</th><th>TV</th><th>Sync</th><th>Observaciones</th></tr></thead>
               <tbody>
                 {sesiones.length === 0 ? (
-                  <tr><td colSpan={8} style={{ textAlign:'center', color:'#3d5070', padding:30 }}>Sin sesiones</td></tr>
+                  <tr><td colSpan={8} style={{ textAlign:'center', color:'var(--text-muted)', padding:30 }}>Sin sesiones</td></tr>
                 ) : sesiones.map(s => (
                   <tr key={s.id}>
                     <td style={{ whiteSpace:'nowrap', fontSize:12 }}>{format(new Date(s.fecha + 'T00:00:00'), 'dd MMM yy', { locale:es })}</td>
@@ -344,7 +344,7 @@ export default function FichaAlumnoPage() {
                     {['tiene_mt5','tiene_broker','tiene_tradingview','tiene_ingreso_trade'].map(k => (
                       <td key={k} style={{ textAlign:'center' }}>{s[k] ? '✅' : '—'}</td>
                     ))}
-                    <td style={{ fontSize:11, color:'#9aaccb', maxWidth:160 }}>{s.observaciones || '—'}</td>
+                    <td style={{ fontSize:11, color:'var(--text-secondary)', maxWidth:160 }}>{s.observaciones || '—'}</td>
                   </tr>
                 ))}
               </tbody>
@@ -356,20 +356,20 @@ export default function FichaAlumnoPage() {
         {tabActiva === 'compromisos' && (
           <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
             {compromisos.length === 0 ? (
-              <div className="crm-card" style={{ padding:30, textAlign:'center', color:'#3d5070' }}>Sin compromisos registrados</div>
+              <div className="crm-card" style={{ padding:30, textAlign:'center', color:'var(--text-muted)' }}>Sin compromisos registrados</div>
             ) : compromisos.map(c => (
               <div key={c.id} className="crm-card" style={{ padding:14 }}>
                 <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:6 }}>
-                  <div style={{ fontSize:13, fontWeight:600, color:'#e2e8f4', flex:1 }}>{c.descripcion}</div>
+                  <div style={{ fontSize:13, fontWeight:600, color:'var(--text-primary)', flex:1 }}>{c.descripcion}</div>
                   <span style={{ fontSize:11, fontWeight:600, marginLeft:8,
                     color: c.estado==='Cumplido'?'#2dd4a0':c.estado==='Incumplido'?'#f07070':c.fecha_limite < new Date().toISOString().split('T')[0]?'#f07070':'#f5b93a',
                     background: 'rgba(255,255,255,0.05)', padding:'2px 8px', borderRadius:20 }}>
                     {c.estado}
                   </span>
                 </div>
-                <div style={{ fontSize:11, color:'#506080' }}>
-                  Responsable: <span style={{ color:'#9aaccb' }}>{c.responsable}</span>
-                  {' · '}Vence: <span style={{ color:'#9aaccb' }}>{c.fecha_limite ? format(new Date(c.fecha_limite + 'T00:00:00'), 'dd MMM yyyy', { locale:es }) : '—'}</span>
+                <div style={{ fontSize:11, color:'var(--text-muted)' }}>
+                  Responsable: <span style={{ color:'var(--text-secondary)' }}>{c.responsable}</span>
+                  {' · '}Vence: <span style={{ color:'var(--text-secondary)' }}>{c.fecha_limite ? format(new Date(c.fecha_limite + 'T00:00:00'), 'dd MMM yyyy', { locale:es }) : '—'}</span>
                 </div>
               </div>
             ))}
@@ -381,7 +381,7 @@ export default function FichaAlumnoPage() {
           <div style={{ position:'relative', paddingLeft:24 }}>
             <div style={{ position:'absolute', left:8, top:0, bottom:0, width:2, background:'rgba(255,255,255,0.07)' }} />
             {timeline.length === 0 ? (
-              <div className="crm-card" style={{ padding:30, textAlign:'center', color:'#3d5070' }}>Sin eventos en el timeline</div>
+              <div className="crm-card" style={{ padding:30, textAlign:'center', color:'var(--text-muted)' }}>Sin eventos en el timeline</div>
             ) : timeline.map(ev => {
               const cfg = TIPO_TIMELINE[ev.tipo] || TIPO_TIMELINE.nota
               return (
@@ -390,11 +390,11 @@ export default function FichaAlumnoPage() {
                     background: cfg.color, border:'2px solid #0b0e14', boxShadow:`0 0 0 2px ${cfg.color}40` }} />
                   <div className="crm-card" style={{ padding:'10px 14px' }}>
                     <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:3 }}>
-                      <span style={{ fontSize:12, fontWeight:600, color:'#e2e8f4' }}>{cfg.icon} {ev.titulo}</span>
-                      <span style={{ fontSize:10, color:'#3d5070' }}>{format(new Date(ev.created_at), 'dd MMM yy HH:mm', { locale:es })}</span>
+                      <span style={{ fontSize:12, fontWeight:600, color:'var(--text-primary)' }}>{cfg.icon} {ev.titulo}</span>
+                      <span style={{ fontSize:10, color:'var(--text-muted)' }}>{format(new Date(ev.created_at), 'dd MMM yy HH:mm', { locale:es })}</span>
                     </div>
-                    {ev.descripcion && <div style={{ fontSize:11, color:'#9aaccb' }}>{ev.descripcion}</div>}
-                    {ev.registrado_por && <div style={{ fontSize:10, color:'#3d5070', marginTop:2 }}>Por: {ev.registrado_por}</div>}
+                    {ev.descripcion && <div style={{ fontSize:11, color:'var(--text-secondary)' }}>{ev.descripcion}</div>}
+                    {ev.registrado_por && <div style={{ fontSize:10, color:'var(--text-muted)', marginTop:2 }}>Por: {ev.registrado_por}</div>}
                   </div>
                 </div>
               )

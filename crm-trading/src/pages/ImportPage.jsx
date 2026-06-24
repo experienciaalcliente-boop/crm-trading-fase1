@@ -356,8 +356,8 @@ export default function ImportPage() {
   return (
     <div style={{ padding: 24, maxWidth: 860, margin: '0 auto' }}>
       <div style={{ marginBottom: 24 }}>
-        <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, color: '#e2e8f4', fontSize: 20 }}>Importar datos</h1>
-        <p style={{ fontSize: 13, color: '#506080', marginTop: 3 }}>Carga o actualiza información desde archivos Excel o CSV</p>
+        <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, color: 'var(--text-primary)', fontSize: 20 }}>Importar datos</h1>
+        <p style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 3 }}>Carga o actualiza información desde archivos Excel o CSV</p>
       </div>
 
       {/* Selector tipo */}
@@ -377,9 +377,9 @@ export default function ImportPage() {
 
       {/* Info */}
       <div className="crm-card" style={{ padding: 16, marginBottom: 20 }}>
-        <div style={{ fontSize: 13, fontWeight: 600, color: '#e2e8f4', marginBottom: 4 }}>{info.titulo}</div>
+        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4 }}>{info.titulo}</div>
         <div style={{ fontSize: 12, color: '#7a8aaa', marginBottom: 8 }}>{info.descripcion}</div>
-        <div style={{ fontSize: 11, color: '#506080', background: 'rgba(255,255,255,0.04)', borderRadius: 8, padding: '8px 12px', fontFamily: 'DM Mono, monospace' }}>
+        <div style={{ fontSize: 11, color: 'var(--text-muted)', background: 'rgba(255,255,255,0.04)', borderRadius: 8, padding: '8px 12px', fontFamily: 'DM Mono, monospace' }}>
           Columnas esperadas: {info.columnas}
         </div>
       </div>
@@ -394,9 +394,9 @@ export default function ImportPage() {
         >
           <input ref={inputRef} type="file" accept=".csv,.xlsx,.xls" style={{ display: 'none' }}
             onChange={e => handleFile(e.target.files[0])} />
-          <FileSpreadsheet size={32} style={{ color: '#3d5070', margin: '0 auto 12px' }} strokeWidth={1} />
+          <FileSpreadsheet size={32} style={{ color: 'var(--text-muted)', margin: '0 auto 12px' }} strokeWidth={1} />
           <div style={{ fontSize: 14, fontWeight: 500, color: '#7a8aaa', marginBottom: 4 }}>Arrastra tu archivo aquí</div>
-          <div style={{ fontSize: 12, color: '#3d5070' }}>o haz clic para seleccionar · CSV o Excel (.xlsx)</div>
+          <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>o haz clic para seleccionar · CSV o Excel (.xlsx)</div>
         </label>
       )}
 
@@ -404,7 +404,7 @@ export default function ImportPage() {
       {preview && (
         <div className="crm-card">
           <div style={{ padding: '12px 18px', borderBottom: '1px solid rgba(255,255,255,0.07)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: 13, fontWeight: 600, color: '#e2e8f4' }}>Vista previa — {preview.total} filas</span>
+            <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>Vista previa — {preview.total} filas</span>
             <button className="crm-btn crm-btn-sm" onClick={limpiar}>✕ Cambiar archivo</button>
           </div>
           <div style={{ overflowX: 'auto' }}>
@@ -429,7 +429,7 @@ export default function ImportPage() {
             </table>
           </div>
           {preview.total > 5 && (
-            <div style={{ padding: '8px 18px', fontSize: 11, color: '#3d5070', borderTop: '1px solid rgba(255,255,255,0.07)' }}>
+            <div style={{ padding: '8px 18px', fontSize: 11, color: 'var(--text-muted)', borderTop: '1px solid rgba(255,255,255,0.07)' }}>
               … y {preview.total - 5} filas más
             </div>
           )}

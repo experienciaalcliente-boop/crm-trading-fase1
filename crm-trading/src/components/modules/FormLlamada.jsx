@@ -16,7 +16,7 @@ const rsStyles = {
   }),
   menu: (base) => ({
     ...base,
-    background: '#1e2840',
+    background: 'var(--bg-input)',
     border: '1.5px solid #2e3d5c',
     borderRadius: 10,
     boxShadow: '0 8px 28px rgba(0,0,0,0.5)',
@@ -24,7 +24,7 @@ const rsStyles = {
   }),
   menuList: (base) => ({
     ...base,
-    background: '#1e2840',
+    background: 'var(--bg-input)',
     borderRadius: 10,
     padding: 4,
   }),
@@ -43,12 +43,12 @@ const rsStyles = {
     cursor: 'pointer',
   }),
   singleValue: (base) => ({ ...base, color: '#ffffff', fontWeight: 500 }),
-  placeholder: (base) => ({ ...base, color: '#506080' }),
+  placeholder: (base) => ({ ...base, color: 'var(--text-muted)' }),
   input: (base) => ({ ...base, color: '#ffffff' }),
   indicatorSeparator: (base) => ({ ...base, background: '#2e3d5c' }),
-  dropdownIndicator: (base) => ({ ...base, color: '#506080' }),
-  clearIndicator: (base) => ({ ...base, color: '#506080' }),
-  noOptionsMessage: (base) => ({ ...base, color: '#506080', background: '#1e2840' }),
+  dropdownIndicator: (base) => ({ ...base, color: 'var(--text-muted)' }),
+  clearIndicator: (base) => ({ ...base, color: 'var(--text-muted)' }),
+  noOptionsMessage: (base) => ({ ...base, color: 'var(--text-muted)', background: 'var(--bg-input)' }),
 }
 
 const SI_NO    = [{ value: 'Sí', label: 'Sí' }, { value: 'No', label: 'No' }]
@@ -205,7 +205,7 @@ export default function FormLlamada({ state, onNuevoCompromiso }) {
       {/* Botones de acción */}
       <div style={{ display:'flex', gap:10, marginTop:16 }}>
         <button onClick={limpiar}
-          style={{ padding:'9px 18px', borderRadius:8, background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.1)', color:'#9aaccb', cursor:'pointer', fontSize:13, fontWeight:600 }}>
+          style={{ padding:'9px 18px', borderRadius:8, background:'rgba(255,255,255,0.06)', border:'1px solid var(--border-default)', color:'var(--text-secondary)', cursor:'pointer', fontSize:13, fontWeight:600 }}>
           Limpiar
         </button>
         <button onClick={guardar} disabled={saving}

@@ -21,7 +21,7 @@ export function RiesgoBadge({ nivel, score }) {
 }
 
 export function UltimoContactoBadge({ fecha }) {
-  if (!fecha) return <span style={{ fontSize: 11, color: '#3d5070' }}>Sin contacto</span>
+  if (!fecha) return <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Sin contacto</span>
 
   const hoy = new Date()
   const ult  = new Date(fecha + 'T00:00:00')

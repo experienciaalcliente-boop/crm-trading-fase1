@@ -4,7 +4,7 @@ import { format, differenceInDays } from 'date-fns'
 import { es } from 'date-fns/locale'
 
 const ESTADO_CONFIG = {
-  pendiente:  { label: 'Pendiente',   color: '#506080', bg: 'rgba(80,96,128,0.12)',   border: 'rgba(80,96,128,0.25)'   },
+  pendiente:  { label: 'Pendiente',   color: 'var(--text-muted)', bg: 'rgba(80,96,128,0.12)',   border: 'rgba(80,96,128,0.25)'   },
   en_proceso: { label: 'En proceso',  color: '#7ab3ff', bg: 'rgba(78,143,255,0.12)',  border: 'rgba(78,143,255,0.25)'  },
   detenido:   { label: 'Detenido',    color: '#f5b93a', bg: 'rgba(245,166,35,0.12)',  border: 'rgba(245,166,35,0.25)'  },
   critico:    { label: 'Crítico',     color: '#f07070', bg: 'rgba(240,92,92,0.12)',   border: 'rgba(240,92,92,0.25)'   },
@@ -54,8 +54,8 @@ export default function OnboardingPage() {
         {/* Header */}
         <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', marginBottom:20 }}>
           <div>
-            <h1 style={{ fontFamily:'Syne,sans-serif', fontWeight:700, color:'#e2e8f4', fontSize:20 }}>Onboarding</h1>
-            <p style={{ fontSize:13, color:'#506080', marginTop:3 }}>
+            <h1 style={{ fontFamily:'Syne,sans-serif', fontWeight:700, color:'var(--text-primary)', fontSize:20 }}>Onboarding</h1>
+            <p style={{ fontSize:13, color:'var(--text-muted)', marginTop:3 }}>
               Próximas promociones · Solo alumnos con fecha de inicio futura
             </p>
           </div>
@@ -66,14 +66,14 @@ export default function OnboardingPage() {
         <div style={{ display:'grid', gridTemplateColumns:'repeat(6,1fr)', gap:8, marginBottom:20 }}>
           {[
             { label:'Total',       value: o.stats.total,      color:'#7ab3ff' },
-            { label:'Pendiente',   value: o.stats.pendiente,  color:'#506080' },
+            { label:'Pendiente',   value: o.stats.pendiente,  color:'var(--text-muted)' },
             { label:'En proceso',  value: o.stats.en_proceso, color:'#7ab3ff' },
             { label:'Detenido',    value: o.stats.detenido,   color:'#f5b93a' },
             { label:'Crítico',     value: o.stats.critico,    color:'#f07070' },
             { label:'Listos',      value: o.stats.listo,      color:'#2dd4a0' },
           ].map(({ label, value, color }) => (
             <div key={label} className="crm-card" style={{ padding:'10px 12px', textAlign:'center' }}>
-              <div style={{ fontSize:9, fontWeight:700, color:'#506080', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:4 }}>{label}</div>
+              <div style={{ fontSize:9, fontWeight:700, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:4 }}>{label}</div>
               <div style={{ fontSize:20, fontWeight:700, color, fontFamily:'Syne,sans-serif' }}>{value}</div>
             </div>
           ))}
@@ -81,15 +81,15 @@ export default function OnboardingPage() {
 
         {/* Embudo visual */}
         <div className="crm-card" style={{ padding:18, marginBottom:20 }}>
-          <div style={{ fontSize:12, fontWeight:700, color:'#7a8aaa', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:14 }}>
+          <div style={{ fontSize:12, fontWeight:700, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:14 }}>
             Embudo de onboarding — alumnos que completaron cada paso
           </div>
           {o.embudo.map((paso, i) => (
             <div key={paso.key} style={{ marginBottom:10 }}>
               <div style={{ display:'flex', justifyContent:'space-between', marginBottom:4 }}>
-                <span style={{ fontSize:12, color:'#9aaccb' }}>{paso.icon} {paso.label}</span>
-                <span style={{ fontSize:12, fontWeight:600, color:'#e2e8f4' }}>
-                  {paso.count} <span style={{ color:'#506080', fontWeight:400 }}>({paso.pct}%)</span>
+                <span style={{ fontSize:12, color:'var(--text-secondary)' }}>{paso.icon} {paso.label}</span>
+                <span style={{ fontSize:12, fontWeight:600, color:'var(--text-primary)' }}>
+                  {paso.count} <span style={{ color:'var(--text-muted)', fontWeight:400 }}>({paso.pct}%)</span>
                   {i > 0 && o.embudo[i-1].count > 0 && paso.count < o.embudo[i-1].count && (
                     <span style={{ color:'#f07070', fontSize:10, marginLeft:6 }}>
                       ▼ -{o.embudo[i-1].count - paso.count}
@@ -124,11 +124,11 @@ export default function OnboardingPage() {
 
         {/* Lista de alumnos */}
         {o.loading ? (
-          <div style={{ display:'flex', alignItems:'center', justifyContent:'center', padding:50, gap:10, color:'#506080' }}>
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'center', padding:50, gap:10, color:'var(--text-muted)' }}>
             <Loader2 size={16} className="animate-spin" /><span style={{ fontSize:13 }}>Cargando...</span>
           </div>
         ) : o.alumnosFiltrados.length === 0 ? (
-          <div style={{ textAlign:'center', padding:50, color:'#3d5070' }}>
+          <div style={{ textAlign:'center', padding:50, color:'var(--text-muted)' }}>
             <div style={{ fontSize:28, marginBottom:8 }}>🎓</div>
             <p style={{ fontSize:13 }}>
               {o.alumnos.length === 0
@@ -152,10 +152,10 @@ export default function OnboardingPage() {
                   <div style={{ display:'flex', alignItems:'center', gap:12 }}>
                     <div style={{ flex:1, minWidth:0 }}>
                       <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:4 }}>
-                        <span style={{ fontSize:14, fontWeight:600, color:'#e2e8f4' }}>{al.nombre}</span>
+                        <span style={{ fontSize:14, fontWeight:600, color:'var(--text-primary)' }}>{al.nombre}</span>
                         <EstadoBadge estado={estado} />
                       </div>
-                      <div style={{ fontSize:11, color:'#506080', marginBottom:6 }}>
+                      <div style={{ fontSize:11, color:'var(--text-muted)', marginBottom:6 }}>
                         {al.programa} · {al.asesora}
                         {diasInicio !== null && (
                           <span style={{ marginLeft:8, color: diasInicio <= 7 ? '#f07070' : '#f5b93a' }}>
@@ -165,12 +165,12 @@ export default function OnboardingPage() {
                       </div>
                       <AvanceBar pct={avance} />
                     </div>
-                    <ChevronRight size={16} style={{ color:'#3d5070', transform: seleccionado ? 'rotate(90deg)' : 'none', transition:'transform 0.2s', flexShrink:0 }} />
+                    <ChevronRight size={16} style={{ color:'var(--text-muted)', transform: seleccionado ? 'rotate(90deg)' : 'none', transition:'transform 0.2s', flexShrink:0 }} />
                   </div>
 
                   {/* Panel de pasos expandido */}
                   {seleccionado && (
-                    <div style={{ marginTop:14, paddingTop:14, borderTop:'1px solid rgba(255,255,255,0.07)' }}>
+                    <div style={{ marginTop:14, paddingTop:14, borderTop:'1px solid var(--border-default)' }}>
                       {o.PASOS_INFO.map(p => {
                         const ps = (o.pasos[al.id] || []).find(pp => pp.paso === p.key)
                         const completado = ps?.estado === 'Completado'
@@ -189,7 +189,7 @@ export default function OnboardingPage() {
                                 textDecoration: completado ? 'line-through' : 'none' }}>
                                 {p.icon} {p.label}
                               </div>
-                              <div style={{ fontSize:10, color:'#3d5070' }}>
+                              <div style={{ fontSize:10, color:'var(--text-muted)' }}>
                                 {p.responsable}
                                 {completado && ps.fecha_completado && (
                                   <span style={{ color:'#2dd4a0', marginLeft:6 }}>

@@ -27,17 +27,17 @@ export default function ModalPago({ cuota, form, cuotasAlumno, setField, onGuard
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
       onClick={e => e.target === e.currentTarget && onCerrar()}>
-      <div style={{ background: '#151c2c', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 14, width: '100%', maxWidth: 560, maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.5)' }}>
+      <div style={{ background: 'var(--bg-card)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 14, width: '100%', maxWidth: 560, maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.5)' }}>
 
         {/* Header */}
         <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.07)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
-            <div style={{ fontSize: 14, fontWeight: 700, color: '#e2e8f4' }}>{cuota.alumno?.nombre}</div>
-            <div style={{ fontSize: 11, color: '#506080', marginTop: 2 }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>{cuota.alumno?.nombre}</div>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
               {cuota.alumno?.programa} · Cuota #{cuota.numero_cuota} · Vence: {format(new Date(cuota.fecha_vence + 'T00:00:00'), 'dd MMM yyyy', { locale: es })}
             </div>
           </div>
-          <button onClick={onCerrar} style={{ background: 'none', border: 'none', color: '#506080', cursor: 'pointer', padding: 4 }}>
+          <button onClick={onCerrar} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 4 }}>
             <X size={18} />
           </button>
         </div>
@@ -139,7 +139,7 @@ export default function ModalPago({ cuota, form, cuotasAlumno, setField, onGuard
         {/* Historial de cuotas del alumno */}
         {cuotasAlumno.length > 0 && (
           <div style={{ borderTop: '1px solid rgba(255,255,255,0.07)', padding: '14px 20px 20px' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#506080', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>
               Todas las cuotas de este alumno
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -150,11 +150,11 @@ export default function ModalPago({ cuota, form, cuotasAlumno, setField, onGuard
                   background: c.id === cuota.id ? 'rgba(78,143,255,0.1)' : 'rgba(255,255,255,0.03)',
                   border: `1px solid ${c.id === cuota.id ? 'rgba(78,143,255,0.25)' : 'rgba(255,255,255,0.06)'}`,
                 }}>
-                  <div style={{ fontSize: 12, color: '#9aaccb' }}>
+                  <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
                     Cuota #{c.numero_cuota} · {format(new Date(c.fecha_vence + 'T00:00:00'), 'dd MMM yyyy', { locale: es })}
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <span style={{ fontSize: 12, color: '#e2e8f4', fontWeight: 600 }}>
+                    <span style={{ fontSize: 12, color: 'var(--text-primary)', fontWeight: 600 }}>
                       {c.moneda} {Number(c.monto).toFixed(2)}
                     </span>
                     <span style={{
@@ -185,7 +185,7 @@ function Field({ label, children }) {
 function InfoItem({ label, value, color }) {
   return (
     <div>
-      <div style={{ fontSize: 10, color: '#3d5070', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 2 }}>{label}</div>
+      <div style={{ fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 2 }}>{label}</div>
       <div style={{ fontSize: 13, fontWeight: 600, color: color || '#e2e8f4' }}>{value}</div>
     </div>
   )

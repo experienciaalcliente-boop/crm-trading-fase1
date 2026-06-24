@@ -27,7 +27,7 @@ function CambiarPin({ user }) {
     <div className="crm-card" style={{ padding:24, maxWidth:400 }}>
       <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:20 }}>
         <KeyRound size={16} style={{ color:'#7ab3ff' }} />
-        <h3 style={{ fontFamily:'Syne,sans-serif', fontWeight:700, color:'#e2e8f4', fontSize:15, margin:0 }}>Cambiar mi PIN</h3>
+        <h3 style={{ fontFamily:'Syne,sans-serif', fontWeight:700, color:'var(--text-primary)', fontSize:15, margin:0 }}>Cambiar mi PIN</h3>
       </div>
 
       {[
@@ -36,13 +36,13 @@ function CambiarPin({ user }) {
         { label:'Confirmar nuevo PIN', val:pinConf, set:setPinConf  },
       ].map(({ label, val, set }) => (
         <div key={label} style={{ marginBottom:14 }}>
-          <label style={{ fontSize:10, fontWeight:700, color:'#7a8aaa', textTransform:'uppercase', letterSpacing:'0.08em', display:'block', marginBottom:6 }}>{label}</label>
+          <label style={{ fontSize:10, fontWeight:700, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.08em', display:'block', marginBottom:6 }}>{label}</label>
           <input
             type="password" maxLength={8}
             value={val} onChange={e => set(e.target.value.replace(/\D/g, ''))}
             placeholder="● ● ● ●"
             style={{ width:'100%', padding:'10px 14px', textAlign:'center', letterSpacing:'0.3em', fontSize:18,
-              background:'#1e2840', border:'1.5px solid #2e3d5c', borderRadius:8, color:'#e2e8f4', outline:'none', boxSizing:'border-box' }}
+              background:'var(--bg-input)', border:'1.5px solid #2e3d5c', borderRadius:8, color:'var(--text-primary)', outline:'none', boxSizing:'border-box' }}
           />
         </div>
       ))}
@@ -91,7 +91,7 @@ function GestionUsuarios() {
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:20 }}>
         <div style={{ display:'flex', alignItems:'center', gap:8 }}>
           <RefreshCw size={16} style={{ color:'#f5b93a' }} />
-          <h3 style={{ fontFamily:'Syne,sans-serif', fontWeight:700, color:'#e2e8f4', fontSize:15, margin:0 }}>Gestión de usuarios</h3>
+          <h3 style={{ fontFamily:'Syne,sans-serif', fontWeight:700, color:'var(--text-primary)', fontSize:15, margin:0 }}>Gestión de usuarios</h3>
         </div>
         {!cargado && (
           <button className="crm-btn crm-btn-sm" onClick={cargar} disabled={loading}>
@@ -101,11 +101,11 @@ function GestionUsuarios() {
       </div>
 
       {!cargado ? (
-        <p style={{ fontSize:13, color:'#3d5070' }}>Haz clic en "Cargar usuarios" para ver y gestionar los PINs del equipo.</p>
+        <p style={{ fontSize:13, color:'var(--text-muted)' }}>Haz clic en "Cargar usuarios" para ver y gestionar los PINs del equipo.</p>
       ) : usuarios.map(u => (
         <div key={u.id} style={{ padding:'12px 0', borderBottom:'1px solid rgba(255,255,255,0.06)', display:'flex', alignItems:'center', gap:12 }}>
           <div style={{ flex:1 }}>
-            <div style={{ fontSize:13, fontWeight:600, color:'#e2e8f4' }}>{u.nombre}</div>
+            <div style={{ fontSize:13, fontWeight:600, color:'var(--text-primary)' }}>{u.nombre}</div>
             <div style={{ fontSize:11, color: ROL_COLOR[u.rol] || '#506080', marginTop:2, fontWeight:600, textTransform:'capitalize' }}>{u.rol} · DNI: {u.dni}</div>
           </div>
           <input
@@ -113,7 +113,7 @@ function GestionUsuarios() {
             value={pinReset[u.id] || ''}
             onChange={e => setPinReset(p => ({ ...p, [u.id]: e.target.value.replace(/\D/g,'') }))}
             style={{ width:110, padding:'6px 10px', textAlign:'center', letterSpacing:'0.2em',
-              background:'#1e2840', border:'1px solid #2e3d5c', borderRadius:7, color:'#e2e8f4',
+              background:'var(--bg-input)', border:'1px solid #2e3d5c', borderRadius:7, color:'var(--text-primary)',
               fontSize:14, outline:'none' }}
           />
           <button onClick={() => resetear(u)} disabled={resetting === u.id || !pinReset[u.id]}
@@ -134,8 +134,8 @@ export default function MiPerfilPage() {
   return (
     <div style={{ padding:24, maxWidth:700 }}>
       <div style={{ marginBottom:24 }}>
-        <h1 style={{ fontFamily:'Syne,sans-serif', fontWeight:700, color:'#e2e8f4', fontSize:20, margin:0 }}>Mi perfil</h1>
-        <p style={{ fontSize:13, color:'#506080', marginTop:4 }}>
+        <h1 style={{ fontFamily:'Syne,sans-serif', fontWeight:700, color:'var(--text-primary)', fontSize:20, margin:0 }}>Mi perfil</h1>
+        <p style={{ fontSize:13, color:'var(--text-muted)', marginTop:4 }}>
           {user?.nombre} · <span style={{ color:'#7ab3ff', textTransform:'capitalize' }}>{user?.rol}</span>
         </p>
       </div>

@@ -12,7 +12,7 @@ export default function RecordatorioModal({ llamada, onAccion, onCerrar }) {
 
   return (
     <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.8)', zIndex:500, display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
-      <div style={{ background:'#151c2c', border:'2px solid rgba(78,143,255,0.4)', borderRadius:16, width:'100%', maxWidth:400, boxShadow:'0 20px 60px rgba(0,0,0,0.7)', overflow:'hidden' }}>
+      <div style={{ background:'var(--bg-card)', border:'2px solid rgba(78,143,255,0.4)', borderRadius:16, width:'100%', maxWidth:400, boxShadow:'0 20px 60px rgba(0,0,0,0.7)', overflow:'hidden' }}>
 
         {/* Header animado */}
         <div style={{ background:'linear-gradient(135deg, rgba(78,143,255,0.2), rgba(124,58,237,0.2))', padding:'20px 24px', borderBottom:'1px solid rgba(255,255,255,0.08)' }}>
@@ -22,13 +22,13 @@ export default function RecordatorioModal({ llamada, onAccion, onCerrar }) {
             </div>
             <div>
               <div style={{ fontSize:12, fontWeight:700, color:'#7ab3ff', textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:2 }}>📞 Llamada programada</div>
-              <div style={{ fontSize:16, fontWeight:700, color:'#e2e8f4' }}>{llamada.alumno?.nombre || '—'}</div>
+              <div style={{ fontSize:16, fontWeight:700, color:'var(--text-primary)' }}>{llamada.alumno?.nombre || '—'}</div>
             </div>
           </div>
         </div>
 
         {/* Info */}
-        <div style={{ padding:'16px 24px', borderBottom:'1px solid rgba(255,255,255,0.07)' }}>
+        <div style={{ padding:'16px 24px', borderBottom:'1px solid var(--border-default)' }}>
           <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
             {[
               { label:'Programa',  value: llamada.alumno?.programa || '—' },
@@ -37,8 +37,8 @@ export default function RecordatorioModal({ llamada, onAccion, onCerrar }) {
               { label:'Motivo',    value: llamada.motivo || 'Sin especificar' },
             ].map(({ label, value }) => (
               <div key={label} style={{ background:'rgba(255,255,255,0.04)', borderRadius:8, padding:'8px 10px' }}>
-                <div style={{ fontSize:10, color:'#506080', fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:2 }}>{label}</div>
-                <div style={{ fontSize:12, color:'#e2e8f4', fontWeight:500 }}>{value}</div>
+                <div style={{ fontSize:10, color:'var(--text-muted)', fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:2 }}>{label}</div>
+                <div style={{ fontSize:12, color:'var(--text-primary)', fontWeight:500 }}>{value}</div>
               </div>
             ))}
           </div>
@@ -46,7 +46,7 @@ export default function RecordatorioModal({ llamada, onAccion, onCerrar }) {
 
         {/* Acciones */}
         <div style={{ padding:'16px 24px', display:'flex', flexDirection:'column', gap:8 }}>
-          <div style={{ fontSize:11, color:'#506080', marginBottom:4 }}>¿Qué deseas hacer?</div>
+          <div style={{ fontSize:11, color:'var(--text-muted)', marginBottom:4 }}>¿Qué deseas hacer?</div>
           {acciones.map(({ key, label, icon: Icon, color, bg, border }) => (
             <button key={key} onClick={() => onAccion(llamada.id, key)}
               style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 14px', borderRadius:10, cursor:'pointer',
@@ -60,7 +60,7 @@ export default function RecordatorioModal({ llamada, onAccion, onCerrar }) {
         </div>
 
         <div style={{ padding:'0 24px 16px', textAlign:'center' }}>
-          <button onClick={onCerrar} style={{ background:'none', border:'none', color:'#3d5070', cursor:'pointer', fontSize:12 }}>
+          <button onClick={onCerrar} style={{ background:'none', border:'none', color:'var(--text-muted)', cursor:'pointer', fontSize:12 }}>
             Ignorar por ahora
           </button>
         </div>

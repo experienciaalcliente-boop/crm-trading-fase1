@@ -43,7 +43,7 @@ function EditBeneficio({ registro, onUpdated }) {
         {registro.beneficio != null ? `$${Number(registro.beneficio).toFixed(2)}` : '—'}
       </span>
       <button onClick={() => setEditing(true)}
-        style={{ background:'none', border:'none', cursor:'pointer', color:'#506080', padding:'2px', display:'flex', alignItems:'center' }}
+        style={{ background:'none', border:'none', cursor:'pointer', color:'var(--text-muted)', padding:'2px', display:'flex', alignItems:'center' }}
         title="Actualizar beneficio">
         <Edit2 size={11} />
       </button>
@@ -56,7 +56,7 @@ function EditBeneficio({ registro, onUpdated }) {
         type="number" min="0" step="0.01"
         value={valor}
         onChange={e => setValor(e.target.value)}
-        style={{ width:80, padding:'3px 6px', background:'#1e2840', border:'1.5px solid #4e8fff', borderRadius:6, color:'#fff', fontSize:12 }}
+        style={{ width:80, padding:'3px 6px', background:'var(--bg-input)', border:'1.5px solid #4e8fff', borderRadius:6, color:'#fff', fontSize:12 }}
         autoFocus
         onKeyDown={e => { if (e.key === 'Enter') guardar(); if (e.key === 'Escape') setEditing(false) }}
       />
@@ -92,7 +92,7 @@ function SafeRow({ r, onRefresh }) {
             ? <span className="badge badge-amber">${Number(r.monto_retiro||0).toFixed(2)}</span>
             : r.retiro === 'No' ? <span className="badge badge-gray">No</span> : '—'}
         </td>
-        <td style={{ fontSize:12, color:'#9aaccb', whiteSpace:'pre-wrap', wordBreak:'break-word', maxWidth:300, lineHeight:1.5 }}>
+        <td style={{ fontSize:12, color:'var(--text-secondary)', whiteSpace:'pre-wrap', wordBreak:'break-word', maxWidth:300, lineHeight:1.5 }}>
           {r.observaciones || '—'}
         </td>
       </tr>
@@ -107,13 +107,13 @@ export default function HistorialAlumno({ historial, alumno, onRefresh }) {
   const navigate = useNavigate()
   return (
     <div className="crm-card" style={{ marginTop:16 }}>
-      <div style={{ padding:'13px 18px', borderBottom:'1px solid rgba(255,255,255,0.07)', display:'flex', alignItems:'center', justifyContent:'space-between', background:'rgba(255,255,255,0.02)', borderRadius:'12px 12px 0 0' }}>
+      <div style={{ padding:'13px 18px', borderBottom:'1px solid var(--border-default)', display:'flex', alignItems:'center', justifyContent:'space-between', background:'rgba(255,255,255,0.02)', borderRadius:'12px 12px 0 0' }}>
         <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-          <History size={14} style={{ color:'#506080' }} />
-          <span style={{ fontSize:13, fontWeight:700, color:'#e2e8f4' }}>Historial del alumno</span>
+          <History size={14} style={{ color:'var(--text-muted)' }} />
+          <span style={{ fontSize:13, fontWeight:700, color:'var(--text-primary)' }}>Historial del alumno</span>
         </div>
         <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-          <span style={{ fontSize:12, color:'#506080' }}>{alumno ? alumno.label : '— selecciona un alumno arriba —'}</span>
+          <span style={{ fontSize:12, color:'var(--text-muted)' }}>{alumno ? alumno.label : '— selecciona un alumno arriba —'}</span>
           {alumno && (
             <button onClick={() => navigate(`/alumno/${alumno.value}`)}
               style={{ background:'none', border:'none', cursor:'pointer', color:'#4e8fff', display:'flex', alignItems:'center', gap:3, fontSize:11 }}
@@ -125,12 +125,12 @@ export default function HistorialAlumno({ historial, alumno, onRefresh }) {
       </div>
 
       {!alumno ? (
-        <div style={{ display:'flex', flexDirection:'column', alignItems:'center', padding:'40px 20px', color:'#3d5070', gap:8 }}>
+        <div style={{ display:'flex', flexDirection:'column', alignItems:'center', padding:'40px 20px', color:'var(--text-muted)', gap:8 }}>
           <History size={28} strokeWidth={1} />
           <p style={{ fontSize:13 }}>Selecciona un alumno en el formulario para ver su historial</p>
         </div>
       ) : !historial.length ? (
-        <div style={{ display:'flex', flexDirection:'column', alignItems:'center', padding:'40px 20px', color:'#3d5070', gap:8 }}>
+        <div style={{ display:'flex', flexDirection:'column', alignItems:'center', padding:'40px 20px', color:'var(--text-muted)', gap:8 }}>
           <History size={28} strokeWidth={1} />
           <p style={{ fontSize:13 }}>Sin registros previos para <strong style={{ color:'#7ab3ff' }}>{alumno.label}</strong></p>
         </div>

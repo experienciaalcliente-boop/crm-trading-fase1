@@ -1,3 +1,5 @@
+// v-20260622-1614
+import React from 'react'
 import { useOrientacion } from '../hooks/useOrientacion'
 import ModalTipificacion from '../components/modules/ModalTipificacion'
 import Select from 'react-select'
@@ -6,16 +8,16 @@ import { format, addDays, subDays } from 'date-fns'
 import { es } from 'date-fns/locale'
 
 const rsStyles = {
-  control: (base, state) => ({ ...base, background: '#1e2840', border: `1.5px solid ${state.isFocused ? '#4e8fff' : '#2e3d5c'}`, borderRadius: 8, minHeight: 38, boxShadow: state.isFocused ? '0 0 0 3px rgba(78,143,255,0.15)' : 'none' }),
-  menu: (base) => ({ ...base, background: '#1e2840', border: '1.5px solid #2e3d5c', borderRadius: 10, boxShadow: '0 8px 28px rgba(0,0,0,0.5)', zIndex: 9999 }),
-  menuList: (base) => ({ ...base, background: '#1e2840', borderRadius: 10, padding: 4 }),
+  control: (base, state) => ({ ...base, background: 'var(--bg-input)', border: `1.5px solid ${state.isFocused ? '#4e8fff' : '#2e3d5c'}`, borderRadius: 8, minHeight: 38, boxShadow: state.isFocused ? '0 0 0 3px rgba(78,143,255,0.15)' : 'none' }),
+  menu: (base) => ({ ...base, background: 'var(--bg-input)', border: '1.5px solid #2e3d5c', borderRadius: 10, boxShadow: '0 8px 28px rgba(0,0,0,0.5)', zIndex: 9999 }),
+  menuList: (base) => ({ ...base, background: 'var(--bg-input)', borderRadius: 10, padding: 4 }),
   option: (base, state) => ({ ...base, background: state.isSelected ? 'rgba(78,143,255,0.25)' : state.isFocused ? 'rgba(78,143,255,0.15)' : '#1e2840', color: state.isSelected ? '#7ab3ff' : state.isFocused ? '#fff' : '#c8d8f0', borderRadius: 6, fontSize: 13, padding: '9px 12px' }),
   singleValue: (base) => ({ ...base, color: '#fff', fontWeight: 500 }),
-  placeholder: (base) => ({ ...base, color: '#506080' }),
+  placeholder: (base) => ({ ...base, color: 'var(--text-muted)' }),
   input: (base) => ({ ...base, color: '#fff' }),
   indicatorSeparator: (base) => ({ ...base, background: '#2e3d5c' }),
-  dropdownIndicator: (base) => ({ ...base, color: '#506080' }),
-  noOptionsMessage: (base) => ({ ...base, color: '#506080', background: '#1e2840' }),
+  dropdownIndicator: (base) => ({ ...base, color: 'var(--text-muted)' }),
+  noOptionsMessage: (base) => ({ ...base, color: 'var(--text-muted)', background: 'var(--bg-input)' }),
 }
 
 const ESTADO_STYLE = {
@@ -53,6 +55,82 @@ function horaDisponible(hora, fechaSeleccionada) {
   return false
 }
 
+
+function ZoomCell({ sesion, onUpdate }) {
+  const [editando, setEditando] = React.useState(false)
+  const [url, setUrl] = React.useState(sesion.zoom_join_url || '')
+  const [saving, setSaving] = React.useState(false)
+  const [copiado, setCopiado] = React.useState(false)
+
+  const copiar = () => {
+    navigator.clipboard.writeText(sesion.zoom_join_url || url)
+    setCopiado(true)
+    setTimeout(() => setCopiado(false), 2000)
+  }
+
+  const guardar = async () => {
+    if (!url.startsWith('http')) { return }
+    setSaving(true)
+    try {
+      await updateSesionZoomUrl(sesion.id, url)
+      setEditando(false)
+      onUpdate && onUpdate()
+    } catch(e) { console.error(e) }
+    finally { setSaving(false) }
+  }
+
+  if (editando) {
+    return (
+      <div style={{ display:'flex', gap:4, alignItems:'center' }}>
+        <input value={url} onChange={e => setUrl(e.target.value)}
+          placeholder="https://zoom.us/j/..."
+          style={{ width:160, padding:'3px 7px', fontSize:11, background:'var(--bg-input)',
+            border:'1px solid var(--border-input)', borderRadius:6, color:'var(--text-primary)', outline:'none' }} />
+        <button onClick={guardar} disabled={saving}
+          style={{ padding:'3px 7px', fontSize:10, background:'rgba(45,212,160,0.12)',
+            border:'1px solid rgba(45,212,160,0.3)', color:'#2dd4a0', borderRadius:5, cursor:'pointer' }}>
+          {saving ? '...' : '✓'}
+        </button>
+        <button onClick={() => setEditando(false)}
+          style={{ padding:'3px 6px', fontSize:10, background:'none', border:'none', color:'var(--text-muted)', cursor:'pointer' }}>
+          ✕
+        </button>
+      </div>
+    )
+  }
+
+  if (sesion.zoom_join_url || url) {
+    const link = sesion.zoom_join_url || url
+    return (
+      <div style={{ display:'flex', gap:4, alignItems:'center' }}>
+        <a href={link} target="_blank" rel="noopener noreferrer"
+          style={{ display:'inline-flex', alignItems:'center', gap:4, fontSize:11, color:'var(--accent)',
+            textDecoration:'none', background:'var(--accent-light)', padding:'3px 8px', borderRadius:6 }}>
+          <Video size={11} /> Unirse
+        </a>
+        <button onClick={copiar} title="Copiar enlace"
+          style={{ padding:'3px 7px', fontSize:10, background: copiado ? 'rgba(45,212,160,0.12)' : 'var(--bg-input)',
+            border:`1px solid ${copiado ? 'rgba(45,212,160,0.3)' : 'var(--border-input)'}`,
+            color: copiado ? '#2dd4a0' : 'var(--text-muted)', borderRadius:5, cursor:'pointer' }}>
+          {copiado ? '✓ Copiado' : '📋'}
+        </button>
+        <button onClick={() => setEditando(true)} title="Editar enlace"
+          style={{ padding:'3px 6px', fontSize:10, background:'none', border:'none', color:'var(--text-muted)', cursor:'pointer' }}>
+          ✎
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <button onClick={() => setEditando(true)}
+      style={{ padding:'3px 9px', fontSize:11, background:'rgba(245,166,35,0.1)',
+        border:'1px solid rgba(245,166,35,0.25)', color:'var(--yellow)', borderRadius:6, cursor:'pointer' }}>
+      + Agregar enlace
+    </button>
+  )
+}
+
 export default function OrientacionPage() {
   const o = useOrientacion()
   const fechaDisplay = format(new Date(o.fechaVista + 'T00:00:00'), "EEEE d 'de' MMMM, yyyy", { locale: es })
@@ -65,8 +143,8 @@ export default function OrientacionPage() {
       <div style={{ flex: 1, overflowY: 'auto', padding: 24, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 20 }}>
           <div>
-            <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, color: '#e2e8f4', fontSize: 20 }}>Orientación Técnica</h1>
-            <p style={{ fontSize: 13, color: '#506080', textTransform: 'capitalize', marginTop: 3 }}>{fechaDisplay}</p>
+            <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, color: 'var(--text-primary)', fontSize: 20 }}>Orientación Técnica</h1>
+            <p style={{ fontSize: 13, color: 'var(--text-muted)', textTransform: 'capitalize', marginTop: 3 }}>{fechaDisplay}</p>
           </div>
           <button className="crm-btn crm-btn-sm" onClick={() => o.cargarSesiones()}>
             <RefreshCw size={13} /> Actualizar
@@ -77,13 +155,13 @@ export default function OrientacionPage() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 10, marginBottom: 20 }}>
           {[
             { label: 'Total',         value: o.stats.total,          color: '#7ab3ff' },
-            { label: 'Pendientes',    value: o.stats.pendientes,     color: '#506080' },
+            { label: 'Pendientes',    value: o.stats.pendientes,     color: 'var(--text-muted)' },
             { label: 'Concretadas',   value: o.stats.concretadas,    color: '#2dd4a0' },
             { label: 'Reprogramadas', value: o.stats.reprogramadas,  color: '#f5b93a' },
             { label: 'No conectaron', value: o.stats.noConectaron,   color: '#f07070' },
           ].map(({ label, value, color }) => (
             <div key={label} className="crm-card" style={{ padding: '12px 14px' }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: '#506080', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>{label}</div>
+              <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>{label}</div>
               <div style={{ fontSize: 22, fontWeight: 700, color, fontFamily: 'Syne, sans-serif', lineHeight: 1 }}>{value}</div>
             </div>
           ))}
@@ -107,17 +185,17 @@ export default function OrientacionPage() {
         {/* Tabla sesiones */}
         <div className="crm-card">
           <div style={{ padding: '13px 18px', borderBottom: '1px solid rgba(255,255,255,0.07)', display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.02)', borderRadius: '12px 12px 0 0' }}>
-            <Clock size={14} style={{ color: '#506080' }} />
-            <span style={{ fontSize: 13, fontWeight: 700, color: '#e2e8f4' }}>Sesiones del día</span>
-            <span style={{ marginLeft: 'auto', fontSize: 12, color: '#506080' }}>{o.sesiones.length} sesiones agendadas</span>
+            <Clock size={14} style={{ color: 'var(--text-muted)' }} />
+            <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>Sesiones del día</span>
+            <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--text-muted)' }}>{o.sesiones.length} sesiones agendadas</span>
           </div>
 
           {o.loading ? (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 50, gap: 10, color: '#506080' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 50, gap: 10, color: 'var(--text-muted)' }}>
               <Loader2 size={16} className="animate-spin" /><span style={{ fontSize: 13 }}>Cargando...</span>
             </div>
           ) : !o.sesiones.length ? (
-            <div style={{ textAlign: 'center', padding: 50, color: '#3d5070' }}>
+            <div style={{ textAlign: 'center', padding: 50, color: 'var(--text-muted)' }}>
               <div style={{ fontSize: 28, marginBottom: 8 }}>📅</div>
               <p style={{ fontSize: 13 }}>No hay sesiones agendadas para este día</p>
             </div>
@@ -136,17 +214,12 @@ export default function OrientacionPage() {
                       <td style={{ whiteSpace: 'nowrap', fontFamily: 'DM Mono, monospace', fontSize: 12, color: '#7ab3ff' }}>
                         {s.hora_inicio?.slice(0,5)} – {s.hora_fin?.slice(0,5)}
                       </td>
-                      <td style={{ fontWeight: 600, color: '#e2e8f4' }}>{s.alumno?.nombre || '—'}</td>
+                      <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{s.alumno?.nombre || '—'}</td>
                       <td style={{ fontSize: 12 }}>{s.alumno?.programa || '—'}</td>
                       <td style={{ fontSize: 12, maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.motivo}</td>
                       <td style={{ fontSize: 12 }}>{s.agendado_por || '—'}</td>
                       <td>
-                        {s.zoom_join_url
-                          ? <a href={s.zoom_join_url} target="_blank" rel="noopener noreferrer"
-                              style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#7ab3ff', textDecoration: 'none', background: 'rgba(78,143,255,0.1)', padding: '3px 8px', borderRadius: 6 }}>
-                              <Video size={11} /> Unirse
-                            </a>
-                          : <span style={{ fontSize: 11, color: '#3d5070' }}>Sin enlace</span>}
+                        <ZoomCell sesion={s} onUpdate={o.cargarSesiones} />
                       </td>
                       <td><EstadoBadge estado={s.estado} /></td>
                       <td>
@@ -174,10 +247,10 @@ export default function OrientacionPage() {
       </div>
 
       {/* ── PANEL DERECHO: Agendar ── */}
-      <aside style={{ width: 300, flexShrink: 0, borderLeft: '1px solid rgba(255,255,255,0.07)', background: '#0f1520', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+      <aside style={{ width: 300, flexShrink: 0, borderLeft: '1px solid rgba(255,255,255,0.07)', background: 'var(--bg-surface)', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
         <div style={{ padding: '16px', borderBottom: '1px solid rgba(255,255,255,0.07)', background: 'rgba(255,255,255,0.02)' }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: '#e2e8f4' }}>Agendar sesión</div>
-          <div style={{ fontSize: 10, color: '#3d5070', marginTop: 2 }}>Crea una reunión Zoom automáticamente</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)' }}>Agendar sesión</div>
+          <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 2 }}>Crea una reunión Zoom automáticamente</div>
         </div>
 
         <div style={{ padding: 14, flex: 1 }}>
@@ -197,7 +270,7 @@ export default function OrientacionPage() {
           <div style={{ height: 12 }} />
           <Field label="Horario disponible (45 min c/u)">
             {/* Mañana */}
-            <div style={{ fontSize: 10, color: '#3d5070', marginBottom: 5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+            <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
               Mañana · 9:00 – 12:40
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 8 }}>
@@ -222,7 +295,7 @@ export default function OrientacionPage() {
               })}
             </div>
             {/* Tarde */}
-            <div style={{ fontSize: 10, color: '#3d5070', marginBottom: 5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+            <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
               Tarde · 14:30 – 18:00
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
@@ -272,7 +345,7 @@ export default function OrientacionPage() {
               : <><Video size={14} /> Agendar y crear Zoom</>}
           </button>
 
-          <div style={{ marginTop: 10, padding: '8px 10px', borderRadius: 8, background: 'rgba(78,143,255,0.06)', border: '1px solid rgba(78,143,255,0.15)', fontSize: 11, color: '#506080' }}>
+          <div style={{ marginTop: 10, padding: '8px 10px', borderRadius: 8, background: 'rgba(78,143,255,0.06)', border: '1px solid rgba(78,143,255,0.15)', fontSize: 11, color: 'var(--text-muted)' }}>
             💡 Duración: 45 min + 10 min margen · Zona horaria: Lima
           </div>
         </div>

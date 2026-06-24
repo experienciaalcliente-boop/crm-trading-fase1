@@ -15,12 +15,12 @@ export default function CompromisosModal({ form, setField, onGuardar, onCerrar, 
   return (
     <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.75)', zIndex:400, display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}
       onClick={e => e.target === e.currentTarget && onCerrar()}>
-      <div style={{ background:'#151c2c', border:'1px solid rgba(255,255,255,0.1)', borderRadius:14, width:'100%', maxWidth:460, boxShadow:'0 20px 60px rgba(0,0,0,0.6)' }}>
+      <div style={{ background:'var(--bg-card)', border:'1px solid var(--border-default)', borderRadius:14, width:'100%', maxWidth:460, boxShadow:'0 20px 60px rgba(0,0,0,0.6)' }}>
 
         {/* Header */}
-        <div style={{ padding:'16px 20px', borderBottom:'1px solid rgba(255,255,255,0.07)', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-          <div style={{ fontSize:14, fontWeight:700, color:'#e2e8f4' }}>Registrar compromiso</div>
-          <button onClick={onCerrar} style={{ background:'none', border:'none', color:'#506080', cursor:'pointer' }}><X size={18} /></button>
+        <div style={{ padding:'16px 20px', borderBottom:'1px solid var(--border-default)', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+          <div style={{ fontSize:14, fontWeight:700, color:'var(--text-primary)' }}>Registrar compromiso</div>
+          <button onClick={onCerrar} style={{ background:'none', border:'none', color:'var(--text-muted)', cursor:'pointer' }}><X size={18} /></button>
         </div>
 
         <div style={{ padding:20, display:'flex', flexDirection:'column', gap:14 }}>
@@ -93,7 +93,7 @@ export default function CompromisosModal({ form, setField, onGuardar, onCerrar, 
 function Field({ label, children }) {
   return (
     <div style={{ display:'flex', flexDirection:'column', gap:5 }}>
-      <label style={{ fontSize:10, fontWeight:700, color:'#7a8aaa', textTransform:'uppercase', letterSpacing:'0.08em' }}>{label}</label>
+      <label style={{ fontSize:10, fontWeight:700, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.08em' }}>{label}</label>
       {children}
     </div>
   )

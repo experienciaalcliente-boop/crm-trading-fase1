@@ -8,15 +8,15 @@ export default function PanelDerecho({ asesoras, asesorasPanelOpts, registrosHoy
   const hoy = new Date().toISOString().split('T')[0]
 
   return (
-    <aside style={{ width:280, flexShrink:0, borderLeft:'1px solid rgba(255,255,255,0.07)', background:'#0f1520', display:'flex', flexDirection:'column', overflowY:'auto' }}>
-      <div style={{ padding:'14px 16px', borderBottom:'1px solid rgba(255,255,255,0.07)', background:'rgba(255,255,255,0.02)' }}>
-        <div style={{ fontSize:12, fontWeight:700, color:'#e2e8f4' }}>Panel de seguimiento</div>
-        <div style={{ fontSize:10, color:'#3d5070', marginTop:2 }}>Llamadas de hoy + pendientes acumulados</div>
+    <aside style={{ width:280, flexShrink:0, borderLeft:'1px solid var(--border-default)', background:'var(--bg-surface)', display:'flex', flexDirection:'column', overflowY:'auto' }}>
+      <div style={{ padding:'14px 16px', borderBottom:'1px solid var(--border-default)', background:'rgba(255,255,255,0.02)' }}>
+        <div style={{ fontSize:12, fontWeight:700, color:'var(--text-primary)' }}>Panel de seguimiento</div>
+        <div style={{ fontSize:10, color:'var(--text-muted)', marginTop:2 }}>Llamadas de hoy + pendientes acumulados</div>
       </div>
 
       {/* Tabs asesoras */}
-      <div style={{ padding:12, borderBottom:'1px solid rgba(255,255,255,0.07)' }}>
-        <div style={{ fontSize:10, fontWeight:700, color:'#3d5070', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:8 }}>Filtrar por asesora</div>
+      <div style={{ padding:12, borderBottom:'1px solid var(--border-default)' }}>
+        <div style={{ fontSize:10, fontWeight:700, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:8 }}>Filtrar por asesora</div>
         <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
           {['Todas', ...asesoras.map(a => a.nombre)].map(nombre => {
             const isActive = nombre === 'Todas' ? asesoraPanel === null : asesoraPanel === nombre
@@ -35,7 +35,7 @@ export default function PanelDerecho({ asesoras, asesorasPanelOpts, registrosHoy
       </div>
 
       {/* Stats del día */}
-      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8, padding:12, borderBottom:'1px solid rgba(255,255,255,0.07)' }}>
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8, padding:12, borderBottom:'1px solid var(--border-default)' }}>
         {[
           { label:'Llamadas hoy',  value:stats.total,            color:{ bg:'rgba(78,143,255,0.1)',  border:'rgba(78,143,255,0.2)',  text:'#7ab3ff' } },
           { label:'Respondieron',  value:stats.respondieron,     color:{ bg:'rgba(34,201,142,0.1)',  border:'rgba(34,201,142,0.2)',  text:'#2dd4a0' } },
@@ -51,9 +51,9 @@ export default function PanelDerecho({ asesoras, asesorasPanelOpts, registrosHoy
       </div>
 
       {/* Lista acumulada sin responder */}
-      <div style={{ padding:'10px 14px 8px', borderBottom:'1px solid rgba(255,255,255,0.07)', display:'flex', alignItems:'center', gap:6 }}>
-        <PhoneMissed size={10} style={{ color:'#3d5070' }} />
-        <span style={{ fontSize:10, fontWeight:700, color:'#506080', textTransform:'uppercase', letterSpacing:'0.08em' }}>
+      <div style={{ padding:'10px 14px 8px', borderBottom:'1px solid var(--border-default)', display:'flex', alignItems:'center', gap:6 }}>
+        <PhoneMissed size={10} style={{ color:'var(--text-muted)' }} />
+        <span style={{ fontSize:10, fontWeight:700, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.08em' }}>
           Pendientes de contactar
         </span>
         {sinRespuesta.length > 0 && (
@@ -62,13 +62,13 @@ export default function PanelDerecho({ asesoras, asesorasPanelOpts, registrosHoy
           </span>
         )}
       </div>
-      <div style={{ marginLeft:14, marginRight:14, marginBottom:6, marginTop:4, fontSize:10, color:'#3d5070', lineHeight:1.4 }}>
+      <div style={{ marginLeft:14, marginRight:14, marginBottom:6, marginTop:4, fontSize:10, color:'var(--text-muted)', lineHeight:1.4 }}>
         Alumnos cuyo último registro fue sin respuesta. Desaparecen cuando registras que sí contestaron.
       </div>
 
       <div style={{ flex:1, overflowY:'auto' }}>
         {!sinRespuesta.length ? (
-          <div style={{ display:'flex', flexDirection:'column', alignItems:'center', padding:'32px 16px', color:'#3d5070', gap:6 }}>
+          <div style={{ display:'flex', flexDirection:'column', alignItems:'center', padding:'32px 16px', color:'var(--text-muted)', gap:6 }}>
             <div style={{ fontSize:22, color:'#22c98e' }}>✓</div>
             <p style={{ fontSize:12 }}>¡Sin pendientes acumulados!</p>
           </div>
@@ -82,14 +82,14 @@ export default function PanelDerecho({ asesoras, asesorasPanelOpts, registrosHoy
               onMouseEnter={e => { e.currentTarget.style.background='rgba(78,143,255,0.08)'; e.currentTarget.style.borderLeft='2px solid #4e8fff' }}
               onMouseLeave={e => { e.currentTarget.style.background='transparent'; e.currentTarget.style.borderLeft='none' }}>
               <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:2 }}>
-                <div style={{ fontSize:13, fontWeight:600, color:'#e2e8f4', flex:1, marginRight:6 }}>{r.alumno?.nombre || '—'}</div>
+                <div style={{ fontSize:13, fontWeight:600, color:'var(--text-primary)', flex:1, marginRight:6 }}>{r.alumno?.nombre || '—'}</div>
                 <UltimoContactoBadge fecha={r.fecha} />
               </div>
-              <div style={{ fontSize:11, color:'#506080' }}>
+              <div style={{ fontSize:11, color:'var(--text-muted)' }}>
                 {r.alumno?.programa || ''}{r.alumno?.semana_actual ? ` · Sem. ${r.alumno.semana_actual}` : ''}
               </div>
               <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginTop:3 }}>
-                <div style={{ fontSize:10, color:'#3d5070' }}>{r.asesora?.nombre || ''}</div>
+                <div style={{ fontSize:10, color:'var(--text-muted)' }}>{r.asesora?.nombre || ''}</div>
                 {onSeleccionarAlumno && (
                   <span style={{ fontSize:9, color:'#4e8fff', background:'rgba(78,143,255,0.12)', border:'1px solid rgba(78,143,255,0.25)', padding:'1px 7px', borderRadius:10, fontWeight:700 }}>
                     ✎ Registrar
@@ -101,9 +101,9 @@ export default function PanelDerecho({ asesoras, asesorasPanelOpts, registrosHoy
         })}
       </div>
 
-      <div style={{ padding:'10px 14px', borderTop:'1px solid rgba(255,255,255,0.07)', display:'flex', justifyContent:'space-between' }}>
-        <span style={{ fontSize:11, color:'#3d5070' }}>Registros hoy</span>
-        <span style={{ fontSize:11, color:'#9aaccb', fontWeight:600 }}>{registrosHoy.length}</span>
+      <div style={{ padding:'10px 14px', borderTop:'1px solid var(--border-default)', display:'flex', justifyContent:'space-between' }}>
+        <span style={{ fontSize:11, color:'var(--text-muted)' }}>Registros hoy</span>
+        <span style={{ fontSize:11, color:'var(--text-secondary)', fontWeight:600 }}>{registrosHoy.length}</span>
       </div>
     </aside>
   )

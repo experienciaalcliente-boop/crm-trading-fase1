@@ -22,17 +22,17 @@ export default function ModalTipificacion({ sesion, form, setField, onGuardar, o
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
       onClick={e => e.target === e.currentTarget && onCerrar()}>
-      <div style={{ background: '#151c2c', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 14, width: '100%', maxWidth: 520, maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.6)' }}>
+      <div style={{ background: 'var(--bg-card)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 14, width: '100%', maxWidth: 520, maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.6)' }}>
 
         {/* Header */}
         <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.07)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
-            <div style={{ fontSize: 14, fontWeight: 700, color: '#e2e8f4' }}>Tipificar sesión</div>
-            <div style={{ fontSize: 11, color: '#506080', marginTop: 2 }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>Tipificar sesión</div>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
               {sesion.alumno?.nombre} · {format(new Date(sesion.fecha + 'T00:00:00'), 'dd MMM yyyy', { locale: es })} · {sesion.hora_inicio?.slice(0,5)}
             </div>
           </div>
-          <button onClick={onCerrar} style={{ background: 'none', border: 'none', color: '#506080', cursor: 'pointer' }}>
+          <button onClick={onCerrar} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
             <X size={18} />
           </button>
         </div>

@@ -35,8 +35,8 @@ function LlamadasPageInner() {
       {/* ── Columna principal ── */}
       <div style={{ flex:1, overflowY:'auto', padding:24, minWidth:0 }}>
         <div style={{ marginBottom:20 }}>
-          <h1 style={{ fontFamily:'Syne, sans-serif', fontWeight:700, color:'#e2e8f4', fontSize:20 }}>Registro de Llamadas</h1>
-          <p style={{ fontSize:13, color:'#506080', textTransform:'capitalize', marginTop:3 }}>
+          <h1 style={{ fontFamily:'Syne, sans-serif', fontWeight:700, color:'var(--text-primary)', fontSize:20 }}>Registro de Llamadas</h1>
+          <p style={{ fontSize:13, color:'var(--text-muted)', textTransform:'capitalize', marginTop:3 }}>
             {new Date().toLocaleDateString('es-PE', { weekday:'long', day:'numeric', month:'long', year:'numeric' })}
           </p>
         </div>
@@ -49,7 +49,7 @@ function LlamadasPageInner() {
       </div>
 
       {/* ── Panel derecho: pendientes + compromisos ── */}
-      <div style={{ width:288, flexShrink:0, borderLeft:'1px solid rgba(255,255,255,0.07)', background:'#0f1520', display:'flex', flexDirection:'column' }}>
+      <div style={{ width:288, flexShrink:0, borderLeft:'1px solid var(--border-default)', background:'var(--bg-surface)', display:'flex', flexDirection:'column' }}>
 
         {/* Mitad superior: pendientes sin respuesta */}
         <div style={{ flex:1, minHeight:0, overflowY:'auto', borderBottom:'1px solid rgba(255,255,255,0.1)' }}>

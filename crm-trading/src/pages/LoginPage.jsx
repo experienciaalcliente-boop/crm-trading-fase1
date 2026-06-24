@@ -18,24 +18,24 @@ export default function LoginPage() {
   }
 
   return (
-    <div style={{ minHeight:'100vh', background:'#0b0e14', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
+    <div style={{ minHeight:'100vh', background:'var(--bg-base)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
       <div style={{ width:'100%', maxWidth:380 }}>
         {/* Logo */}
         <div style={{ textAlign:'center', marginBottom:40 }}>
           <div style={{ width:64, height:64, borderRadius:16, background:'#4e8fff', display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto 16px', fontSize:28, fontWeight:700, color:'#fff' }}>A</div>
-          <h1 style={{ fontFamily:'Syne,sans-serif', fontWeight:700, color:'#e2e8f4', fontSize:24, margin:0 }}>AcademiaCRM</h1>
-          <p style={{ color:'#506080', fontSize:13, marginTop:6 }}>Escuela de Trading</p>
+          <h1 style={{ fontFamily:'Syne,sans-serif', fontWeight:700, color:'var(--text-primary)', fontSize:24, margin:0 }}>AcademiaCRM</h1>
+          <p style={{ color:'var(--text-muted)', fontSize:13, marginTop:6 }}>Escuela de Trading</p>
         </div>
 
         {/* Card */}
-        <div style={{ background:'#151c2c', border:'1px solid rgba(255,255,255,0.08)', borderRadius:16, padding:28 }}>
-          <p style={{ color:'#7a8aaa', fontSize:13, marginBottom:24, textAlign:'center' }}>
+        <div style={{ background:'var(--bg-card)', border:'1px solid var(--border-default)', borderRadius:16, padding:28 }}>
+          <p style={{ color:'var(--text-muted)', fontSize:13, marginBottom:24, textAlign:'center' }}>
             Ingresa tu DNI y PIN de acceso
           </p>
 
           {/* DNI input */}
           <div style={{ marginBottom:12 }}>
-            <label style={{ fontSize:10, fontWeight:700, color:'#7a8aaa', textTransform:'uppercase', letterSpacing:'0.08em', display:'block', marginBottom:6 }}>DNI</label>
+            <label style={{ fontSize:10, fontWeight:700, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.08em', display:'block', marginBottom:6 }}>DNI</label>
             <input
               type="text"
               maxLength={15}
@@ -45,16 +45,16 @@ export default function LoginPage() {
               autoFocus
               placeholder="Ingresa tu DNI"
               style={{
-                width:'100%', padding:'12px 16px', background:'#1e2840',
+                width:'100%', padding:'12px 16px', background:'var(--bg-input)',
                 border:'1.5px solid #2e3d5c', borderRadius:10,
-                color:'#e2e8f4', outline:'none', boxSizing:'border-box', fontSize:15,
+                color:'var(--text-primary)', outline:'none', boxSizing:'border-box', fontSize:15,
               }}
             />
           </div>
 
           {/* PIN input */}
           <div style={{ marginBottom:16 }}>
-            <label style={{ fontSize:10, fontWeight:700, color:'#7a8aaa', textTransform:'uppercase', letterSpacing:'0.08em', display:'block', marginBottom:6 }}>PIN</label>
+            <label style={{ fontSize:10, fontWeight:700, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.08em', display:'block', marginBottom:6 }}>PIN</label>
             <input
               ref={pinRef}
               type="password"
@@ -65,8 +65,8 @@ export default function LoginPage() {
               placeholder="● ● ● ●"
               style={{
                 width:'100%', padding:'12px 16px', textAlign:'center', letterSpacing:'0.4em',
-                fontSize:20, background:'#1e2840', border:'1.5px solid #2e3d5c', borderRadius:10,
-                color:'#e2e8f4', outline:'none', boxSizing:'border-box',
+                fontSize:20, background:'var(--bg-input)', border:'1.5px solid #2e3d5c', borderRadius:10,
+                color:'var(--text-primary)', outline:'none', boxSizing:'border-box',
               }}
             />
           </div>
