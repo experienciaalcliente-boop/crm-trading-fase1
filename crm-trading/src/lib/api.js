@@ -67,6 +67,15 @@ export async function fetchAsesoras() {
   return data
 }
 
+// Hoy hay un solo orientador — se autocompleta al agendar una sesión, no
+// hay selector manual (si se suma un segundo orientador habría que revisar
+// esto para poder elegir cuál).
+export async function fetchOrientadorId() {
+  const { data, error } = await supabase.from('asesoras').select('id').eq('rol', 'orientador').limit(1).single()
+  if (error) return null
+  return data?.id || null
+}
+
 // Solo asesoras de llamadas (excluye orientadores)
 export async function fetchAsesorasLlamadas() {
   const { data, error } = await supabase
@@ -336,6 +345,31 @@ export async function fetchSesionesFecha(fecha) {
     .select('*, alumno:alumnos(nombre, programa)')
     .eq('fecha', fecha)
     .order('hora_inicio')
+  if (error) throw error
+  return data || []
+}
+
+// Historial de un mes completo (todas las fechas de ese mes, no solo un
+// día). Si se pasa orientadorId, se limita a las sesiones de ese orientador.
+// mes en formato 'YYYY-MM'; por defecto el mes actual.
+export async function fetchHistorialSesiones(orientadorId, mes) {
+  const m = mes || new Date().toISOString().slice(0, 7)
+  const [anio, mesNum] = m.split('-').map(Number)
+  const inicio = `${m}-01`
+  // OJO: no usar new Date(inicio) para sacar el último día — al parsear un
+  // string ISO como UTC y luego leer getFullYear()/getMonth() en hora local
+  // (Lima, UTC-5), el mes calculado queda corrido. new Date(anio, mesNum, 0)
+  // con números sueltos sí es seguro porque no pasa por UTC.
+  const fin = `${m}-${String(new Date(anio, mesNum, 0).getDate()).padStart(2, '0')}`
+  let query = supabase
+    .from('sesiones_orientacion')
+    .select('*, alumno:alumnos(nombre, programa)')
+    .gte('fecha', inicio)
+    .lte('fecha', fin)
+    .order('fecha', { ascending: false })
+    .order('hora_inicio', { ascending: false })
+  if (orientadorId) query = query.eq('orientador_id', orientadorId)
+  const { data, error } = await query
   if (error) throw error
   return data || []
 }
@@ -775,8 +809,11 @@ export const MINIMO_COMPLEMENTOS_COMISION = 6
 export async function fetchVentasComplementos(asesoraId, mes) {
   // mes en formato 'YYYY-MM'; por defecto el mes actual
   const m = mes || new Date().toISOString().slice(0, 7)
+  const [anio, mesNum] = m.split('-').map(Number)
   const inicio = `${m}-01`
-  const fin = new Date(new Date(inicio).getFullYear(), new Date(inicio).getMonth() + 1, 0).toISOString().split('T')[0]
+  // Mismo cuidado que en fetchHistorialSesiones: evitar new Date(inicio)
+  // (se corre de mes por el desfase UTC/hora local de Lima).
+  const fin = `${m}-${String(new Date(anio, mesNum, 0).getDate()).padStart(2, '0')}`
   let query = supabase
     .from('ventas_complementos')
     .select('*, alumno:alumnos(nombre, programa)')

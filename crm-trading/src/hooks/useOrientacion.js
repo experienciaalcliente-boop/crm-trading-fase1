@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { fetchAlumnos, fetchSesionesHoy, fetchSesionesFecha, insertSesion, updateSesion, crearReunionZoom, deleteSesion } from '../lib/api'
+import { fetchAlumnos, fetchSesionesHoy, fetchSesionesFecha, fetchHistorialSesiones, insertSesion, updateSesion, crearReunionZoom, deleteSesion, fetchOrientadorId } from '../lib/api'
 import { useAuth } from '../context/AuthContext'
 import toast from 'react-hot-toast'
 import { format } from 'date-fns'
@@ -46,7 +46,36 @@ export function useOrientacion() {
   const [form,          setForm]          = useState(FORM_INICIAL)
   const [tipifModal,    setTipifModal]    = useState(null) // sesión a tipificar
   const [tipifForm,     setTipifForm]     = useState(TIPIF_INICIAL)
-  const [vistaCalendario, setVistaCalendario] = useState('dia') // dia | semana
+  const [orientadorId,  setOrientadorId]  = useState(null)
+  // 'dia' = agenda del día (como hoy) · 'historial' = todas las sesiones,
+  // de cualquier fecha, en una sola vista.
+  const [vista,         setVista]         = useState('dia')
+  const [historial,     setHistorial]     = useState([])
+  const [loadingHistorial, setLoadingHistorial] = useState(false)
+  const [mesHistorial,  setMesHistorial]  = useState(() => new Date().toISOString().slice(0, 7))
+
+  useEffect(() => {
+    fetchOrientadorId().then(setOrientadorId).catch(console.error)
+  }, [])
+
+  // El orientador ve solo su propio historial; supervisor/asesora ven todo
+  // (igual que ya podían ver todas las sesiones del día). Se limita al mes
+  // seleccionado, no todo el histórico de una sola vez.
+  const cargarHistorial = useCallback(async () => {
+    setLoadingHistorial(true)
+    try {
+      const data = await fetchHistorialSesiones(user?.rol === 'orientador' ? orientadorId : undefined, mesHistorial)
+      setHistorial(data)
+    } catch (err) {
+      toast.error('Error al cargar el historial')
+    } finally {
+      setLoadingHistorial(false)
+    }
+  }, [user?.rol, orientadorId, mesHistorial])
+
+  useEffect(() => {
+    if (vista === 'historial') cargarHistorial()
+  }, [vista, cargarHistorial])
 
   useEffect(() => {
     fetchAlumnos(asesoraIdPropia).then(setAlumnos).catch(console.error)
@@ -102,6 +131,7 @@ export function useOrientacion() {
       const horaFin = calcularHoraFin(form.hora, 45)
       await insertSesion({
         alumno_id:       form.alumno.value,
+        orientador_id:   orientadorId,
         fecha:           form.fecha,
         hora_inicio:     form.hora,
         hora_fin:        horaFin,
@@ -128,7 +158,7 @@ export function useOrientacion() {
     } finally {
       setSaving(false)
     }
-  }, [form, cargarSesiones])
+  }, [form, cargarSesiones, orientadorId])
 
   // ── Tipificar sesión ──
   const abrirTipificacion = useCallback((sesion) => {
@@ -165,12 +195,13 @@ export function useOrientacion() {
       toast.success('Sesión tipificada ✓')
       cerrarTipificacion()
       cargarSesiones()
+      if (vista === 'historial') cargarHistorial()
     } catch (err) {
       toast.error('Error: ' + err.message)
     } finally {
       setSaving(false)
     }
-  }, [tipifModal, tipifForm, cargarSesiones, cerrarTipificacion])
+  }, [tipifModal, tipifForm, cargarSesiones, cerrarTipificacion, vista, cargarHistorial])
 
   // ── Eliminar sesión ──
   const eliminarSesion = useCallback(async (sesion) => {
@@ -179,10 +210,11 @@ export function useOrientacion() {
       await deleteSesion(sesion.id, sesion.zoom_meeting_id)
       toast.success('Sesión eliminada y reunión Zoom cancelada ✓')
       cargarSesiones()
+      if (vista === 'historial') cargarHistorial()
     } catch (err) {
       toast.error('Error al eliminar: ' + err.message)
     }
-  }, [cargarSesiones])
+  }, [cargarSesiones, vista, cargarHistorial])
 
   const alumnosOpts = alumnos.map(a => ({ value: a.id, label: a.nombre, data: a }))
 
@@ -202,6 +234,8 @@ export function useOrientacion() {
     tipifModal, tipifForm, setTipifField,
     abrirTipificacion, cerrarTipificacion, guardarTipificacion,
     stats, MOTIVOS, cargarSesiones, eliminarSesion,
+    vista, setVista, historial, loadingHistorial, cargarHistorial,
+    mesHistorial, setMesHistorial,
   }
 }
 

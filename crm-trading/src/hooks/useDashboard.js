@@ -46,7 +46,7 @@ async function fetchDashboard() {
     supabase.from('cuotas')
       .select('id, alumno_id, numero_cuota, fecha_vence, estado, monto, monto_pagado, monto_soles, moneda, tipo_cambio, alumno:alumnos(nombre, programa)'),
     supabase.from('sesiones_orientacion')
-      .select('id, alumno_id, fecha, estado, motivo, tiene_mt5, tiene_broker, tiene_tradingview, tiene_ingreso_trade, observaciones, alumno:alumnos(nombre, programa)')
+      .select('id, alumno_id, orientador_id, fecha, estado, motivo, tiene_mt5, tiene_broker, tiene_tradingview, tiene_ingreso_trade, observaciones, alumno:alumnos(nombre, programa)')
       .order('fecha', { ascending: false })
       .limit(500),
     supabase.from('alumnos')
@@ -100,13 +100,20 @@ export function useDashboard() {
   // para que todo lo que se calcula debajo (riesgo, pipeline, activación,
   // desempeño, recaudación, orientación) quede automáticamente scopeado.
   const esAsesora = user?.rol === 'asesora'
+  const esOrientador = user?.rol === 'orientador'
   const alumnosActivos = esAsesora
     ? (raw.alumnosActivos || []).filter(a => a.asesora_id === user.asesora_id)
     : (raw.alumnosActivos || [])
   const misAlumnoIds = esAsesora ? new Set(alumnosActivos.map(a => a.id)) : null
   const llamadas = esAsesora ? (raw.llamadas || []).filter(l => misAlumnoIds.has(l.alumno_id)) : (raw.llamadas || [])
   const cuotas   = esAsesora ? (raw.cuotas   || []).filter(c => misAlumnoIds.has(c.alumno_id)) : (raw.cuotas   || [])
-  const sesiones = esAsesora ? (raw.sesiones || []).filter(s => misAlumnoIds.has(s.alumno_id)) : (raw.sesiones || [])
+  // El orientador solo ve sus propias sesiones (orientador_id), no las de
+  // otro orientador si en el futuro se suma uno más.
+  const sesiones = esAsesora
+    ? (raw.sesiones || []).filter(s => misAlumnoIds.has(s.alumno_id))
+    : esOrientador
+    ? (raw.sesiones || []).filter(s => s.orientador_id === user.asesora_id)
+    : (raw.sesiones || [])
   const hoy = new Date().toISOString().split('T')[0]
 
   // Rango del mes
@@ -392,6 +399,20 @@ export function useDashboard() {
     programa: prog, total: sesionesMes.filter(s => s.alumno?.programa === prog).length,
   })).filter(p => p.total > 0).sort((a,b) => b.total - a.total)
 
+  // ── Efectividad del orientador ─────────────────────────────
+  // % de alumnos que NO volvieron a agendar tras una sesión Concretada —
+  // se asume que la sesión resolvió el problema por completo. Solo cuentan
+  // las sesiones Concretadas (una reprogramada o "no se conectó" no refleja
+  // un trabajo real del orientador).
+  const sesionesPorAlumno = {}
+  concretadas.forEach(s => {
+    if (!s.alumno_id) return
+    sesionesPorAlumno[s.alumno_id] = (sesionesPorAlumno[s.alumno_id] || 0) + 1
+  })
+  const alumnosSinVolver = Object.values(sesionesPorAlumno).filter(n => n === 1).length
+  const efectividadOrientador = concretadas.length > 0
+    ? Math.round((alumnosSinVolver / concretadas.length) * 100) : 0
+
   return {
     loading, cargar, lastUpdate, mesFiltro, setMesFiltro,
     hoy, programas, alumnosConRiesgo,
@@ -413,5 +434,6 @@ export function useDashboard() {
     proximas7, proximas15, montoProximas7, montoProximas15,
     totalSesiones, sesionesConcretadas, sesionesReprogram, sesionesNoConecto,
     alumnosUnicos, motivosFrecuentes, herramientas, sesionesPorPrograma,
+    efectividadOrientador,
   }
 }

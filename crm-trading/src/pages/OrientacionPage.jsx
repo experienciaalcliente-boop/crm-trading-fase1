@@ -1,6 +1,7 @@
 // v-20260622-1614
 import React from 'react'
 import { useOrientacion } from '../hooks/useOrientacion'
+import { useAuth } from '../context/AuthContext'
 import { updateSesionZoomUrl } from '../lib/api'
 import ModalTipificacion from '../components/modules/ModalTipificacion'
 import Select from 'react-select'
@@ -134,6 +135,8 @@ function ZoomCell({ sesion, onUpdate }) {
 
 export default function OrientacionPage() {
   const o = useOrientacion()
+  const { user } = useAuth()
+  const esOrientador = user?.rol === 'orientador'
   const fechaDisplay = format(new Date(o.fechaVista + 'T00:00:00'), "EEEE d 'de' MMMM, yyyy", { locale: es })
   const horasOcupadas = o.sesiones.map(s => s.hora_inicio?.slice(0,5))
 
@@ -168,86 +171,181 @@ export default function OrientacionPage() {
           ))}
         </div>
 
-        {/* Navegación fecha */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-          <button className="crm-btn crm-btn-sm" onClick={() => o.setFechaVista(format(subDays(new Date(o.fechaVista + 'T00:00:00'), 1), 'yyyy-MM-dd'))}>
-            <ChevronLeft size={14} />
-          </button>
-          <input type="date" className="crm-input" style={{ width: 160 }}
-            value={o.fechaVista} onChange={e => o.setFechaVista(e.target.value)} />
-          <button className="crm-btn crm-btn-sm" onClick={() => o.setFechaVista(format(addDays(new Date(o.fechaVista + 'T00:00:00'), 1), 'yyyy-MM-dd'))}>
-            <ChevronRight size={14} />
-          </button>
-          <button className="crm-btn crm-btn-sm" onClick={() => o.setFechaVista(format(new Date(), 'yyyy-MM-dd'))}>
-            Hoy
-          </button>
+        {/* Toggle Día / Historial completo */}
+        <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
+          {[['dia', 'Día'], ['historial', 'Historial completo']].map(([key, label]) => (
+            <button key={key} onClick={() => o.setVista(key)}
+              style={{ padding: '7px 14px', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                background: o.vista === key ? '#4e8fff' : 'rgba(255,255,255,0.04)',
+                border: `1px solid ${o.vista === key ? '#4e8fff' : 'rgba(255,255,255,0.08)'}`,
+                color: o.vista === key ? '#fff' : '#9aaccb' }}>
+              {label}
+            </button>
+          ))}
         </div>
 
-        {/* Tabla sesiones */}
-        <div className="crm-card">
-          <div style={{ padding: '13px 18px', borderBottom: '1px solid rgba(255,255,255,0.07)', display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.02)', borderRadius: '12px 12px 0 0' }}>
-            <Clock size={14} style={{ color: 'var(--text-muted)' }} />
-            <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>Sesiones del día</span>
-            <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--text-muted)' }}>{o.sesiones.length} sesiones agendadas</span>
+        {o.vista === 'dia' && (
+          <>
+          {/* Navegación fecha */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+            <button className="crm-btn crm-btn-sm" onClick={() => o.setFechaVista(format(subDays(new Date(o.fechaVista + 'T00:00:00'), 1), 'yyyy-MM-dd'))}>
+              <ChevronLeft size={14} />
+            </button>
+            <input type="date" className="crm-input" style={{ width: 160 }}
+              value={o.fechaVista} onChange={e => o.setFechaVista(e.target.value)} />
+            <button className="crm-btn crm-btn-sm" onClick={() => o.setFechaVista(format(addDays(new Date(o.fechaVista + 'T00:00:00'), 1), 'yyyy-MM-dd'))}>
+              <ChevronRight size={14} />
+            </button>
+            <button className="crm-btn crm-btn-sm" onClick={() => o.setFechaVista(format(new Date(), 'yyyy-MM-dd'))}>
+              Hoy
+            </button>
           </div>
 
-          {o.loading ? (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 50, gap: 10, color: 'var(--text-muted)' }}>
-              <Loader2 size={16} className="animate-spin" /><span style={{ fontSize: 13 }}>Cargando...</span>
+          {/* Tabla sesiones del día */}
+          <div className="crm-card">
+            <div style={{ padding: '13px 18px', borderBottom: '1px solid rgba(255,255,255,0.07)', display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.02)', borderRadius: '12px 12px 0 0' }}>
+              <Clock size={14} style={{ color: 'var(--text-muted)' }} />
+              <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>Sesiones del día</span>
+              <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--text-muted)' }}>{o.sesiones.length} sesiones agendadas</span>
             </div>
-          ) : !o.sesiones.length ? (
-            <div style={{ textAlign: 'center', padding: 50, color: 'var(--text-muted)' }}>
-              <div style={{ fontSize: 28, marginBottom: 8 }}>📅</div>
-              <p style={{ fontSize: 13 }}>No hay sesiones agendadas para este día</p>
-            </div>
-          ) : (
-            <div style={{ overflowX: 'auto' }}>
-              <table className="crm-table">
-                <thead>
-                  <tr>
-                    <th>Hora</th><th>Alumno</th><th>Programa</th><th>Motivo</th>
-                    <th>Agendado por</th><th>Zoom</th><th>Estado</th><th>Acciones</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {o.sesiones.map(s => (
-                    <tr key={s.id}>
-                      <td style={{ whiteSpace: 'nowrap', fontFamily: 'DM Mono, monospace', fontSize: 12, color: '#7ab3ff' }}>
-                        {s.hora_inicio?.slice(0,5)} – {s.hora_fin?.slice(0,5)}
-                      </td>
-                      <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{s.alumno?.nombre || '—'}</td>
-                      <td style={{ fontSize: 12 }}>{s.alumno?.programa || '—'}</td>
-                      <td style={{ fontSize: 12, maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.motivo}</td>
-                      <td style={{ fontSize: 12 }}>{s.agendado_por || '—'}</td>
-                      <td>
-                        <ZoomCell sesion={s} onUpdate={o.cargarSesiones} />
-                      </td>
-                      <td><EstadoBadge estado={s.estado} /></td>
-                      <td>
-                        <div style={{ display: 'flex', gap: 6 }}>
-                          {s.estado === 'Pendiente' && (
-                            <button className="crm-btn crm-btn-sm" style={{ fontSize: 11 }}
-                              onClick={() => o.abrirTipificacion(s)}>
-                              Tipificar
-                            </button>
-                          )}
-                          <button
-                            onClick={() => o.eliminarSesion(s)}
-                            style={{ background: 'rgba(240,92,92,0.1)', border: '1px solid rgba(240,92,92,0.25)', color: '#f07070', padding: '4px 8px', borderRadius: 6, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11 }}>
-                            <Trash2 size={11} /> Eliminar
-                          </button>
-                        </div>
-                      </td>
+
+            {o.loading ? (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 50, gap: 10, color: 'var(--text-muted)' }}>
+                <Loader2 size={16} className="animate-spin" /><span style={{ fontSize: 13 }}>Cargando...</span>
+              </div>
+            ) : !o.sesiones.length ? (
+              <div style={{ textAlign: 'center', padding: 50, color: 'var(--text-muted)' }}>
+                <div style={{ fontSize: 28, marginBottom: 8 }}>📅</div>
+                <p style={{ fontSize: 13 }}>No hay sesiones agendadas para este día</p>
+              </div>
+            ) : (
+              <div style={{ overflowX: 'auto' }}>
+                <table className="crm-table">
+                  <thead>
+                    <tr>
+                      <th>Hora</th><th>Alumno</th><th>Programa</th><th>Motivo</th>
+                      <th>Agendado por</th><th>Zoom</th><th>Estado</th><th>Acciones</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {o.sesiones.map(s => (
+                      <tr key={s.id}>
+                        <td style={{ whiteSpace: 'nowrap', fontFamily: 'DM Mono, monospace', fontSize: 12, color: '#7ab3ff' }}>
+                          {s.hora_inicio?.slice(0,5)} – {s.hora_fin?.slice(0,5)}
+                        </td>
+                        <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{s.alumno?.nombre || '—'}</td>
+                        <td style={{ fontSize: 12 }}>{s.alumno?.programa || '—'}</td>
+                        <td style={{ fontSize: 12, maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.motivo}</td>
+                        <td style={{ fontSize: 12 }}>{s.agendado_por || '—'}</td>
+                        <td>
+                          <ZoomCell sesion={s} onUpdate={o.cargarSesiones} />
+                        </td>
+                        <td><EstadoBadge estado={s.estado} /></td>
+                        <td>
+                          <div style={{ display: 'flex', gap: 6 }}>
+                            {s.estado === 'Pendiente' && (
+                              <button className="crm-btn crm-btn-sm" style={{ fontSize: 11 }}
+                                onClick={() => o.abrirTipificacion(s)}>
+                                Tipificar
+                              </button>
+                            )}
+                            <button
+                              onClick={() => o.eliminarSesion(s)}
+                              style={{ background: 'rgba(240,92,92,0.1)', border: '1px solid rgba(240,92,92,0.25)', color: '#f07070', padding: '4px 8px', borderRadius: 6, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11 }}>
+                              <Trash2 size={11} /> Eliminar
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+          </>
+        )}
+
+        {o.vista === 'historial' && (
+          <div className="crm-card">
+            <div style={{ padding: '13px 18px', borderBottom: '1px solid rgba(255,255,255,0.07)', display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.02)', borderRadius: '12px 12px 0 0' }}>
+              <Clock size={14} style={{ color: 'var(--text-muted)' }} />
+              <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>Historial del mes</span>
+              <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--text-muted)', marginRight: 10 }}>{o.historial.length} sesiones</span>
+              <select value={o.mesHistorial} onChange={e => o.setMesHistorial(e.target.value)}
+                style={{ padding: '5px 10px', background: 'var(--bg-input)', border: '1.5px solid #2e3d5c', borderRadius: 8, color: 'var(--text-primary)', fontSize: 12, cursor: 'pointer' }}>
+                {/* Solo desde enero de este año — no hay datos de antes */}
+                {Array.from({ length: new Date().getMonth() + 1 }, (_, i) => {
+                  const mesActual = new Date().getMonth() // 0=Ene ... i va de mesActual hacia atrás hasta 0
+                  const dt = new Date(new Date().getFullYear(), mesActual - i, 1)
+                  const val = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}`
+                  return <option key={val} value={val}>{dt.toLocaleDateString('es-PE', { month: 'long', year: 'numeric' })}</option>
+                })}
+              </select>
             </div>
-          )}
-        </div>
+
+            {o.loadingHistorial ? (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 50, gap: 10, color: 'var(--text-muted)' }}>
+                <Loader2 size={16} className="animate-spin" /><span style={{ fontSize: 13 }}>Cargando...</span>
+              </div>
+            ) : !o.historial.length ? (
+              <div style={{ textAlign: 'center', padding: 50, color: 'var(--text-muted)' }}>
+                <div style={{ fontSize: 28, marginBottom: 8 }}>📋</div>
+                <p style={{ fontSize: 13 }}>Sin sesiones registradas todavía</p>
+              </div>
+            ) : (
+              <div style={{ overflowX: 'auto', maxHeight: 560, overflowY: 'auto' }}>
+                <table className="crm-table">
+                  <thead>
+                    <tr>
+                      <th>Fecha</th><th>Hora</th><th>Alumno</th><th>Programa</th><th>Motivo</th>
+                      <th>Agendado por</th><th>Zoom</th><th>Estado</th><th>Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {o.historial.map(s => (
+                      <tr key={s.id}>
+                        <td style={{ whiteSpace: 'nowrap', fontSize: 12, color: 'var(--text-secondary)' }}>
+                          {format(new Date(s.fecha + 'T00:00:00'), 'dd/MM/yyyy')}
+                        </td>
+                        <td style={{ whiteSpace: 'nowrap', fontFamily: 'DM Mono, monospace', fontSize: 12, color: '#7ab3ff' }}>
+                          {s.hora_inicio?.slice(0,5)} – {s.hora_fin?.slice(0,5)}
+                        </td>
+                        <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{s.alumno?.nombre || '—'}</td>
+                        <td style={{ fontSize: 12 }}>{s.alumno?.programa || '—'}</td>
+                        <td style={{ fontSize: 12, maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.motivo}</td>
+                        <td style={{ fontSize: 12 }}>{s.agendado_por || '—'}</td>
+                        <td>
+                          <ZoomCell sesion={s} onUpdate={o.cargarHistorial} />
+                        </td>
+                        <td><EstadoBadge estado={s.estado} /></td>
+                        <td>
+                          <div style={{ display: 'flex', gap: 6 }}>
+                            {s.estado === 'Pendiente' && (
+                              <button className="crm-btn crm-btn-sm" style={{ fontSize: 11 }}
+                                onClick={() => o.abrirTipificacion(s)}>
+                                Tipificar
+                              </button>
+                            )}
+                            <button
+                              onClick={() => o.eliminarSesion(s)}
+                              style={{ background: 'rgba(240,92,92,0.1)', border: '1px solid rgba(240,92,92,0.25)', color: '#f07070', padding: '4px 8px', borderRadius: 6, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11 }}>
+                              <Trash2 size={11} /> Eliminar
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
-      {/* ── PANEL DERECHO: Agendar ── */}
+      {/* ── PANEL DERECHO: Agendar (el orientador no agenda, solo atiende) ── */}
+      {!esOrientador && (
       <aside style={{ width: 300, flexShrink: 0, borderLeft: '1px solid rgba(255,255,255,0.07)', background: 'var(--bg-surface)', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
         <div style={{ padding: '16px', borderBottom: '1px solid rgba(255,255,255,0.07)', background: 'rgba(255,255,255,0.02)' }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)' }}>Agendar sesión</div>
@@ -351,6 +449,7 @@ export default function OrientacionPage() {
           </div>
         </div>
       </aside>
+      )}
 
       {o.tipifModal && (
         <ModalTipificacion

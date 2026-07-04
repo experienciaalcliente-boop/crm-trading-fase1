@@ -362,6 +362,19 @@ CREATE INDEX IF NOT EXISTS idx_ventas_complementos_fecha   ON ventas_complemento
 
 ALTER TABLE ventas_complementos ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "ventas_complementos_select" ON ventas_complementos FOR SELECT
-  USING ((auth.jwt() ->> 'app_role') IN ('supervisor','asesora'));
+  USING ((auth.jwt() ->> 'app_role') IN ('supervisor','asesora','orientador'));
 CREATE POLICY "ventas_complementos_insert" ON ventas_complementos FOR INSERT
-  WITH CHECK ((auth.jwt() ->> 'app_role') IN ('supervisor','asesora'));
+  WITH CHECK ((auth.jwt() ->> 'app_role') IN ('supervisor','asesora','orientador'));
+
+-- ============================================================
+-- FASE 6: Vista de orientador técnico
+-- ============================================================
+-- sesiones_orientacion no identificaba qué orientador atendió la sesión
+-- (hoy hay uno solo, "Alexandro S", pero no quedaba registrado). Se agrega
+-- el vínculo real y se hace backfill de las sesiones existentes.
+ALTER TABLE sesiones_orientacion ADD COLUMN IF NOT EXISTS orientador_id uuid REFERENCES asesoras(id);
+
+UPDATE sesiones_orientacion SET orientador_id = '6611cffb-f8ca-48cc-b869-3092655f901a' -- Alexandro S
+  WHERE orientador_id IS NULL;
+
+CREATE INDEX IF NOT EXISTS idx_sesiones_orientador_id ON sesiones_orientacion(orientador_id);

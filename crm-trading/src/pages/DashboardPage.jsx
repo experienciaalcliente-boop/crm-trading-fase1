@@ -64,6 +64,7 @@ export default function DashboardPage() {
   const { user } = useAuth()
   const esAsesora = user?.rol === 'asesora'
   const esSupervisor = user?.rol === 'supervisor'
+  const esOrientador = user?.rol === 'orientador'
 
   if (d.loading) return (
     <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'100%', gap:10, color:'var(--text-muted)' }}>
@@ -100,17 +101,26 @@ export default function DashboardPage() {
       </div>
 
       {/* KPIs principales */}
-      <div style={{ display:'grid', gridTemplateColumns: esAsesora ? 'repeat(3,1fr)' : 'repeat(4,1fr)', gap:10, marginBottom:4 }}>
-        <KPICard label="Alumnos activos"    value={d.totalAlumnosActivos}  sub="En curso + seguimiento"    color="#7ab3ff"  accent="#4e8fff" />
-        <KPICard label="Contactabilidad"    value={`${d.contactabilidad}%`} sub={`${d.respondieron} respondieron`} color="#2dd4a0" accent="#2dd4a0" />
-        <KPICard label="Riesgo Alto"        value={d.riesgoAlto}           sub="Requieren intervención"   color="#f07070"  accent="#f07070" />
-        {!esAsesora && (
-          <KPICard label="Beneficio total"    value={`S/ ${fmt(d.beneficioTotal)}`} sub="Convertido a soles" color="#f5b93a" accent="#f5b93a" />
-        )}
-      </div>
+      {esOrientador ? (
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:10, marginBottom:4 }}>
+          <KPICard label="Sesiones del mes" value={d.totalSesiones}       sub="Agendadas este mes"     color="#b89eff" accent="#b89eff" />
+          <KPICard label="Concretadas"      value={d.sesionesConcretadas} sub="Sesiones realizadas"    color="#2dd4a0" accent="#2dd4a0" />
+          <KPICard label="Efectividad"      value={`${d.efectividadOrientador}%`} sub="No volvieron a agendar" color="#4e8fff" accent="#4e8fff" />
+          <KPICard label="Alumnos atendidos" value={d.alumnosUnicos}      sub="Este mes"               color="#7ab3ff" accent="#7ab3ff" />
+        </div>
+      ) : (
+        <div style={{ display:'grid', gridTemplateColumns: esAsesora ? 'repeat(3,1fr)' : 'repeat(4,1fr)', gap:10, marginBottom:4 }}>
+          <KPICard label="Alumnos activos"    value={d.totalAlumnosActivos}  sub="En curso + seguimiento"    color="#7ab3ff"  accent="#4e8fff" />
+          <KPICard label="Contactabilidad"    value={`${d.contactabilidad}%`} sub={`${d.respondieron} respondieron`} color="#2dd4a0" accent="#2dd4a0" />
+          <KPICard label="Riesgo Alto"        value={d.riesgoAlto}           sub="Requieren intervención"   color="#f07070"  accent="#f07070" />
+          {!esAsesora && (
+            <KPICard label="Beneficio total"    value={`S/ ${fmt(d.beneficioTotal)}`} sub="Convertido a soles" color="#f5b93a" accent="#f5b93a" />
+          )}
+        </div>
+      )}
 
-      {/* ══ NPS / SATISFACCIÓN (solo asesora) ══ */}
-      {esAsesora && (
+      {/* ══ NPS / SATISFACCIÓN (asesora y orientador) ══ */}
+      {(esAsesora || esOrientador) && (
         <>
           <SectionTitle icon={Smile} title="Encuesta de Satisfacción" color="#f5b93a" />
           <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16, marginBottom:16 }}>
@@ -126,6 +136,9 @@ export default function DashboardPage() {
         </>
       )}
 
+      {/* Secciones de asesora/supervisor — no le competen al orientador */}
+      {!esOrientador && (
+      <>
       {/* ══ LLAMADAS ══ */}
       <SectionTitle icon={Phone} title="Seguimiento de Llamadas" color="#4e8fff" />
 
@@ -298,6 +311,8 @@ export default function DashboardPage() {
           ))}
         </div>
       </div>
+      </>
+      )}
 
       {/* ══ DESEMPEÑO POR ASESORA (solo supervisor) ══ */}
       {esSupervisor && (
@@ -348,9 +363,9 @@ export default function DashboardPage() {
         </>
       )}
 
-      {!esAsesora && (
+      {/* ══ RECAUDACIÓN (solo supervisor) ══ */}
+      {esSupervisor && (
       <>
-      {/* ══ RECAUDACIÓN ══ */}
       <SectionTitle icon={CreditCard} title="Recaudación" color="#2dd4a0" />
 
       <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:10, marginBottom:16 }}>
@@ -405,15 +420,20 @@ export default function DashboardPage() {
           </BarChart>
         </ResponsiveContainer>
       </div>
+      </>
+      )}
 
-      {/* ══ ORIENTACIÓN ══ */}
+      {/* ══ ORIENTACIÓN TÉCNICA (supervisor y orientador) ══ */}
+      {(esSupervisor || esOrientador) && (
+      <>
       <SectionTitle icon={MonitorSmartphone} title="Orientación Técnica" color="#b89eff" />
 
-      <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:10, marginBottom:16 }}>
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(5,1fr)', gap:10, marginBottom:16 }}>
         <KPICard label="Total sesiones"   value={d.totalSesiones}       color="#b89eff" accent="#b89eff" />
         <KPICard label="Concretadas"      value={d.sesionesConcretadas} color="#2dd4a0" accent="#2dd4a0" />
         <KPICard label="Reprogramadas"    value={d.sesionesReprogram}   color="#f5b93a" accent="#f5b93a" />
         <KPICard label="No se conectaron" value={d.sesionesNoConecto}   color="#f07070" accent="#f07070" />
+        <KPICard label="Efectividad"      value={`${d.efectividadOrientador}%`} sub="No volvieron a agendar" color="#4e8fff" accent="#4e8fff" />
       </div>
 
       <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:16, marginBottom:16 }}>

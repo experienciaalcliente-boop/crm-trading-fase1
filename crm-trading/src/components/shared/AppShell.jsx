@@ -16,7 +16,7 @@ export const NAV = [
   { to:'/recaudacion', icon:CreditCard,        label:'Recaudación',     sub:'Cuotas y pagos',       roles:['supervisor'] },
   { to:'/orientacion', icon:MonitorSmartphone, label:'Orient. Técnica', sub:'Agenda y sesiones',    roles:['supervisor','asesora','orientador'] },
   { to:'/onboarding',  icon:GraduationCap,     label:'Onboarding',      sub:'Próximas promociones', roles:['supervisor','asesora'] },
-  { to:'/complementos',icon:ShoppingBag,       label:'Complementos',    sub:'Venta de complementos', roles:['supervisor','asesora'] },
+  { to:'/complementos',icon:ShoppingBag,       label:'Complementos',    sub:'Venta de complementos', roles:['supervisor','asesora','orientador'] },
   { to:'/importar',    icon:Upload,            label:'Importar',        sub:'CSV / Excel',          roles:['supervisor'] },
 ]
 
