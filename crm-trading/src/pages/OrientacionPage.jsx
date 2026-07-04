@@ -39,6 +39,16 @@ const HORAS_MANANA  = ['09:00','09:55','10:50','11:45']
 const HORAS_TARDE   = ['14:30','15:25','16:20','17:15']
 const TODAS_HORAS   = [...HORAS_MANANA, ...HORAS_TARDE]
 
+// Los sábados el orientador entra a las 9am pero solo turno mañana (sale a
+// la 2pm): la disponibilidad arranca a las 9:30 y la última sesión inicia
+// a la 1:15pm, sin horario de tarde.
+const HORAS_SABADO  = ['09:30','10:25','11:20','12:15','13:15']
+
+function esFechaSabado(fecha) {
+  if (!fecha) return false
+  return new Date(fecha + 'T00:00:00').getDay() === 6
+}
+
 const ASESORAS = ['Fabiola M.', 'Katerin F.', 'Anael S.']
 
 function horaDisponible(hora, fechaSeleccionada) {
@@ -363,17 +373,22 @@ export default function OrientacionPage() {
           <Field label="Fecha">
             <input type="date" className="crm-input" value={o.form.fecha}
               min={format(new Date(), 'yyyy-MM-dd')}
-              onChange={e => o.setField('fecha', e.target.value)} />
+              onChange={e => {
+                const nuevaFecha = e.target.value
+                const horasValidas = esFechaSabado(nuevaFecha) ? HORAS_SABADO : TODAS_HORAS
+                o.setField('fecha', nuevaFecha)
+                if (!horasValidas.includes(o.form.hora)) o.setField('hora', horasValidas[0])
+              }} />
           </Field>
 
           <div style={{ height: 12 }} />
           <Field label="Horario disponible (45 min c/u)">
-            {/* Mañana */}
+            {/* Mañana (sábado tiene su propio turno único, más corto) */}
             <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-              Mañana · 9:00 – 12:40
+              {esFechaSabado(o.form.fecha) ? 'Sábado · 9:30 – 1:15 pm (turno único)' : 'Mañana · 9:00 – 12:40'}
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 8 }}>
-              {HORAS_MANANA.map(h => {
+              {(esFechaSabado(o.form.fecha) ? HORAS_SABADO : HORAS_MANANA).map(h => {
                 const ocupada  = horasOcupadas.includes(h) && o.fechaVista === o.form.fecha
                 const pasada   = !horaDisponible(h, o.form.fecha)
                 const disabled = ocupada || pasada
@@ -393,31 +408,33 @@ export default function OrientacionPage() {
                 )
               })}
             </div>
-            {/* Tarde */}
-            <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-              Tarde · 14:30 – 18:00
-            </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
-              {HORAS_TARDE.map(h => {
-                const ocupada  = horasOcupadas.includes(h) && o.fechaVista === o.form.fecha
-                const pasada   = !horaDisponible(h, o.form.fecha)
-                const disabled = ocupada || pasada
-                return (
-                  <button key={h} onClick={() => !disabled && o.setField('hora', h)} disabled={disabled}
-                    style={{
-                      padding: '5px 10px', borderRadius: 7, fontSize: 12, fontWeight: 500,
-                      cursor: disabled ? 'not-allowed' : 'pointer', transition: 'all 0.15s',
-                      background: o.form.hora === h ? '#4e8fff' : disabled ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.06)',
-                      border: `1px solid ${o.form.hora === h ? '#4e8fff' : disabled ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.1)'}`,
-                      color: o.form.hora === h ? '#fff' : disabled ? '#2e3d5c' : '#9aaccb',
-                      textDecoration: ocupada ? 'line-through' : 'none',
-                      opacity: pasada ? 0.35 : 1,
-                    }}>
-                    {h}
-                  </button>
-                )
-              })}
-            </div>
+            {/* Tarde — no aplica los sábados (turno único de mañana) */}
+            {!esFechaSabado(o.form.fecha) && (<>
+              <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                Tarde · 14:30 – 18:00
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                {HORAS_TARDE.map(h => {
+                  const ocupada  = horasOcupadas.includes(h) && o.fechaVista === o.form.fecha
+                  const pasada   = !horaDisponible(h, o.form.fecha)
+                  const disabled = ocupada || pasada
+                  return (
+                    <button key={h} onClick={() => !disabled && o.setField('hora', h)} disabled={disabled}
+                      style={{
+                        padding: '5px 10px', borderRadius: 7, fontSize: 12, fontWeight: 500,
+                        cursor: disabled ? 'not-allowed' : 'pointer', transition: 'all 0.15s',
+                        background: o.form.hora === h ? '#4e8fff' : disabled ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.06)',
+                        border: `1px solid ${o.form.hora === h ? '#4e8fff' : disabled ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.1)'}`,
+                        color: o.form.hora === h ? '#fff' : disabled ? '#2e3d5c' : '#9aaccb',
+                        textDecoration: ocupada ? 'line-through' : 'none',
+                        opacity: pasada ? 0.35 : 1,
+                      }}>
+                      {h}
+                    </button>
+                  )
+                })}
+              </div>
+            </>)}
           </Field>
 
           <div style={{ height: 12 }} />
