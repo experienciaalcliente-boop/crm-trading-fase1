@@ -45,13 +45,39 @@ export async function tieneProximaPromocion(asesoraId) {
   return (count || 0) > 0
 }
 
+// La relación real de un alumno es por CodAlumno (igual que ya se usa en
+// cuotas) — nombre+programa es solo respaldo para alumnos legado sin código
+// cargado. Se separa en dos grupos porque cada uno usa una restricción única
+// distinta, y se deduplica dentro de cada grupo (quedándose con la última
+// aparición) porque un mismo INSERT no puede afectar la misma fila dos veces:
+// eso es justo lo que producía "ON CONFLICT DO UPDATE command cannot affect
+// row a second time" cuando el Excel traía un alumno repetido.
 export async function upsertAlumnos(rows) {
-  const { data, error } = await supabase
-    .from('alumnos')
-    .upsert(rows, { onConflict: 'nombre,programa', ignoreDuplicates: false })
-    .select()
-  if (error) throw error
-  return data
+  const conCodigo = new Map()
+  const sinCodigo = new Map()
+  for (const r of rows) {
+    if (r.codigo_alumno) conCodigo.set(r.codigo_alumno, r)
+    else sinCodigo.set(`${r.nombre}|||${r.programa}`, r)
+  }
+
+  const resultados = []
+  if (conCodigo.size) {
+    const { data, error } = await supabase
+      .from('alumnos')
+      .upsert([...conCodigo.values()], { onConflict: 'codigo_alumno', ignoreDuplicates: false })
+      .select()
+    if (error) throw error
+    resultados.push(...data)
+  }
+  if (sinCodigo.size) {
+    const { data, error } = await supabase
+      .from('alumnos')
+      .upsert([...sinCodigo.values()], { onConflict: 'nombre,programa', ignoreDuplicates: false })
+      .select()
+    if (error) throw error
+    resultados.push(...data)
+  }
+  return resultados
 }
 
 // ─────────────────────────────────────────
