@@ -8,7 +8,7 @@ import { useAuth } from '../../context/AuthContext'
 import { useTheme } from '../../context/ThemeContext'
 import BuscadorGlobal from './BuscadorGlobal'
 
-const NAV = [
+export const NAV = [
   { to:'/dashboard',   icon:BarChart2,        label:'Dashboard',       sub:'Vista ejecutiva',      roles:['supervisor','asesora','orientador'] },
   { to:'/llamadas',    icon:Phone,             label:'Seguimiento',     sub:'Registro de llamadas', roles:['supervisor','asesora'] },
   { to:'/recaudacion', icon:CreditCard,        label:'Recaudación',     sub:'Cuotas y pagos',       roles:['supervisor'] },

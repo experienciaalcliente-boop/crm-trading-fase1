@@ -55,7 +55,7 @@ function CambiarPin({ user }) {
   )
 }
 
-function GestionUsuarios() {
+function GestionUsuarios({ token }) {
   const [usuarios,    setUsuarios]    = useState([])
   const [cargado,     setCargado]     = useState(false)
   const [loading,     setLoading]     = useState(false)
@@ -65,7 +65,7 @@ function GestionUsuarios() {
   const cargar = async () => {
     setLoading(true)
     try {
-      const data = await fetchAllUsers()
+      const data = await fetchAllUsers(token)
       setUsuarios(data)
       setCargado(true)
     } catch { toast.error('Error al cargar usuarios') }
@@ -77,7 +77,7 @@ function GestionUsuarios() {
     if (nuevoPin.length < 4) { toast.error('Ingresa un PIN de al menos 4 dígitos'); return }
     setResetting(user.id)
     try {
-      await resetPin(user.id, nuevoPin)
+      await resetPin(token, user.id, nuevoPin)
       toast.success(`PIN de ${user.nombre} reseteado ✓`)
       setPinReset(p => ({ ...p, [user.id]: '' }))
     } catch { toast.error('Error al resetear PIN') }
@@ -129,7 +129,7 @@ function GestionUsuarios() {
 }
 
 export default function MiPerfilPage() {
-  const { user } = useAuth()
+  const { user, token } = useAuth()
 
   return (
     <div style={{ padding:24, maxWidth:700 }}>
@@ -142,7 +142,7 @@ export default function MiPerfilPage() {
 
       <div style={{ display:'flex', flexDirection:'column', gap:20 }}>
         <CambiarPin user={user} />
-        {user?.rol === 'supervisor' && <GestionUsuarios />}
+        {user?.rol === 'supervisor' && <GestionUsuarios token={token} />}
       </div>
     </div>
   )

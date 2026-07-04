@@ -8,6 +8,8 @@ if (!supabaseUrl || !supabaseKey) {
 }
 
 export const supabase = createClient(supabaseUrl, supabaseKey, {
-  auth: { persistSession: true, autoRefreshToken: true },
+  // La sesión no la persiste supabase-js: la app la maneja vía sessionStorage
+  // (ver AuthContext) y no hay refresh token real, solo un JWT propio de corta duración.
+  auth: { persistSession: false, autoRefreshToken: false },
   realtime: { params: { eventsPerSecond: 10 } },
 })

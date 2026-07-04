@@ -4,14 +4,25 @@ import { supabase } from '../lib/supabase'
 // ─────────────────────────────────────────
 // ALUMNOS
 // ─────────────────────────────────────────
+const DURACION_PROGRAMA_DIAS = 24 * 7 // 24 semanas
+
 export async function fetchAlumnos() {
   const { data, error } = await supabase
     .from('alumnos')
-    .select('id, nombre, programa, semana_actual, asesora, estado')
+    .select('id, nombre, programa, semana_actual, asesora, estado, fecha_inicio')
     .eq('activo', true)
     .order('nombre')
   if (error) throw error
-  return data
+  // Un alumno deja de aparecer en la vista operativa de la asesora cuando su
+  // programa (fecha_inicio + 24 semanas) ya terminó. Los que no tienen
+  // fecha_inicio (datos legados) se mantienen visibles.
+  const hoy = new Date()
+  return data.filter(a => {
+    if (!a.fecha_inicio) return true
+    const fin = new Date(a.fecha_inicio + 'T00:00:00')
+    fin.setDate(fin.getDate() + DURACION_PROGRAMA_DIAS)
+    return fin >= hoy
+  })
 }
 
 export async function upsertAlumnos(rows) {
@@ -677,53 +688,44 @@ export async function fetchUserByPin(pin) {
   return data
 }
 
-export async function fetchUserByDniPin(dni, pin) {
-  const { data, error } = await supabase
-    .from('users_config')
-    .select('*, asesora:asesoras(id, nombre)')
-    .eq('dni', dni)
-    .eq('pin', pin)
-    .eq('activo', true)
-    .single()
-  if (error) return null
-  return data
-}
-
-export async function fetchAllUsers() {
-  const { data, error } = await supabase
-    .from('users_config')
-    .select('*, asesora:asesoras(nombre)')
-    .order('nombre')
-  if (error) throw error
-  return data || []
-}
-
-export async function upsertUser(payload) {
-  const { data, error } = await supabase
-    .from('users_config')
-    .upsert(payload, { onConflict: 'email' })
-    .select().single()
-  if (error) throw error
-  return data
-}
+// El login y la gestión de users_config ya no se consultan directo con la
+// anon key: users_config no admite acceso de cliente (RLS cerrado), todo pasa
+// por las funciones serverless en /api, que usan la service_role key.
 
 export async function updatePin(dni, pinActual, pinNuevo) {
-  // Verificar pin actual
-  const user = await fetchUserByDniPin(dni, pinActual)
-  if (!user) throw new Error('PIN actual incorrecto')
-  const { error } = await supabase
-    .from('users_config')
-    .update({ pin: pinNuevo })
-    .eq('dni', dni)
-  if (error) throw error
+  const res = await fetch('/api/change-pin', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ dni, pinActual, pinNuevo }),
+  })
+  if (!res.ok) {
+    const err = await res.json()
+    throw new Error(err.error || 'Error al actualizar PIN')
+  }
   return true
 }
 
-export async function resetPin(userId, pinNuevo) {
-  const { error } = await supabase
-    .from('users_config')
-    .update({ pin: pinNuevo })
-    .eq('id', userId)
-  if (error) throw error
+export async function fetchAllUsers(token) {
+  const res = await fetch('/api/admin-users', {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+  if (!res.ok) {
+    const err = await res.json()
+    throw new Error(err.error || 'Error al cargar usuarios')
+  }
+  const body = await res.json()
+  return body.users || []
+}
+
+export async function resetPin(token, userId, pinNuevo) {
+  const res = await fetch('/api/admin-users', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ userId, pinNuevo }),
+  })
+  if (!res.ok) {
+    const err = await res.json()
+    throw new Error(err.error || 'Error al resetear PIN')
+  }
   return true
 }

@@ -326,15 +326,19 @@ export function useDashboard() {
   const cuotasReservas   = cuotasMes.filter(c => c.estado === 'Reserva académica').length
   const cuotasRetirados  = cuotasMes.filter(c => c.estado === 'Retirado').length
 
+  // El tipo de cambio se toma SIEMPRE de la propia cuota (calculado al
+  // importar como monto_soles / monto) — no de un promedio por alumno, que
+  // puede diferir del real cuando un mismo alumno tiene cuotas a tasas
+  // distintas entre meses.
   const calcMontoPEN = (c) => {
     const mS = parseFloat(c.monto_soles || 0)
     if (mS > 0) return mS
-    const tc = tcPorAlumno[c.alumno?.nombre] || TC_DEFAULT
+    const tc = parseFloat(c.tipo_cambio) || TC_DEFAULT
     return parseFloat(c.monto || 0) * (c.moneda === 'USD' ? tc : 1)
   }
   const montoTotalPEN    = cuotasMes.reduce((s,c) => s + calcMontoPEN(c), 0)
   const montoPagadoPEN   = cuotasMes.reduce((s,c) => {
-    const tc = tcPorAlumno[c.alumno?.nombre] || TC_DEFAULT
+    const tc = parseFloat(c.tipo_cambio) || TC_DEFAULT
     return s + parseFloat(c.monto_pagado||0) * (c.moneda === 'USD' ? tc : 1)
   }, 0)
   const saldoPendientePEN = montoTotalPEN - montoPagadoPEN

@@ -23,6 +23,20 @@ function excelSerialToMesAnio(val) {
   return str
 }
 
+// ── Convierte "Jul-26" (mes de cohorte) al primer día de ese mes ──
+// Se usa como fecha_inicio cuando el archivo no trae una columna de
+// fecha de inicio explícita (caso real: solo viene el mes de cohorte).
+function mesAnioToFecha(mesAnio) {
+  if (!mesAnio) return null
+  const meses = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic']
+  const m = /^([A-Za-záéíóúñ]{3})-(\d{2})$/i.exec(String(mesAnio).trim())
+  if (!m) return null
+  const idx = meses.indexOf(m[1].toLowerCase())
+  if (idx === -1) return null
+  const anio = 2000 + parseInt(m[2])
+  return `${anio}-${String(idx + 1).padStart(2, '0')}-01`
+}
+
 // ── Convierte número serial de Excel a fecha YYYY-MM-DD ────────
 function excelSerialToFecha(val) {
   if (!val) return ''
@@ -121,6 +135,7 @@ export default function ImportPage() {
   async function procesarAlumnos() {
     const rows = rawData
       .map(r => {
+        const programa = excelSerialToMesAnio(col(r, 'programa', 'program'))
         const fechaInicioRaw = col(r, 'fechainicio', 'fecha de inicio', 'inicio', 'start', 'fecha inicio')
         let fecha_inicio = null
         if (fechaInicioRaw) {
@@ -131,10 +146,14 @@ export default function ImportPage() {
             fecha_inicio = fechaInicioRaw.toString().split(' ')[0].split('T')[0] || null
           }
         }
+        // El archivo real no trae columna de fecha de inicio: el mes de
+        // cohorte en "Programa" (ej. "Jul-26") es el único dato disponible,
+        // así que se usa el primer día de ese mes como fallback.
+        if (!fecha_inicio) fecha_inicio = mesAnioToFecha(programa)
         const codigoRaw = col(r, 'codalumno', 'codigo', 'cod', 'id', 'código')
         return {
           nombre:        col(r, 'nombre', 'name', 'alumno'),
-          programa:      excelSerialToMesAnio(col(r, 'programa', 'program')),
+          programa,
           semana_actual: col(r, 'semana', 'week') || '0',
           asesora:       col(r, 'asesora', 'asesor', 'advisor'),
           estado:        col(r, 'estado', 'status') || 'Activo',
@@ -234,13 +253,17 @@ export default function ImportPage() {
 
   // ── Procesar cuotas ────────────────────────────────────────
   async function procesarCuotas() {
-    const { data: alumnosDB } = await supabase.from('alumnos').select('id, nombre')
+    const { data: alumnosDB } = await supabase.from('alumnos').select('id, nombre, codigo_alumno')
     const alumnoMap = {}
+    const alumnoMapPorCodigo = {}
     // Normalizar: minúsculas + sin tildes + sin espacios extra
     const normNombre = s => String(s || '').toLowerCase().trim()
       .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // quitar tildes
       .replace(/\s+/g, ' ') // espacios múltiples a uno
-    alumnosDB?.forEach(a => { alumnoMap[normNombre(a.nombre)] = a.id })
+    alumnosDB?.forEach(a => {
+      alumnoMap[normNombre(a.nombre)] = a.id
+      if (a.codigo_alumno) alumnoMapPorCodigo[String(a.codigo_alumno).trim()] = a.id
+    })
 
     // Mapeo de estados del archivo a los valores del sistema
     function mapearEstado(estadoRaw) {
@@ -279,7 +302,10 @@ export default function ImportPage() {
       const vals = Object.values(r)
 
       const nombre          = String(vals[4]  || '').trim()
-      const alumno_id       = alumnoMap[normNombre(nombre)] || null
+      const codAlumno       = String(vals[3]  || '').trim()
+      // La relación es SIEMPRE por CodAlumno; el nombre solo es respaldo
+      // para alumnos legados que no tengan codigo_alumno cargado en la BD.
+      const alumno_id       = alumnoMapPorCodigo[codAlumno] || alumnoMap[normNombre(nombre)] || null
       const fechaVal        = vals[2]
       const estadoAsesoria  = String(vals[6]  || '').trim()
       const estadoCuota     = String(vals[9]  || '').trim()

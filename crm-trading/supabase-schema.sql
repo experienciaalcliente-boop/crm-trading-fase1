@@ -195,3 +195,95 @@ CREATE INDEX IF NOT EXISTS idx_sesiones_estado   ON sesiones_orientacion(estado)
 ALTER TABLE sesiones_orientacion ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "acceso_sesiones" ON sesiones_orientacion FOR ALL USING (true) WITH CHECK (true);
 ALTER PUBLICATION supabase_realtime ADD TABLE sesiones_orientacion;
+
+-- ============================================================
+-- FASE 4: RLS por rol (JWT propio con claim app_role)
+-- ============================================================
+-- Reemplaza los "USING (true)" abiertos por políticas basadas en el claim
+-- `app_role` del JWT que firma /api/login.js. users_config queda sin
+-- políticas: solo accesible vía service_role desde las funciones serverless.
+
+-- ── Limpieza de políticas abiertas ─────────────────────────────
+DROP POLICY IF EXISTS "acceso_asesoras"      ON asesoras;
+DROP POLICY IF EXISTS "acceso_alumnos"       ON alumnos;
+DROP POLICY IF EXISTS "acceso_llamadas"      ON registros_llamadas;
+DROP POLICY IF EXISTS "acceso_cuotas"        ON cuotas;
+DROP POLICY IF EXISTS "acceso_pagos"         ON pagos;
+DROP POLICY IF EXISTS "acceso_sesiones"      ON sesiones_orientacion;
+DROP POLICY IF EXISTS "acceso_llamadas_prog" ON llamadas_programadas;
+DROP POLICY IF EXISTS "acceso_users"         ON users_config;
+
+-- ── asesoras: lectura para los 3 roles, escritura solo supervisor ──
+CREATE POLICY "asesoras_select" ON asesoras FOR SELECT
+  USING ((auth.jwt() ->> 'app_role') IN ('supervisor','asesora','orientador'));
+CREATE POLICY "asesoras_write"  ON asesoras FOR INSERT
+  WITH CHECK ((auth.jwt() ->> 'app_role') = 'supervisor');
+CREATE POLICY "asesoras_update" ON asesoras FOR UPDATE
+  USING ((auth.jwt() ->> 'app_role') = 'supervisor')
+  WITH CHECK ((auth.jwt() ->> 'app_role') = 'supervisor');
+
+-- ── alumnos: lectura para los 3 roles, escritura supervisor+asesora ──
+CREATE POLICY "alumnos_select" ON alumnos FOR SELECT
+  USING ((auth.jwt() ->> 'app_role') IN ('supervisor','asesora','orientador'));
+CREATE POLICY "alumnos_insert" ON alumnos FOR INSERT
+  WITH CHECK ((auth.jwt() ->> 'app_role') IN ('supervisor','asesora'));
+CREATE POLICY "alumnos_update" ON alumnos FOR UPDATE
+  USING ((auth.jwt() ->> 'app_role') IN ('supervisor','asesora'))
+  WITH CHECK ((auth.jwt() ->> 'app_role') IN ('supervisor','asesora'));
+
+-- ── registros_llamadas: lectura para los 3 roles, escritura supervisor+asesora ──
+CREATE POLICY "registros_llamadas_select" ON registros_llamadas FOR SELECT
+  USING ((auth.jwt() ->> 'app_role') IN ('supervisor','asesora','orientador'));
+CREATE POLICY "registros_llamadas_insert" ON registros_llamadas FOR INSERT
+  WITH CHECK ((auth.jwt() ->> 'app_role') IN ('supervisor','asesora'));
+CREATE POLICY "registros_llamadas_update" ON registros_llamadas FOR UPDATE
+  USING ((auth.jwt() ->> 'app_role') IN ('supervisor','asesora'))
+  WITH CHECK ((auth.jwt() ->> 'app_role') IN ('supervisor','asesora'));
+
+-- ── llamadas_programadas: mismo criterio que registros_llamadas ──
+CREATE POLICY "llamadas_programadas_select" ON llamadas_programadas FOR SELECT
+  USING ((auth.jwt() ->> 'app_role') IN ('supervisor','asesora','orientador'));
+CREATE POLICY "llamadas_programadas_insert" ON llamadas_programadas FOR INSERT
+  WITH CHECK ((auth.jwt() ->> 'app_role') IN ('supervisor','asesora'));
+CREATE POLICY "llamadas_programadas_update" ON llamadas_programadas FOR UPDATE
+  USING ((auth.jwt() ->> 'app_role') IN ('supervisor','asesora'))
+  WITH CHECK ((auth.jwt() ->> 'app_role') IN ('supervisor','asesora'));
+
+-- ── cuotas: lectura para los 3 roles (Dashboard las muestra a todos), escritura solo supervisor ──
+CREATE POLICY "cuotas_select" ON cuotas FOR SELECT
+  USING ((auth.jwt() ->> 'app_role') IN ('supervisor','asesora','orientador'));
+CREATE POLICY "cuotas_insert" ON cuotas FOR INSERT
+  WITH CHECK ((auth.jwt() ->> 'app_role') = 'supervisor');
+CREATE POLICY "cuotas_update" ON cuotas FOR UPDATE
+  USING ((auth.jwt() ->> 'app_role') = 'supervisor')
+  WITH CHECK ((auth.jwt() ->> 'app_role') = 'supervisor');
+
+-- ── pagos: solo supervisor (lectura y escritura) ──
+CREATE POLICY "pagos_select" ON pagos FOR SELECT
+  USING ((auth.jwt() ->> 'app_role') = 'supervisor');
+CREATE POLICY "pagos_insert" ON pagos FOR INSERT
+  WITH CHECK ((auth.jwt() ->> 'app_role') = 'supervisor');
+CREATE POLICY "pagos_update" ON pagos FOR UPDATE
+  USING ((auth.jwt() ->> 'app_role') = 'supervisor')
+  WITH CHECK ((auth.jwt() ->> 'app_role') = 'supervisor');
+
+-- ── sesiones_orientacion: los 3 roles, incluida DELETE (cancelar sesión) ──
+CREATE POLICY "sesiones_select" ON sesiones_orientacion FOR SELECT
+  USING ((auth.jwt() ->> 'app_role') IN ('supervisor','asesora','orientador'));
+CREATE POLICY "sesiones_insert" ON sesiones_orientacion FOR INSERT
+  WITH CHECK ((auth.jwt() ->> 'app_role') IN ('supervisor','asesora','orientador'));
+CREATE POLICY "sesiones_update" ON sesiones_orientacion FOR UPDATE
+  USING ((auth.jwt() ->> 'app_role') IN ('supervisor','asesora','orientador'))
+  WITH CHECK ((auth.jwt() ->> 'app_role') IN ('supervisor','asesora','orientador'));
+CREATE POLICY "sesiones_delete" ON sesiones_orientacion FOR DELETE
+  USING ((auth.jwt() ->> 'app_role') IN ('supervisor','asesora','orientador'));
+
+-- ── users_config: sin políticas ─────────────────────────────────
+-- RLS ya está activado (ver arriba) y no se crea ninguna policy para
+-- anon/authenticated: con cero políticas permisivas el acceso queda denegado
+-- por defecto. Solo service_role (usado en /api/login.js, /api/change-pin.js
+-- y /api/admin-users.js) puede leer o escribir esta tabla, porque service_role
+-- ignora RLS de forma nativa en Postgres/Supabase.
+
+-- ── Hallazgo adicional del security advisor: vista SECURITY DEFINER ──
+ALTER VIEW matriz_contactabilidad SET (security_invoker = true);
