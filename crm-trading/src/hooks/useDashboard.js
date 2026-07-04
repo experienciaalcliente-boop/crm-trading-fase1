@@ -1,6 +1,8 @@
 // v-2026-06-20 16:06:13
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
+import { useAuth } from '../context/AuthContext'
+import { programaActivo } from '../lib/api'
 import toast from 'react-hot-toast'
 
 // Safe calcularRiesgo — no crashes
@@ -42,24 +44,25 @@ async function fetchDashboard() {
       .order('fecha', { ascending: false })
       .limit(2000),
     supabase.from('cuotas')
-      .select('id, numero_cuota, fecha_vence, estado, monto, monto_pagado, monto_soles, moneda, tipo_cambio, alumno:alumnos(nombre, programa)'),
+      .select('id, alumno_id, numero_cuota, fecha_vence, estado, monto, monto_pagado, monto_soles, moneda, tipo_cambio, alumno:alumnos(nombre, programa)'),
     supabase.from('sesiones_orientacion')
-      .select('id, fecha, estado, motivo, tiene_mt5, tiene_broker, tiene_tradingview, tiene_ingreso_trade, observaciones, alumno:alumnos(nombre, programa)')
+      .select('id, alumno_id, fecha, estado, motivo, tiene_mt5, tiene_broker, tiene_tradingview, tiene_ingreso_trade, observaciones, alumno:alumnos(nombre, programa)')
       .order('fecha', { ascending: false })
       .limit(500),
     supabase.from('alumnos')
-      .select('id, nombre, programa, estado, semana_actual, asesora, riesgo_nivel, riesgo_score, ultimo_contacto_at, nivel_atencion, estado_operativo, fecha_inicio')
+      .select('id, nombre, programa, estado, semana_actual, asesora, asesora_id, riesgo_nivel, riesgo_score, ultimo_contacto_at, nivel_atencion, estado_operativo, fecha_inicio')
       .in('estado', ['Activo', 'En Curso', 'En Seguimiento', 'activo', 'en curso', 'en seguimiento']),
   ])
   return {
     llamadas:      (r1.data || []).filter(Boolean),
     cuotas:        (r2.data || []).filter(Boolean),
     sesiones:      (r3.data || []).filter(Boolean),
-    alumnosActivos:(r4.data || []).filter(Boolean),
+    alumnosActivos:(r4.data || []).filter(Boolean).filter(programaActivo),
   }
 }
 
 export function useDashboard() {
+  const { user } = useAuth()
   const [mesFiltro, setMesFiltro] = useState(() => {
     const d = new Date()
     return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`
@@ -93,7 +96,17 @@ export function useDashboard() {
   }, [cargar])
 
   // ── Datos seguros ──────────────────────────────────────────
-  const { llamadas, cuotas, sesiones, alumnosActivos } = raw
+  // Una asesora solo ve sus propios alumnos: se filtra acá, una sola vez,
+  // para que todo lo que se calcula debajo (riesgo, pipeline, activación,
+  // desempeño, recaudación, orientación) quede automáticamente scopeado.
+  const esAsesora = user?.rol === 'asesora'
+  const alumnosActivos = esAsesora
+    ? (raw.alumnosActivos || []).filter(a => a.asesora_id === user.asesora_id)
+    : (raw.alumnosActivos || [])
+  const misAlumnoIds = esAsesora ? new Set(alumnosActivos.map(a => a.id)) : null
+  const llamadas = esAsesora ? (raw.llamadas || []).filter(l => misAlumnoIds.has(l.alumno_id)) : (raw.llamadas || [])
+  const cuotas   = esAsesora ? (raw.cuotas   || []).filter(c => misAlumnoIds.has(c.alumno_id)) : (raw.cuotas   || [])
+  const sesiones = esAsesora ? (raw.sesiones || []).filter(s => misAlumnoIds.has(s.alumno_id)) : (raw.sesiones || [])
   const hoy = new Date().toISOString().split('T')[0]
 
   // Rango del mes

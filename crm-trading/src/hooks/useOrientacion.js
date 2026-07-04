@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { fetchAlumnos, fetchSesionesHoy, fetchSesionesFecha, insertSesion, updateSesion, crearReunionZoom, deleteSesion } from '../lib/api'
+import { useAuth } from '../context/AuthContext'
 import toast from 'react-hot-toast'
 import { format } from 'date-fns'
 
@@ -35,6 +36,8 @@ const TIPIF_INICIAL = {
 }
 
 export function useOrientacion() {
+  const { user } = useAuth()
+  const asesoraIdPropia = user?.rol === 'asesora' ? user.asesora_id : undefined
   const [alumnos,       setAlumnos]       = useState([])
   const [sesiones,      setSesiones]      = useState([])
   const [fechaVista,    setFechaVista]    = useState(format(new Date(), 'yyyy-MM-dd'))
@@ -46,8 +49,8 @@ export function useOrientacion() {
   const [vistaCalendario, setVistaCalendario] = useState('dia') // dia | semana
 
   useEffect(() => {
-    fetchAlumnos().then(setAlumnos).catch(console.error)
-  }, [])
+    fetchAlumnos(asesoraIdPropia).then(setAlumnos).catch(console.error)
+  }, [asesoraIdPropia])
 
   const cargarSesiones = useCallback(async (fecha) => {
     setLoading(true)

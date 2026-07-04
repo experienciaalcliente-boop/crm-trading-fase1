@@ -1,5 +1,6 @@
 import { useDashboard } from '../hooks/useDashboard'
-import { Loader2, RefreshCw, Phone, CreditCard, MonitorSmartphone, TrendingUp, AlertTriangle, Users, Zap, Target } from 'lucide-react'
+import { useAuth } from '../context/AuthContext'
+import { Loader2, RefreshCw, Phone, CreditCard, MonitorSmartphone, TrendingUp, AlertTriangle, Users, Target, Smile } from 'lucide-react'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts'
@@ -19,6 +20,8 @@ const customTooltip = ({ active, payload, label }) => {
     </div>
   )
 }
+
+const pctLabel = ({ percent }) => percent > 0 ? `${Math.round(percent * 100)}%` : ''
 
 function SectionTitle({ icon: Icon, title, color='#4e8fff' }) {
   return (
@@ -58,6 +61,9 @@ function PctBar({ label, pct, count, total, color='#4e8fff' }) {
 
 export default function DashboardPage() {
   const d = useDashboard()
+  const { user } = useAuth()
+  const esAsesora = user?.rol === 'asesora'
+  const esSupervisor = user?.rol === 'supervisor'
 
   if (d.loading) return (
     <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'100%', gap:10, color:'var(--text-muted)' }}>
@@ -94,12 +100,145 @@ export default function DashboardPage() {
       </div>
 
       {/* KPIs principales */}
-      <div style={{ display:'grid', gridTemplateColumns:'repeat(5,1fr)', gap:10, marginBottom:4 }}>
+      <div style={{ display:'grid', gridTemplateColumns: esAsesora ? 'repeat(3,1fr)' : 'repeat(4,1fr)', gap:10, marginBottom:4 }}>
         <KPICard label="Alumnos activos"    value={d.totalAlumnosActivos}  sub="En curso + seguimiento"    color="#7ab3ff"  accent="#4e8fff" />
         <KPICard label="Contactabilidad"    value={`${d.contactabilidad}%`} sub={`${d.respondieron} respondieron`} color="#2dd4a0" accent="#2dd4a0" />
-        <KPICard label="Activación"         value={`${d.pctActivacion}%`}  sub={`${d.alumnosActivados.length} activados`} color="#b89eff" accent="#b89eff" />
         <KPICard label="Riesgo Alto"        value={d.riesgoAlto}           sub="Requieren intervención"   color="#f07070"  accent="#f07070" />
-        <KPICard label="Beneficio total"    value={`S/ ${fmt(d.beneficioTotal)}`} sub="Convertido a soles" color="#f5b93a" accent="#f5b93a" />
+        {!esAsesora && (
+          <KPICard label="Beneficio total"    value={`S/ ${fmt(d.beneficioTotal)}`} sub="Convertido a soles" color="#f5b93a" accent="#f5b93a" />
+        )}
+      </div>
+
+      {/* ══ NPS / SATISFACCIÓN (solo asesora) ══ */}
+      {esAsesora && (
+        <>
+          <SectionTitle icon={Smile} title="Encuesta de Satisfacción" color="#f5b93a" />
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16, marginBottom:16 }}>
+            <div className="crm-card" style={{ padding:18, textAlign:'center' }}>
+              <div style={{ fontSize:12, fontWeight:700, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:14 }}>NPS</div>
+              <div style={{ fontSize:13, color:'var(--text-muted)', padding:'20px 0' }}>Sin datos aún — próximamente</div>
+            </div>
+            <div className="crm-card" style={{ padding:18, textAlign:'center' }}>
+              <div style={{ fontSize:12, fontWeight:700, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:14 }}>SAT (satisfacción por llamada)</div>
+              <div style={{ fontSize:13, color:'var(--text-muted)', padding:'20px 0' }}>Sin datos aún — próximamente</div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* ══ LLAMADAS ══ */}
+      <SectionTitle icon={Phone} title="Seguimiento de Llamadas" color="#4e8fff" />
+
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16, marginBottom:16 }}>
+        <div className="crm-card" style={{ padding:18 }}>
+          <div style={{ fontSize:12, fontWeight:700, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:14 }}>Contactabilidad por programa</div>
+          {d.contactabilidadPorPrograma.slice(0,8).map(p => (
+            <PctBar key={p.programa} label={p.programa} pct={p.pct} count={p.respondieron} total={p.total} color="#4e8fff" />
+          ))}
+        </div>
+        <div className="crm-card" style={{ padding:18 }}>
+          <div style={{ fontSize:12, fontWeight:700, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:14 }}>Rendimiento hoy por asesora</div>
+          {d.statsPorAsesora.length === 0 ? (
+            <div style={{ color:'var(--text-muted)', fontSize:13, textAlign:'center', padding:'20px 0' }}>Sin registros hoy</div>
+          ) : d.statsPorAsesora.map(a => (
+            <PctBar key={a.asesora} label={a.asesora} pct={a.pct} count={a.respondieron} total={a.total} color="#2dd4a0" />
+          ))}
+        </div>
+      </div>
+
+      {/* Tipos de cuenta */}
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:16, marginBottom:16 }}>
+        <div className="crm-card" style={{ padding:18 }}>
+          <div style={{ fontSize:12, fontWeight:700, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:14 }}>Tipos de cuenta</div>
+          <ResponsiveContainer width="100%" height={200}>
+            <PieChart>
+              <Pie data={Object.entries(d.tiposCuenta).map(([k,v])=>({name:k,value:v}))} cx="50%" cy="50%" innerRadius={45} outerRadius={75} paddingAngle={3} dataKey="value"
+                label={pctLabel} labelLine={false}>
+                {Object.keys(d.tiposCuenta).map((_,i) => <Cell key={i} fill={COLORS[i]} />)}
+              </Pie>
+              <Tooltip content={customTooltip} />
+              <Legend wrapperStyle={{ fontSize:11, color:'var(--text-secondary)' }} />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+        <div className="crm-card" style={{ padding:18 }}>
+          <div style={{ fontSize:12, fontWeight:700, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:14 }}>Tipos de cuenta por programa</div>
+          <div style={{ overflowX:'auto', maxHeight:180, overflowY:'auto' }}>
+            <table className="crm-table">
+              <thead><tr><th>Programa</th><th>Demo</th><th>Real</th><th>Fondeo</th><th>N.Op.</th></tr></thead>
+              <tbody>
+                {d.cuentasPorPrograma.map(p => (
+                  <tr key={p.programa}>
+                    <td style={{ fontSize:11 }}>{p.programa}</td>
+                    <td style={{ color:p.Demo>0?'#e2e8f4':'#3d5070', textAlign:'center' }}>{p.Demo||'—'}</td>
+                    <td style={{ color:p.Real>0?'#2dd4a0':'#3d5070', textAlign:'center' }}>{p.Real||'—'}</td>
+                    <td style={{ color:p.Fondeo>0?'#f5b93a':'#3d5070', textAlign:'center' }}>{p.Fondeo||'—'}</td>
+                    <td style={{ color:p['No opera']>0?'#f07070':'#3d5070', textAlign:'center' }}>{p['No opera']||'—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div className="crm-card" style={{ padding:18 }}>
+          <div style={{ fontSize:12, fontWeight:700, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:6 }}>Capital real (USD)</div>
+          <div style={{ fontSize:11, color:'var(--text-muted)', marginBottom:10 }}>Total: <span style={{ color:'#7ab3ff', fontWeight:700 }}>{d.totalCuentasReales}</span></div>
+          {d.rangosCapital.map(r => (
+            <div key={r.label} style={{ display:'flex', justifyContent:'space-between', padding:'5px 0', borderBottom:'1px solid rgba(255,255,255,0.05)' }}>
+              <span style={{ fontSize:12, color: r.label==='Sin dato'?'#506080':'#9aaccb', fontStyle:r.label==='Sin dato'?'italic':'normal' }}>{r.label}</span>
+              <div style={{ display:'flex', gap:8 }}>
+                <span style={{ fontSize:12, color:r.count>0?'#e2e8f4':'#3d5070', fontWeight:600 }}>{r.count}</span>
+                <span style={{ fontSize:11, color:'var(--text-muted)' }}>{d.totalCuentasReales>0?Math.round(r.count/d.totalCuentasReales*100):0}%</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ══ PIPELINE ══ */}
+      <SectionTitle icon={TrendingUp} title="Pipeline Demo → Real → Fondeo" color="#2dd4a0" />
+
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16, marginBottom:16 }}>
+        {/* Dona pipeline */}
+        <div className="crm-card" style={{ padding:18 }}>
+          <div style={{ fontSize:12, fontWeight:700, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:14 }}>Distribución actual (historial completo)</div>
+          <ResponsiveContainer width="100%" height={180}>
+            <PieChart>
+              <Pie data={Object.entries(d.pipeline).map(([k,v])=>({name:k,value:v}))}
+                cx="50%" cy="50%" innerRadius={45} outerRadius={75} paddingAngle={3} dataKey="value">
+                {Object.keys(d.pipeline).map((_,i) => <Cell key={i} fill={COLORS[i]} />)}
+              </Pie>
+              <Tooltip content={customTooltip} />
+              <Legend wrapperStyle={{ fontSize:11, color:'var(--text-secondary)' }} />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Pipeline por programa */}
+        <div className="crm-card" style={{ padding:18 }}>
+          <div style={{ fontSize:12, fontWeight:700, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:14 }}>Pipeline por programa</div>
+          <div style={{ overflowX:'auto' }}>
+            <table className="crm-table">
+              <thead><tr><th>Programa</th><th>Demo</th><th>Real</th><th>Fondeo</th><th>No op.</th></tr></thead>
+              <tbody>
+                {d.pipelinePorPrograma.map(p => (
+                  <tr key={p.programa}>
+                    <td style={{ fontWeight:500 }}>{p.programa}</td>
+                    <td style={{ color: p.Demo > 0 ? '#7ab3ff' : '#3d5070', textAlign:'center' }}>{p.Demo || '—'}</td>
+                    <td style={{ color: p.Real > 0 ? '#2dd4a0' : '#3d5070', textAlign:'center' }}>{p.Real || '—'}</td>
+                    <td style={{ color: p.Fondeo > 0 ? '#f5b93a' : '#3d5070', textAlign:'center' }}>{p.Fondeo || '—'}</td>
+                    <td style={{ color: p['No opera'] > 0 ? '#f07070' : '#3d5070', textAlign:'center' }}>{p['No opera'] || '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {d.alumnosDemoEstancados.length > 0 && (
+            <div style={{ marginTop:12, padding:'8px 10px', borderRadius:8, background:'rgba(245,166,35,0.08)', border:'1px solid rgba(245,166,35,0.2)', fontSize:11, color:'#f5b93a' }}>
+              ⚠️ {d.alumnosDemoEstancados.length} alumnos en Demo desde semana 12+
+            </div>
+          )}
+        </div>
       </div>
 
       {/* ══ SECCIÓN RIESGO ══ */}
@@ -160,177 +299,57 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* ══ PIPELINE ══ */}
-      <SectionTitle icon={TrendingUp} title="Pipeline Demo → Real → Fondeo" color="#2dd4a0" />
+      {/* ══ DESEMPEÑO POR ASESORA (solo supervisor) ══ */}
+      {esSupervisor && (
+        <>
+          <SectionTitle icon={Users} title="Desempeño por Asesora" color="#7ab3ff" />
 
-      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16, marginBottom:16 }}>
-        {/* Dona pipeline */}
-        <div className="crm-card" style={{ padding:18 }}>
-          <div style={{ fontSize:12, fontWeight:700, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:14 }}>Distribución actual (historial completo)</div>
-          <ResponsiveContainer width="100%" height={180}>
-            <PieChart>
-              <Pie data={Object.entries(d.pipeline).map(([k,v])=>({name:k,value:v}))}
-                cx="50%" cy="50%" innerRadius={45} outerRadius={75} paddingAngle={3} dataKey="value">
-                {Object.keys(d.pipeline).map((_,i) => <Cell key={i} fill={COLORS[i]} />)}
-              </Pie>
-              <Tooltip content={customTooltip} />
-              <Legend wrapperStyle={{ fontSize:11, color:'var(--text-secondary)' }} />
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
-
-        {/* Pipeline por programa */}
-        <div className="crm-card" style={{ padding:18 }}>
-          <div style={{ fontSize:12, fontWeight:700, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:14 }}>Pipeline por programa</div>
-          <div style={{ overflowX:'auto' }}>
+          <div className="crm-card" style={{ marginBottom:16, overflowX:'auto' }}>
             <table className="crm-table">
-              <thead><tr><th>Programa</th><th>Demo</th><th>Real</th><th>Fondeo</th><th>No op.</th></tr></thead>
+              <thead>
+                <tr>
+                  <th>Asesora</th>
+                  <th>Alumnos</th>
+                  <th>Llamadas</th>
+                  <th>Contactabilidad</th>
+                  <th>T. Reacción</th>
+                  <th>Riesgo Alto</th>
+                  <th>Sin contacto 7d+</th>
+                </tr>
+              </thead>
               <tbody>
-                {d.pipelinePorPrograma.map(p => (
-                  <tr key={p.programa}>
-                    <td style={{ fontWeight:500 }}>{p.programa}</td>
-                    <td style={{ color: p.Demo > 0 ? '#7ab3ff' : '#3d5070', textAlign:'center' }}>{p.Demo || '—'}</td>
-                    <td style={{ color: p.Real > 0 ? '#2dd4a0' : '#3d5070', textAlign:'center' }}>{p.Real || '—'}</td>
-                    <td style={{ color: p.Fondeo > 0 ? '#f5b93a' : '#3d5070', textAlign:'center' }}>{p.Fondeo || '—'}</td>
-                    <td style={{ color: p['No opera'] > 0 ? '#f07070' : '#3d5070', textAlign:'center' }}>{p['No opera'] || '—'}</td>
+                {d.desempenoPorAsesora.map((a, i) => (
+                  <tr key={a.asesora}>
+                    <td style={{ fontWeight:600, color:'var(--text-primary)' }}>{a.asesora}</td>
+                    <td style={{ textAlign:'center' }}>{a.totalAlumnos}</td>
+                    <td style={{ textAlign:'center' }}>{a.llamadasMes}</td>
+                    <td>
+                      <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                        <div style={{ flex:1, height:6, background:'rgba(255,255,255,0.06)', borderRadius:3 }}>
+                          <div style={{ height:'100%', width:`${a.contactabilidad}%`, background: a.contactabilidad >= 70 ? '#2dd4a0' : a.contactabilidad >= 40 ? '#f5b93a' : '#f07070', borderRadius:3 }} />
+                        </div>
+                        <span style={{ fontSize:12, fontWeight:600, color:'var(--text-primary)', minWidth:32 }}>{a.contactabilidad}%</span>
+                      </div>
+                    </td>
+                    <td style={{ textAlign:'center', fontSize:12, color: a.tiempoReaccion ? (a.tiempoReaccion <= 24 ? '#2dd4a0' : a.tiempoReaccion <= 48 ? '#f5b93a' : '#f07070') : '#3d5070' }}>
+                      {a.tiempoReaccion ? `${a.tiempoReaccion}h` : '—'}
+                    </td>
+                    <td style={{ textAlign:'center' }}>
+                      {a.riesgoAlto > 0 ? <span style={{ color:'#f87171', fontWeight:700 }}>{a.riesgoAlto}</span> : <span style={{ color:'var(--text-muted)' }}>—</span>}
+                    </td>
+                    <td style={{ textAlign:'center' }}>
+                      {a.sinContacto7 > 0 ? <span style={{ color:'#fb923c', fontWeight:700 }}>{a.sinContacto7}</span> : <span style={{ color:'var(--text-muted)' }}>—</span>}
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-          {d.alumnosDemoEstancados.length > 0 && (
-            <div style={{ marginTop:12, padding:'8px 10px', borderRadius:8, background:'rgba(245,166,35,0.08)', border:'1px solid rgba(245,166,35,0.2)', fontSize:11, color:'#f5b93a' }}>
-              ⚠️ {d.alumnosDemoEstancados.length} alumnos en Demo desde semana 12+
-            </div>
-          )}
-        </div>
-      </div>
+        </>
+      )}
 
-      {/* ══ ACTIVACIÓN ══ */}
-      <SectionTitle icon={Zap} title="Indicador de Activación" color="#b89eff" />
-
-      <div className="crm-card" style={{ padding:18, marginBottom:16 }}>
-        <div style={{ fontSize:12, fontWeight:700, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:14 }}>
-          Activación por programa — Activado = tiene cuenta + avance ≥20% + contacto en 14 días
-        </div>
-        {d.activacionPorPrograma.filter(p => p.total > 0).map(p => (
-          <PctBar key={p.programa} label={p.programa} pct={p.pct} count={p.activados} total={p.total} color="#b89eff" />
-        ))}
-      </div>
-
-      {/* ══ DESEMPEÑO POR ASESORA ══ */}
-      <SectionTitle icon={Users} title="Desempeño por Asesora" color="#7ab3ff" />
-
-      <div className="crm-card" style={{ marginBottom:16, overflowX:'auto' }}>
-        <table className="crm-table">
-          <thead>
-            <tr>
-              <th>Asesora</th>
-              <th>Alumnos</th>
-              <th>Llamadas</th>
-              <th>Contactabilidad</th>
-              <th>T. Reacción</th>
-              <th>Riesgo Alto</th>
-              <th>Sin contacto 7d+</th>
-            </tr>
-          </thead>
-          <tbody>
-            {d.desempenoPorAsesora.map((a, i) => (
-              <tr key={a.asesora}>
-                <td style={{ fontWeight:600, color:'var(--text-primary)' }}>{a.asesora}</td>
-                <td style={{ textAlign:'center' }}>{a.totalAlumnos}</td>
-                <td style={{ textAlign:'center' }}>{a.llamadasMes}</td>
-                <td>
-                  <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                    <div style={{ flex:1, height:6, background:'rgba(255,255,255,0.06)', borderRadius:3 }}>
-                      <div style={{ height:'100%', width:`${a.contactabilidad}%`, background: a.contactabilidad >= 70 ? '#2dd4a0' : a.contactabilidad >= 40 ? '#f5b93a' : '#f07070', borderRadius:3 }} />
-                    </div>
-                    <span style={{ fontSize:12, fontWeight:600, color:'var(--text-primary)', minWidth:32 }}>{a.contactabilidad}%</span>
-                  </div>
-                </td>
-                <td style={{ textAlign:'center', fontSize:12, color: a.tiempoReaccion ? (a.tiempoReaccion <= 24 ? '#2dd4a0' : a.tiempoReaccion <= 48 ? '#f5b93a' : '#f07070') : '#3d5070' }}>
-                  {a.tiempoReaccion ? `${a.tiempoReaccion}h` : '—'}
-                </td>
-                <td style={{ textAlign:'center' }}>
-                  {a.riesgoAlto > 0 ? <span style={{ color:'#f87171', fontWeight:700 }}>{a.riesgoAlto}</span> : <span style={{ color:'var(--text-muted)' }}>—</span>}
-                </td>
-                <td style={{ textAlign:'center' }}>
-                  {a.sinContacto7 > 0 ? <span style={{ color:'#fb923c', fontWeight:700 }}>{a.sinContacto7}</span> : <span style={{ color:'var(--text-muted)' }}>—</span>}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* ══ LLAMADAS ══ */}
-      <SectionTitle icon={Phone} title="Seguimiento de Llamadas" color="#4e8fff" />
-
-      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16, marginBottom:16 }}>
-        <div className="crm-card" style={{ padding:18 }}>
-          <div style={{ fontSize:12, fontWeight:700, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:14 }}>Contactabilidad por programa</div>
-          {d.contactabilidadPorPrograma.slice(0,8).map(p => (
-            <PctBar key={p.programa} label={p.programa} pct={p.pct} count={p.respondieron} total={p.total} color="#4e8fff" />
-          ))}
-        </div>
-        <div className="crm-card" style={{ padding:18 }}>
-          <div style={{ fontSize:12, fontWeight:700, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:14 }}>Rendimiento hoy por asesora</div>
-          {d.statsPorAsesora.length === 0 ? (
-            <div style={{ color:'var(--text-muted)', fontSize:13, textAlign:'center', padding:'20px 0' }}>Sin registros hoy</div>
-          ) : d.statsPorAsesora.map(a => (
-            <PctBar key={a.asesora} label={a.asesora} pct={a.pct} count={a.respondieron} total={a.total} color="#2dd4a0" />
-          ))}
-        </div>
-      </div>
-
-      {/* Tipos de cuenta */}
-      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:16, marginBottom:16 }}>
-        <div className="crm-card" style={{ padding:18 }}>
-          <div style={{ fontSize:12, fontWeight:700, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:14 }}>Tipos de cuenta</div>
-          <ResponsiveContainer width="100%" height={180}>
-            <PieChart>
-              <Pie data={Object.entries(d.tiposCuenta).map(([k,v])=>({name:k,value:v}))} cx="50%" cy="50%" innerRadius={45} outerRadius={75} paddingAngle={3} dataKey="value">
-                {Object.keys(d.tiposCuenta).map((_,i) => <Cell key={i} fill={COLORS[i]} />)}
-              </Pie>
-              <Tooltip content={customTooltip} />
-              <Legend wrapperStyle={{ fontSize:11, color:'var(--text-secondary)' }} />
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
-        <div className="crm-card" style={{ padding:18 }}>
-          <div style={{ fontSize:12, fontWeight:700, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:14 }}>Tipos de cuenta por programa</div>
-          <div style={{ overflowX:'auto', maxHeight:180, overflowY:'auto' }}>
-            <table className="crm-table">
-              <thead><tr><th>Programa</th><th>Demo</th><th>Real</th><th>Fondeo</th><th>N.Op.</th></tr></thead>
-              <tbody>
-                {d.cuentasPorPrograma.map(p => (
-                  <tr key={p.programa}>
-                    <td style={{ fontSize:11 }}>{p.programa}</td>
-                    <td style={{ color:p.Demo>0?'#e2e8f4':'#3d5070', textAlign:'center' }}>{p.Demo||'—'}</td>
-                    <td style={{ color:p.Real>0?'#2dd4a0':'#3d5070', textAlign:'center' }}>{p.Real||'—'}</td>
-                    <td style={{ color:p.Fondeo>0?'#f5b93a':'#3d5070', textAlign:'center' }}>{p.Fondeo||'—'}</td>
-                    <td style={{ color:p['No opera']>0?'#f07070':'#3d5070', textAlign:'center' }}>{p['No opera']||'—'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-        <div className="crm-card" style={{ padding:18 }}>
-          <div style={{ fontSize:12, fontWeight:700, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:6 }}>Capital real (USD)</div>
-          <div style={{ fontSize:11, color:'var(--text-muted)', marginBottom:10 }}>Total: <span style={{ color:'#7ab3ff', fontWeight:700 }}>{d.totalCuentasReales}</span></div>
-          {d.rangosCapital.map(r => (
-            <div key={r.label} style={{ display:'flex', justifyContent:'space-between', padding:'5px 0', borderBottom:'1px solid rgba(255,255,255,0.05)' }}>
-              <span style={{ fontSize:12, color: r.label==='Sin dato'?'#506080':'#9aaccb', fontStyle:r.label==='Sin dato'?'italic':'normal' }}>{r.label}</span>
-              <div style={{ display:'flex', gap:8 }}>
-                <span style={{ fontSize:12, color:r.count>0?'#e2e8f4':'#3d5070', fontWeight:600 }}>{r.count}</span>
-                <span style={{ fontSize:11, color:'var(--text-muted)' }}>{d.totalCuentasReales>0?Math.round(r.count/d.totalCuentasReales*100):0}%</span>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
+      {!esAsesora && (
+      <>
       {/* ══ RECAUDACIÓN ══ */}
       <SectionTitle icon={CreditCard} title="Recaudación" color="#2dd4a0" />
 
@@ -436,6 +455,8 @@ export default function DashboardPage() {
           ))}
         </div>
       </div>
+      </>
+      )}
 
     </div>
   )

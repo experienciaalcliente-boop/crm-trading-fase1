@@ -6,23 +6,27 @@ import { supabase } from '../lib/supabase'
 // ─────────────────────────────────────────
 const DURACION_PROGRAMA_DIAS = 24 * 7 // 24 semanas
 
-export async function fetchAlumnos() {
-  const { data, error } = await supabase
+// Un alumno deja de considerarse "programa activo" cuando su fecha_inicio +
+// 24 semanas ya pasó. Los que no tienen fecha_inicio (datos legados) se
+// consideran activos. Se exporta para que tanto fetchAlumnos() como el
+// Dashboard (que trae su propia lista de alumnos) apliquen la misma regla.
+export function programaActivo(alumno) {
+  if (!alumno.fecha_inicio) return true
+  const fin = new Date(alumno.fecha_inicio + 'T00:00:00')
+  fin.setDate(fin.getDate() + DURACION_PROGRAMA_DIAS)
+  return fin >= new Date()
+}
+
+export async function fetchAlumnos(asesoraId) {
+  let query = supabase
     .from('alumnos')
     .select('id, nombre, programa, semana_actual, asesora, estado, fecha_inicio')
     .eq('activo', true)
     .order('nombre')
+  if (asesoraId) query = query.eq('asesora_id', asesoraId)
+  const { data, error } = await query
   if (error) throw error
-  // Un alumno deja de aparecer en la vista operativa de la asesora cuando su
-  // programa (fecha_inicio + 24 semanas) ya terminó. Los que no tienen
-  // fecha_inicio (datos legados) se mantienen visibles.
-  const hoy = new Date()
-  return data.filter(a => {
-    if (!a.fecha_inicio) return true
-    const fin = new Date(a.fecha_inicio + 'T00:00:00')
-    fin.setDate(fin.getDate() + DURACION_PROGRAMA_DIAS)
-    return fin >= hoy
-  })
+  return data.filter(programaActivo)
 }
 
 export async function upsertAlumnos(rows) {

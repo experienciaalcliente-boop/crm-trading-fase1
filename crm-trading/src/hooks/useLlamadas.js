@@ -1,6 +1,7 @@
 // v-2026-06-20 16:06:13
 import { useState, useEffect, useCallback } from 'react'
 import { fetchAlumnos, fetchAsesorasLlamadas, fetchAsesoras, fetchRegistrosHoy, fetchHistorialAlumno, fetchNextCodigo, insertRegistroLlamada, suscribirRegistrosHoy, fetchSinResponderAcumulado, calcularSemanaRegistro } from '../lib/api'
+import { useAuth } from '../context/AuthContext'
 import toast from 'react-hot-toast'
 import { format } from 'date-fns'
 
@@ -25,6 +26,8 @@ const formInicial = () => ({
 })
 
 export function useLlamadas() {
+  const { user } = useAuth()
+  const asesoraIdPropia = user?.rol === 'asesora' ? user.asesora_id : undefined
   const [alumnos,         setAlumnos]         = useState([])
   const [asesoras,        setAsesoras]        = useState([])   // todas (para panel)
   const [asesorasForm,    setAsesorasForm]    = useState([])   // solo llamadas (para form)
@@ -39,7 +42,7 @@ export function useLlamadas() {
   // ── Carga inicial ──
   useEffect(() => {
     Promise.all([
-      fetchAlumnos(),
+      fetchAlumnos(asesoraIdPropia),
       fetchAsesoras(),
       fetchAsesorasLlamadas(),
       fetchRegistrosHoy(),
@@ -57,7 +60,7 @@ export function useLlamadas() {
         toast.error('Error al cargar datos. ¿Configuraste Supabase?')
       })
       .finally(() => setLoading(false))
-  }, [])
+  }, [asesoraIdPropia])
 
   // ── Real-time ──
   useEffect(() => {
