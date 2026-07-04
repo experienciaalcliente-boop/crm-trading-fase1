@@ -319,9 +319,12 @@ CREATE TABLE IF NOT EXISTS onboarding_pasos (
                   )),
   estado          text NOT NULL DEFAULT 'Pendiente' CHECK (estado IN ('Pendiente','Completado')),
   fecha_completado timestamptz,
+  completado_por  text,
   updated_at      timestamptz DEFAULT now(),
   UNIQUE(alumno_id, paso)
 );
+
+ALTER TABLE onboarding_pasos ADD COLUMN IF NOT EXISTS completado_por text;
 
 ALTER TABLE onboarding_pasos ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "onboarding_pasos_select" ON onboarding_pasos FOR SELECT

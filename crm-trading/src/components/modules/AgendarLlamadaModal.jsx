@@ -1,5 +1,19 @@
 import { useState } from 'react'
 import { X, Loader2 } from 'lucide-react'
+import Select from 'react-select'
+
+const rsStyles = {
+  control: (base, state) => ({ ...base, background: 'var(--bg-input)', border: `1.5px solid ${state.isFocused ? '#4e8fff' : '#2e3d5c'}`, borderRadius: 8, minHeight: 38, boxShadow: state.isFocused ? '0 0 0 3px rgba(78,143,255,0.15)' : 'none' }),
+  menu: (base) => ({ ...base, background: 'var(--bg-input)', border: '1.5px solid #2e3d5c', borderRadius: 10, boxShadow: '0 8px 28px rgba(0,0,0,0.5)', zIndex: 9999 }),
+  menuList: (base) => ({ ...base, background: 'var(--bg-input)', borderRadius: 10, padding: 4 }),
+  option: (base, state) => ({ ...base, background: state.isSelected ? 'rgba(78,143,255,0.25)' : state.isFocused ? 'rgba(78,143,255,0.15)' : '#1e2840', color: state.isSelected ? '#7ab3ff' : state.isFocused ? '#fff' : '#c8d8f0', borderRadius: 6, fontSize: 13, padding: '9px 12px' }),
+  singleValue: (base) => ({ ...base, color: '#fff', fontWeight: 500 }),
+  placeholder: (base) => ({ ...base, color: 'var(--text-muted)' }),
+  input: (base) => ({ ...base, color: '#fff' }),
+  indicatorSeparator: (base) => ({ ...base, background: '#2e3d5c' }),
+  dropdownIndicator: (base) => ({ ...base, color: 'var(--text-muted)' }),
+  noOptionsMessage: (base) => ({ ...base, color: 'var(--text-muted)', background: 'var(--bg-input)' }),
+}
 
 const FORM_INICIAL = { alumno_id: '', fecha: new Date().toISOString().split('T')[0], hora: '', motivo: '' }
 
@@ -57,10 +71,10 @@ export default function AgendarLlamadaModal({ onGuardar, onCerrar, alumnos = [],
         <div style={{ padding:20, display:'flex', flexDirection:'column', gap:14 }}>
           {!preAlumnoId && (
             <Field label="Alumno">
-              <select className="crm-input" value={form.alumno_id} onChange={e => setField('alumno_id', e.target.value)}>
-                <option value="">— Seleccionar alumno —</option>
-                {alumnosOpts.map(a => <option key={a.value} value={a.value}>{a.label}</option>)}
-              </select>
+              <Select styles={rsStyles} options={alumnosOpts} isClearable
+                value={alumnosOpts.find(a => a.value === form.alumno_id) || null}
+                onChange={opt => setField('alumno_id', opt?.value || '')}
+                placeholder="Escribe para buscar un alumno..." noOptionsMessage={() => 'Sin coincidencias'} />
             </Field>
           )}
 
