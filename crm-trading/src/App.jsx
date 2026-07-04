@@ -1,7 +1,9 @@
+import { useState, useEffect } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './context/AuthContext'
 import ErrorBoundary from './components/shared/ErrorBoundary'
 import AppShell, { NAV } from './components/shared/AppShell'
+import { tieneProximaPromocion } from './lib/api'
 import LoginPage         from './pages/LoginPage'
 import LlamadasPage      from './pages/LlamadasPage'
 import RecaudacionPage   from './pages/RecaudacionPage'
@@ -26,6 +28,22 @@ function RequireRole({ path, children }) {
     return <Navigate to="/dashboard" replace />
   }
   return children
+}
+
+// Onboarding, además del rol, requiere que la asesora tenga un alumno propio
+// con un programa por iniciar (mismo criterio que el menú en AppShell).
+function RequireProximaPromocion({ children }) {
+  const { user } = useAuth()
+  const [permitido, setPermitido] = useState(() => user?.rol !== 'asesora' ? true : null)
+  useEffect(() => {
+    if (user?.rol !== 'asesora') { setPermitido(true); return }
+    let activo = true
+    tieneProximaPromocion(user.asesora_id).then(r => { if (activo) setPermitido(r) })
+    return () => { activo = false }
+  }, [user])
+  if (permitido === false) return <Navigate to="/dashboard" replace />
+  if (permitido === true) return children
+  return null // cargando
 }
 
 function ProtectedApp() {
@@ -54,7 +72,7 @@ function ProtectedApp() {
           <Route path="/llamadas"       element={<RequireRole path="/llamadas"><ErrorBoundary><LlamadasPage /></ErrorBoundary></RequireRole>} />
           <Route path="/recaudacion"    element={<RequireRole path="/recaudacion"><RecaudacionPage /></RequireRole>} />
           <Route path="/orientacion"    element={<OrientacionPage />} />
-          <Route path="/onboarding"     element={<RequireRole path="/onboarding"><OnboardingPage /></RequireRole>} />
+          <Route path="/onboarding"     element={<RequireRole path="/onboarding"><RequireProximaPromocion><OnboardingPage /></RequireProximaPromocion></RequireRole>} />
           <Route path="/alumno/:id"     element={<FichaAlumnoPage />} />
           <Route path="/importar"       element={<RequireRole path="/importar"><ImportPage /></RequireRole>} />
           <Route path="/perfil"         element={<MiPerfilPage />} />

@@ -29,6 +29,18 @@ export async function fetchAlumnos(asesoraId) {
   return data.filter(programaActivo)
 }
 
+// Onboarding solo debe verse si hay al menos un alumno propio con un
+// programa por iniciar (fecha_inicio en el futuro). Se usa tanto para
+// decidir si mostrar la pestaña en el menú como para bloquear la ruta.
+export async function tieneProximaPromocion(asesoraId) {
+  const hoy = new Date().toISOString().split('T')[0]
+  let query = supabase.from('alumnos').select('id', { count: 'exact', head: true }).gt('fecha_inicio', hoy)
+  if (asesoraId) query = query.eq('asesora_id', asesoraId)
+  const { count, error } = await query
+  if (error) { console.warn('tieneProximaPromocion:', error.message); return false }
+  return (count || 0) > 0
+}
+
 export async function upsertAlumnos(rows) {
   const { data, error } = await supabase
     .from('alumnos')

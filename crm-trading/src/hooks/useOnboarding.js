@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import { upsertOnboardingPasos, updateOnboardingPaso } from '../lib/api'
+import { useAuth } from '../context/AuthContext'
 import toast from 'react-hot-toast'
 
 const PASOS_INFO = [
@@ -13,6 +14,8 @@ const PASOS_INFO = [
 ]
 
 export function useOnboarding() {
+  const { user } = useAuth()
+  const asesoraIdPropia = user?.rol === 'asesora' ? user.asesora_id : undefined
   const [alumnos,   setAlumnos]   = useState([])
   const [pasos,     setPasos]     = useState({}) // { alumno_id: [pasos] }
   const [loading,   setLoading]   = useState(true)
@@ -26,11 +29,13 @@ export function useOnboarding() {
     setLoading(true)
     try {
       // Alumnos con fecha_inicio futura (próxima promoción)
-      const { data: als, error: e1 } = await supabase
+      let queryAls = supabase
         .from('alumnos')
         .select('id, nombre, programa, estado, asesora, fecha_inicio, ultimo_contacto_at')
         .gt('fecha_inicio', hoy)
         .order('fecha_inicio')
+      if (asesoraIdPropia) queryAls = queryAls.eq('asesora_id', asesoraIdPropia)
+      const { data: als, error: e1 } = await queryAls
       if (e1) throw e1
 
       // Sus pasos de onboarding
@@ -80,7 +85,7 @@ export function useOnboarding() {
     } finally {
       setLoading(false)
     }
-  }, [hoy])
+  }, [hoy, asesoraIdPropia])
 
   useEffect(() => { cargar() }, [cargar])
 

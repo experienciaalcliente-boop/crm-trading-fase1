@@ -1,4 +1,5 @@
 // v-20260622-1614
+import { useState, useEffect } from 'react'
 import { Outlet, NavLink } from 'react-router-dom'
 import { Phone, Upload, BarChart2, CreditCard, MonitorSmartphone, ChevronRight, GraduationCap, LogOut, UserCircle, Sun, Moon } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
@@ -6,6 +7,7 @@ import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { useAuth } from '../../context/AuthContext'
 import { useTheme } from '../../context/ThemeContext'
+import { tieneProximaPromocion } from '../../lib/api'
 import BuscadorGlobal from './BuscadorGlobal'
 
 export const NAV = [
@@ -30,7 +32,20 @@ export default function AppShell() {
   const navigate = useNavigate()
   const rol = user?.rol || 'supervisor'
 
-  const navFiltrado = NAV.filter(n => n.roles.includes(rol))
+  // Onboarding solo se muestra a la asesora si tiene un alumno propio con
+  // un programa por iniciar (ej. está en julio, tiene un alumno de agosto).
+  // Supervisor lo ve siempre, sin esta condición.
+  const [tieneProximaPromo, setTieneProximaPromo] = useState(rol !== 'asesora')
+  useEffect(() => {
+    if (rol !== 'asesora') { setTieneProximaPromo(true); return }
+    let activo = true
+    tieneProximaPromocion(user?.asesora_id).then(r => { if (activo) setTieneProximaPromo(r) })
+    return () => { activo = false }
+  }, [rol, user?.asesora_id])
+
+  const navFiltrado = NAV
+    .filter(n => n.roles.includes(rol))
+    .filter(n => n.to !== '/onboarding' || tieneProximaPromo)
 
   return (
     <div style={{ display:'flex', height:'100vh', overflow:'hidden', background:'var(--bg-base)' }}>
