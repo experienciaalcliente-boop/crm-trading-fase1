@@ -13,6 +13,7 @@ import OnboardingPage    from './pages/OnboardingPage'
 import FichaAlumnoPage   from './pages/FichaAlumnoPage'
 import MiPerfilPage      from './pages/MiPerfilPage'
 import ImportPage        from './pages/ImportPage'
+import VentaComplementosPage from './pages/VentaComplementosPage'
 import SetupPage         from './pages/SetupPage'
 import { useLlamadasProgramadas } from './context/LlamadasProgramadasContext'
 import RecordatorioModal from './components/modules/RecordatorioModal'
@@ -73,6 +74,7 @@ function ProtectedApp() {
           <Route path="/recaudacion"    element={<RequireRole path="/recaudacion"><RecaudacionPage /></RequireRole>} />
           <Route path="/orientacion"    element={<OrientacionPage />} />
           <Route path="/onboarding"     element={<RequireRole path="/onboarding"><RequireProximaPromocion><OnboardingPage /></RequireProximaPromocion></RequireRole>} />
+          <Route path="/complementos"   element={<RequireRole path="/complementos"><VentaComplementosPage /></RequireRole>} />
           <Route path="/alumno/:id"     element={<FichaAlumnoPage />} />
           <Route path="/importar"       element={<RequireRole path="/importar"><ImportPage /></RequireRole>} />
           <Route path="/perfil"         element={<MiPerfilPage />} />

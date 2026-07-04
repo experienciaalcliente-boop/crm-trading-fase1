@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import toast from 'react-hot-toast'
 
@@ -15,6 +15,9 @@ export function LlamadasProgramadasProvider({ children }) {
   const [loading,    setLoading]    = useState(false)
 
   const hoy = new Date().toISOString().split('T')[0]
+  // Llamadas recién cerradas/gestionadas: se ignoran un rato para que no
+  // vuelva a aparecer el mismo popup de inmediato (ver check() más abajo).
+  const ignorarHastaRef = useRef({}) // { [id]: timestamp }
 
   const cargar = useCallback(async () => {
     setLoading(true)
@@ -36,38 +39,58 @@ export function LlamadasProgramadasProvider({ children }) {
 
   useEffect(() => { cargar() }, [cargar])
 
-  // Chequear cada 60 segundos si hay llamadas que deben dispararse
+  // Chequear cada 20 segundos si hay llamadas que deben dispararse. La
+  // ventana mira hacia ATRÁS (hora programada ya llegó, hasta 2 min de
+  // margen por si la pestaña estaba inactiva) en vez de hacia adelante —
+  // antes disparaba hasta 5 minutos ANTES de la hora exacta.
   useEffect(() => {
     const check = () => {
       const ahora = new Date()
       const horaActual = `${String(ahora.getHours()).padStart(2,'0')}:${String(ahora.getMinutes()).padStart(2,'0')}`
-      const en5min = new Date(ahora.getTime() + 5 * 60000)
-      const hora5 = `${String(en5min.getHours()).padStart(2,'0')}:${String(en5min.getMinutes()).padStart(2,'0')}`
+      const hace2min = new Date(ahora.getTime() - 2 * 60000)
+      const horaAtras = `${String(hace2min.getHours()).padStart(2,'0')}:${String(hace2min.getMinutes()).padStart(2,'0')}`
 
-      const activa = llamadas.find(l =>
-        l.fecha === hoy && l.hora?.slice(0,5) >= horaActual && l.hora?.slice(0,5) <= hora5
-      )
+      const activa = llamadas.find(l => {
+        if (l.fecha !== hoy) return false
+        const h = l.hora?.slice(0,5)
+        if (!(h <= horaActual && h >= horaAtras)) return false
+        const hasta = ignorarHastaRef.current[l.id]
+        if (hasta && Date.now() < hasta) return false
+        return true
+      })
       if (activa && (!recordatorio || recordatorio.id !== activa.id)) {
         setRecordatorio(activa)
       }
     }
     check()
-    const interval = setInterval(check, 60000)
+    const interval = setInterval(check, 20000)
     return () => clearInterval(interval)
   }, [llamadas, recordatorio, hoy])
 
-  const cerrarRecordatorio = useCallback(() => setRecordatorio(null), [])
+  // Cierra el popup sin marcar resultado ("ignorar esta vez"): la llamada
+  // sigue pendiente en la lista, pero no debe volver a aparecer de
+  // inmediato — antes, al poner recordatorio en null, el próximo chequeo
+  // (que corre enseguida por el cambio de dependencia) todavía veía la
+  // misma llamada en `llamadas` y la volvía a mostrar al instante.
+  const cerrarRecordatorio = useCallback(() => {
+    setRecordatorio(r => {
+      if (r) ignorarHastaRef.current[r.id] = Date.now() + 3 * 60000
+      return null
+    })
+  }, [])
 
   const registrarResultado = useCallback(async (id, resultado) => {
+    ignorarHastaRef.current[id] = Date.now() + 3 * 60000
+    setRecordatorio(null)
+    setLlamadas(prev => prev.filter(l => l.id !== id)) // ya no está pendiente
     try {
       await supabase.from('llamadas_programadas')
         .update({ estado: 'Realizada', resultado })
         .eq('id', id)
       toast.success('Llamada actualizada ✓')
-      setRecordatorio(null)
-      cargar()
     } catch (err) {
       toast.error('Error: ' + err.message)
+      cargar() // algo falló — volver a traer el estado real desde la BD
     }
   }, [cargar])
 

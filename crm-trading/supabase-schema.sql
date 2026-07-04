@@ -331,3 +331,34 @@ CREATE POLICY "onboarding_pasos_insert" ON onboarding_pasos FOR INSERT
 CREATE POLICY "onboarding_pasos_update" ON onboarding_pasos FOR UPDATE
   USING ((auth.jwt() ->> 'app_role') IN ('supervisor','asesora'))
   WITH CHECK ((auth.jwt() ->> 'app_role') IN ('supervisor','asesora'));
+
+-- ── ventas_complementos: registro de venta de complementos por la asesora ──
+-- valor_producto en USD, valor_comision en soles (valores fijos de catálogo,
+-- ver CATALOGO_COMPLEMENTOS en src/lib/api.js).
+CREATE TABLE IF NOT EXISTS ventas_complementos (
+  id              uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  alumno_id       uuid REFERENCES alumnos(id) ON DELETE CASCADE,
+  asesora_id      uuid REFERENCES asesoras(id),
+  complemento     text NOT NULL CHECK (complemento IN (
+                    '1 Mentoría','3 Mentoría','6 Mentoría','12 Mentoría',
+                    'Aula 1M','Aula 3M','Aula 6M','Aula 12M',
+                    'Impulso 3M','Impulso 6M','Impulso 12M'
+                  )),
+  valor_producto  numeric(10,2) NOT NULL,
+  valor_comision  numeric(10,2) NOT NULL,
+  nro_operacion   text NOT NULL,
+  fecha_registro  date NOT NULL DEFAULT CURRENT_DATE,
+  fecha_inicio    date, -- solo Impulso
+  fecha_fin       date, -- solo Impulso
+  estado_mentoria text CHECK (estado_mentoria IN ('Vigente','Finalizado')), -- solo Mentoría
+  created_at      timestamptz DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_ventas_complementos_asesora ON ventas_complementos(asesora_id);
+CREATE INDEX IF NOT EXISTS idx_ventas_complementos_fecha   ON ventas_complementos(fecha_registro);
+
+ALTER TABLE ventas_complementos ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "ventas_complementos_select" ON ventas_complementos FOR SELECT
+  USING ((auth.jwt() ->> 'app_role') IN ('supervisor','asesora'));
+CREATE POLICY "ventas_complementos_insert" ON ventas_complementos FOR INSERT
+  WITH CHECK ((auth.jwt() ->> 'app_role') IN ('supervisor','asesora'));

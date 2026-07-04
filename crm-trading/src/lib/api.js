@@ -17,7 +17,11 @@ export function programaActivo(alumno) {
   return fin >= new Date()
 }
 
-export async function fetchAlumnos(asesoraId) {
+// soloActivos=true (default) es lo correcto para Seguimiento/Orientación/
+// Onboarding — la operativa del día a día. Algunas pantallas (venta de
+// complementos) necesitan también alumnos de programas ya culminados, por
+// eso se puede desactivar el corte de 24 semanas con soloActivos:false.
+export async function fetchAlumnos(asesoraId, { soloActivos = true } = {}) {
   let query = supabase
     .from('alumnos')
     .select('id, nombre, programa, semana_actual, asesora, estado, fecha_inicio')
@@ -26,7 +30,7 @@ export async function fetchAlumnos(asesoraId) {
   if (asesoraId) query = query.eq('asesora_id', asesoraId)
   const { data, error } = await query
   if (error) throw error
-  return data.filter(programaActivo)
+  return soloActivos ? data.filter(programaActivo) : data
 }
 
 // Onboarding solo debe verse si hay al menos un alumno propio con un
@@ -744,4 +748,52 @@ export async function resetPin(token, userId, pinNuevo) {
     throw new Error(err.error || 'Error al resetear PIN')
   }
   return true
+}
+
+// ─────────────────────────────────────────
+// VENTA DE COMPLEMENTOS
+// ─────────────────────────────────────────
+// Catálogo fijo: valor_producto en USD, valor_comision en soles.
+export const CATALOGO_COMPLEMENTOS = [
+  { key: '1 Mentoría',  valorProducto: 79,  valorComision: 15,  tipo: 'mentoria' },
+  { key: '3 Mentoría',  valorProducto: 225, valorComision: 25,  tipo: 'mentoria' },
+  { key: '6 Mentoría',  valorProducto: 395, valorComision: 45,  tipo: 'mentoria' },
+  { key: '12 Mentoría', valorProducto: 711, valorComision: 100, tipo: 'mentoria' },
+  { key: 'Aula 1M',     valorProducto: 79,  valorComision: 15,  tipo: 'aula' },
+  { key: 'Aula 3M',     valorProducto: 225, valorComision: 25,  tipo: 'aula' },
+  { key: 'Aula 6M',     valorProducto: 395, valorComision: 55,  tipo: 'aula' },
+  { key: 'Aula 12M',    valorProducto: 711, valorComision: 120, tipo: 'aula' },
+  { key: 'Impulso 3M',  valorProducto: 450, valorComision: 50,  tipo: 'impulso' },
+  { key: 'Impulso 6M',  valorProducto: 797, valorComision: 100, tipo: 'impulso' },
+  { key: 'Impulso 12M', valorProducto: 997, valorComision: 150, tipo: 'impulso' },
+]
+
+// Mínimo de complementos vendidos en el mes para poder comisionar (la regla
+// en sí — aplicarla al cálculo de comisiones — es una tarea aparte).
+export const MINIMO_COMPLEMENTOS_COMISION = 6
+
+export async function fetchVentasComplementos(asesoraId, mes) {
+  // mes en formato 'YYYY-MM'; por defecto el mes actual
+  const m = mes || new Date().toISOString().slice(0, 7)
+  const inicio = `${m}-01`
+  const fin = new Date(new Date(inicio).getFullYear(), new Date(inicio).getMonth() + 1, 0).toISOString().split('T')[0]
+  let query = supabase
+    .from('ventas_complementos')
+    .select('*, alumno:alumnos(nombre, programa)')
+    .gte('fecha_registro', inicio)
+    .lte('fecha_registro', fin)
+    .order('fecha_registro', { ascending: false })
+  if (asesoraId) query = query.eq('asesora_id', asesoraId)
+  const { data, error } = await query
+  if (error) throw error
+  return data || []
+}
+
+export async function insertVentaComplemento(payload) {
+  const { data, error } = await supabase
+    .from('ventas_complementos')
+    .insert([payload])
+    .select()
+  if (error) throw error
+  return data
 }
