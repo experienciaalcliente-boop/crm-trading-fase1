@@ -111,8 +111,14 @@ export function useOrientacion() {
       })
 
       toast.success('Sesión agendada correctamente ✓')
+      // La tabla debe mostrar la fecha recién agendada (que puede ser
+      // distinta a la que se estaba viendo), para que el enlace de Zoom
+      // recién creado aparezca de inmediato en vez de quedar "oculto"
+      // hasta que alguien cambie manualmente de fecha.
+      const fechaAgendada = form.fecha
       setForm(FORM_INICIAL)
-      cargarSesiones()
+      setFechaVista(fechaAgendada)
+      cargarSesiones(fechaAgendada)
     } catch (err) {
       toast.error('Error al agendar: ' + err.message)
       console.error(err)

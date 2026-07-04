@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState } from 'react'
-import { supabase } from '../lib/supabase'
+import { setAuthToken } from '../lib/supabase'
 
 const AuthContext = createContext(null)
 
@@ -12,11 +12,9 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(false)
   const [error,   setError]   = useState('')
 
-  // Rehidratar la sesión de Supabase (RLS) al cargar la app, no solo el estado de React
+  // Rehidratar la sesión al cargar la app, no solo el estado de React
   useEffect(() => {
-    if (session?.token) {
-      supabase.auth.setSession({ access_token: session.token, refresh_token: session.token })
-    }
+    setAuthToken(session?.token || null)
   }, [])
 
   const login = async (dni, pin) => {
@@ -34,7 +32,7 @@ export function AuthProvider({ children }) {
         return false
       }
       const newSession = { user: body.user, token: body.token }
-      await supabase.auth.setSession({ access_token: body.token, refresh_token: body.token })
+      setAuthToken(body.token)
       setSession(newSession)
       sessionStorage.setItem('crm_session', JSON.stringify(newSession))
       setLoading(false)
@@ -49,7 +47,7 @@ export function AuthProvider({ children }) {
   const logout = () => {
     setSession(null)
     sessionStorage.removeItem('crm_session')
-    supabase.auth.setSession({ access_token: '', refresh_token: '' }).catch(() => {})
+    setAuthToken(null)
   }
 
   return (

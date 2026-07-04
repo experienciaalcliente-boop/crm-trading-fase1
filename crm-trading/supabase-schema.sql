@@ -287,3 +287,45 @@ CREATE POLICY "sesiones_delete" ON sesiones_orientacion FOR DELETE
 
 -- ── Hallazgo adicional del security advisor: vista SECURITY DEFINER ──
 ALTER VIEW matriz_contactabilidad SET (security_invoker = true);
+
+-- ============================================================
+-- FASE 5: Vista de asesora académica — vínculo real alumno↔asesora
+-- ============================================================
+-- alumnos.asesora es texto libre importado del Excel de ventas en formato
+-- "Apellido Apellido Nombre" (ej. "Silva Sosa Anael") y NO matchea por
+-- igualdad exacta contra asesoras.nombre ("Anael S."). Se agrega un FK real
+-- y se hace un backfill por primer nombre (único entre las 3 asesoras reales).
+
+ALTER TABLE alumnos ADD COLUMN IF NOT EXISTS asesora_id uuid REFERENCES asesoras(id);
+
+UPDATE alumnos SET asesora_id = 'cfb154c2-f598-4bfb-8f2b-809d26f8fe83' -- Anael S.
+  WHERE asesora ILIKE '%anael%' AND asesora_id IS NULL;
+UPDATE alumnos SET asesora_id = 'f7676411-95e5-43ca-afcd-a50230022411' -- Katerin F
+  WHERE asesora ILIKE '%katerin%' AND asesora_id IS NULL;
+UPDATE alumnos SET asesora_id = 'e5653c76-5e98-4752-9c54-cd757b8452f5' -- Fabiola M.
+  WHERE asesora ILIKE '%fabiola%' AND asesora_id IS NULL;
+
+CREATE INDEX IF NOT EXISTS idx_alumnos_asesora_id ON alumnos(asesora_id);
+
+-- ── onboarding_pasos: no existía en la BD real, por eso Onboarding fallaba ──
+CREATE TABLE IF NOT EXISTS onboarding_pasos (
+  id              uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  alumno_id       uuid REFERENCES alumnos(id) ON DELETE CASCADE,
+  paso            text NOT NULL CHECK (paso IN (
+                    'terminos_condiciones','ficha_alumno','acceso_aula',
+                    'evaluacion_dedicacion','asignacion_contenido','ingreso_whatsapp'
+                  )),
+  estado          text NOT NULL DEFAULT 'Pendiente' CHECK (estado IN ('Pendiente','Completado')),
+  fecha_completado timestamptz,
+  updated_at      timestamptz DEFAULT now(),
+  UNIQUE(alumno_id, paso)
+);
+
+ALTER TABLE onboarding_pasos ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "onboarding_pasos_select" ON onboarding_pasos FOR SELECT
+  USING ((auth.jwt() ->> 'app_role') IN ('supervisor','asesora','orientador'));
+CREATE POLICY "onboarding_pasos_insert" ON onboarding_pasos FOR INSERT
+  WITH CHECK ((auth.jwt() ->> 'app_role') IN ('supervisor','asesora'));
+CREATE POLICY "onboarding_pasos_update" ON onboarding_pasos FOR UPDATE
+  USING ((auth.jwt() ->> 'app_role') IN ('supervisor','asesora'))
+  WITH CHECK ((auth.jwt() ->> 'app_role') IN ('supervisor','asesora'));

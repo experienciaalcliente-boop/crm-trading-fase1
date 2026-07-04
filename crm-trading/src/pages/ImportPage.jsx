@@ -133,6 +133,17 @@ export default function ImportPage() {
 
   // ── Procesar alumnos ────────────────────────────────────────
   async function procesarAlumnos() {
+    // El Excel trae "Asesor asignado" en formato "Apellido Apellido Nombre"
+    // (ej. "Silva Sosa Anael"), que no coincide con asesoras.nombre ("Anael S.").
+    // Se resuelve por el primer nombre de cada asesora, que hoy es único.
+    const { data: asesorasDB } = await supabase.from('asesoras').select('id, nombre')
+    function resolverAsesoraId(asesoraTexto) {
+      if (!asesoraTexto || !asesorasDB) return null
+      const texto = asesoraTexto.toLowerCase()
+      const match = asesorasDB.find(a => texto.includes(a.nombre.split(' ')[0].toLowerCase()))
+      return match?.id || null
+    }
+
     const rows = rawData
       .map(r => {
         const programa = excelSerialToMesAnio(col(r, 'programa', 'program'))
@@ -151,11 +162,13 @@ export default function ImportPage() {
         // así que se usa el primer día de ese mes como fallback.
         if (!fecha_inicio) fecha_inicio = mesAnioToFecha(programa)
         const codigoRaw = col(r, 'codalumno', 'codigo', 'cod', 'id', 'código')
+        const asesoraTexto = col(r, 'asesora', 'asesor', 'advisor')
         return {
           nombre:        col(r, 'nombre', 'name', 'alumno'),
           programa,
           semana_actual: col(r, 'semana', 'week') || '0',
-          asesora:       col(r, 'asesora', 'asesor', 'advisor'),
+          asesora:       asesoraTexto,
+          asesora_id:    resolverAsesoraId(asesoraTexto),
           estado:        col(r, 'estado', 'status') || 'Activo',
           activo:        true,
           codigo_alumno: codigoRaw || null,
