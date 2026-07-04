@@ -67,7 +67,7 @@ const FASES = [
 
 const divider = <div style={{ height: 1, background: 'rgba(255,255,255,0.07)', margin: '4px 0 16px' }} />
 
-export default function FormLlamada({ state, onNuevoCompromiso }) {
+export default function FormLlamada({ state, onAgendarLlamada }) {
   const { form, setField, onAlumnoChange, onProgramaChange, programasOpts, alumnosOpts, asesorasOpts, guardar, limpiar, saving } = state || {}
   if (!form) return null
 
@@ -214,13 +214,13 @@ export default function FormLlamada({ state, onNuevoCompromiso }) {
         </button>
       </div>
 
-      {/* Botón agregar compromiso — visible cuando hay alumno seleccionado */}
-      {onNuevoCompromiso && form?.alumno && (
-        <button onClick={onNuevoCompromiso}
+      {/* Botón agendar llamada — visible cuando hay alumno seleccionado */}
+      {onAgendarLlamada && form?.alumno && (
+        <button onClick={onAgendarLlamada}
           style={{ marginTop:12, width:'100%', padding:'8px 0', borderRadius:10, cursor:'pointer',
             background:'rgba(124,58,237,0.1)', border:'1px solid rgba(124,58,237,0.25)',
             color:'#b89eff', fontSize:12, fontWeight:600, display:'flex', alignItems:'center', justifyContent:'center', gap:6 }}>
-          📋 + Registrar compromiso de esta llamada
+          📞 Agendar llamada de seguimiento
         </button>
       )}
     </div>

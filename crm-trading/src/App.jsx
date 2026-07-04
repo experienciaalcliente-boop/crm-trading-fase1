@@ -12,7 +12,7 @@ import FichaAlumnoPage   from './pages/FichaAlumnoPage'
 import MiPerfilPage      from './pages/MiPerfilPage'
 import ImportPage        from './pages/ImportPage'
 import SetupPage         from './pages/SetupPage'
-import { useLlamadasProgramadas } from './hooks/useLlamadasProgramadas'
+import { useLlamadasProgramadas } from './context/LlamadasProgramadasContext'
 import RecordatorioModal from './components/modules/RecordatorioModal'
 
 // Bloquea rutas que el rol del usuario no tiene permitidas (según el mismo mapa

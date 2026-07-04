@@ -1,11 +1,13 @@
 // v-2026-06-20 16:06:13
+import { useState } from 'react'
 import { useLlamadas } from '../hooks/useLlamadas'
-import { useCompromisos } from '../hooks/useCompromisos'
+import { useLlamadasProgramadas } from '../context/LlamadasProgramadasContext'
+import { useAuth } from '../context/AuthContext'
 import FormLlamada from '../components/modules/FormLlamada'
 import HistorialAlumno from '../components/modules/HistorialAlumno'
 import PanelDerecho from '../components/modules/PanelDerecho'
-import CompromisosPanel from '../components/modules/CompromisosPanel'
-import CompromisosModal from '../components/modules/CompromisosModal'
+import LlamadasProgramadasPanel from '../components/modules/LlamadasProgramadasPanel'
+import AgendarLlamadaModal from '../components/modules/AgendarLlamadaModal'
 
 export default function LlamadasPage() {
   try {
@@ -18,13 +20,21 @@ export default function LlamadasPage() {
 
 function LlamadasPageInner() {
   const state = useLlamadas()
-  const comp  = useCompromisos()
+  const lp = useLlamadasProgramadas()
+  const { user } = useAuth()
+  const [modalAbierto, setModalAbierto] = useState(false)
+  const [preAlumnoId, setPreAlumnoId] = useState(null)
+  const [llamadaEnEdicion, setLlamadaEnEdicion] = useState(null)
 
-  const handleNuevoCompromiso = () => {
-    comp.abrirModal({
-      alumno_id:  state.form.alumno?.value || null,
-      asesora_id: state.form.asesora?.value || null,
-    })
+  const abrirModalAgendar = (alumnoId) => {
+    setLlamadaEnEdicion(null)
+    setPreAlumnoId(alumnoId || state.form.alumno?.value || null)
+    setModalAbierto(true)
+  }
+
+  const abrirModalEditar = (llamada) => {
+    setLlamadaEnEdicion(llamada)
+    setModalAbierto(true)
   }
 
   if (!state) return null
@@ -40,7 +50,7 @@ function LlamadasPageInner() {
             {new Date().toLocaleDateString('es-PE', { weekday:'long', day:'numeric', month:'long', year:'numeric' })}
           </p>
         </div>
-        <FormLlamada state={state} onNuevoCompromiso={handleNuevoCompromiso} />
+        <FormLlamada state={state} onAgendarLlamada={() => abrirModalAgendar()} />
         <HistorialAlumno
           historial={state.historial}
           alumno={state.form.alumno}
@@ -48,7 +58,7 @@ function LlamadasPageInner() {
         />
       </div>
 
-      {/* ── Panel derecho: pendientes + compromisos ── */}
+      {/* ── Panel derecho: pendientes + llamadas programadas ── */}
       <div style={{ width:288, flexShrink:0, borderLeft:'1px solid var(--border-default)', background:'var(--bg-surface)', display:'flex', flexDirection:'column' }}>
 
         {/* Mitad superior: pendientes sin respuesta */}
@@ -64,29 +74,28 @@ function LlamadasPageInner() {
           />
         </div>
 
-        {/* Mitad inferior: compromisos */}
+        {/* Mitad inferior: llamadas programadas */}
         <div style={{ flex:1, minHeight:0, overflowY:'auto' }}>
-          <CompromisosPanel
-            compromisos={comp.compromisos}
-            vencidosSinCerrar={comp.vencidosSinCerrar}
-            vencenHoy={comp.vencenHoy}
-            proximos3={comp.proximos3}
-            onCerrar={comp.cerrarCompromiso}
-            onNuevo={handleNuevoCompromiso}
-            loading={comp.loading}
+          <LlamadasProgramadasPanel
+            llamadas={lp.llamadas}
+            vencidas={lp.vencidas}
+            loading={lp.loading}
+            onNuevo={() => abrirModalAgendar()}
+            onEditar={abrirModalEditar}
+            onEliminar={lp.eliminarLlamada}
           />
         </div>
       </div>
 
-      {/* Modal de nuevo compromiso */}
-      {comp.modalAbierto && (
-        <CompromisosModal
-          form={comp.form}
-          setField={comp.setField}
-          onGuardar={comp.guardar}
-          onCerrar={comp.cerrarModal}
-          saving={comp.saving}
+      {/* Modal de agendar llamada */}
+      {modalAbierto && (
+        <AgendarLlamadaModal
           alumnos={state.alumnos}
+          asesoraId={user?.asesora_id}
+          preAlumnoId={preAlumnoId}
+          llamadaExistente={llamadaEnEdicion}
+          onGuardar={llamadaEnEdicion ? lp.editarLlamada : lp.agregarLlamada}
+          onCerrar={() => { setModalAbierto(false); setLlamadaEnEdicion(null) }}
         />
       )}
     </div>

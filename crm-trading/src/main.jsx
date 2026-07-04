@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import { AuthProvider } from './context/AuthContext'
 import { ThemeProvider } from './context/ThemeContext'
+import { LlamadasProgramadasProvider } from './context/LlamadasProgramadasContext'
 import App from './App'
 import './index.css'
 
@@ -12,6 +13,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     <BrowserRouter>
       <ThemeProvider>
       <AuthProvider>
+      <LlamadasProgramadasProvider>
         <App />
         <Toaster
           position="bottom-right"
@@ -21,6 +23,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
             error:   { iconTheme: { primary:'#f07070', secondary:'#fff' } },
           }}
         />
+      </LlamadasProgramadasProvider>
       </AuthProvider>
       </ThemeProvider>
     </BrowserRouter>

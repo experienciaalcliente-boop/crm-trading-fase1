@@ -1,8 +1,15 @@
-import { useState, useEffect, useCallback } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import toast from 'react-hot-toast'
 
-export function useLlamadasProgramadas() {
+// Contexto único (no un hook independiente) porque tanto el popup global
+// (montado en App.jsx) como el panel de Seguimiento necesitan ver las MISMAS
+// llamadas agendadas. Con dos instancias del hook cada una tenía su propio
+// estado aislado, así que una llamada agendada desde Seguimiento nunca
+// llegaba a la instancia que vigila el popup.
+const LlamadasProgramadasContext = createContext(null)
+
+export function LlamadasProgramadasProvider({ children }) {
   const [llamadas,   setLlamadas]   = useState([])
   const [recordatorio, setRecordatorio] = useState(null) // llamada activa para popup
   const [loading,    setLoading]    = useState(false)
@@ -15,10 +22,9 @@ export function useLlamadasProgramadas() {
       const { data, error } = await supabase
         .from('llamadas_programadas')
         .select('*, alumno:alumnos(nombre, programa, semana_actual)')
-        .eq('fecha', hoy)
+        .gte('fecha', hoy)
         .eq('estado', 'Pendiente')
-        .order('hora')
-      // Si la tabla no existe aún, ignorar el error silenciosamente
+        .order('fecha').order('hora')
       if (error) { console.warn('llamadas_programadas:', error.message); return }
       setLlamadas(data || [])
     } catch (err) {
@@ -39,7 +45,7 @@ export function useLlamadasProgramadas() {
       const hora5 = `${String(en5min.getHours()).padStart(2,'0')}:${String(en5min.getMinutes()).padStart(2,'0')}`
 
       const activa = llamadas.find(l =>
-        l.hora?.slice(0,5) >= horaActual && l.hora?.slice(0,5) <= hora5
+        l.fecha === hoy && l.hora?.slice(0,5) >= horaActual && l.hora?.slice(0,5) <= hora5
       )
       if (activa && (!recordatorio || recordatorio.id !== activa.id)) {
         setRecordatorio(activa)
@@ -48,7 +54,7 @@ export function useLlamadasProgramadas() {
     check()
     const interval = setInterval(check, 60000)
     return () => clearInterval(interval)
-  }, [llamadas, recordatorio])
+  }, [llamadas, recordatorio, hoy])
 
   const cerrarRecordatorio = useCallback(() => setRecordatorio(null), [])
 
@@ -76,10 +82,40 @@ export function useLlamadasProgramadas() {
     }
   }, [cargar])
 
+  const editarLlamada = useCallback(async (id, payload) => {
+    try {
+      const { error } = await supabase.from('llamadas_programadas').update(payload).eq('id', id)
+      if (error) throw error
+      toast.success('Llamada actualizada ✓')
+      cargar()
+    } catch (err) {
+      toast.error('Error: ' + err.message)
+    }
+  }, [cargar])
+
+  const eliminarLlamada = useCallback(async (id) => {
+    try {
+      const { error } = await supabase.from('llamadas_programadas').delete().eq('id', id)
+      if (error) throw error
+      toast.success('Llamada eliminada ✓')
+      cargar()
+    } catch (err) {
+      toast.error('Error: ' + err.message)
+    }
+  }, [cargar])
+
   const vencidas = llamadas.filter(l => {
     const hh = new Date().toTimeString().slice(0,5)
-    return l.hora?.slice(0,5) < hh
+    return l.fecha < hoy || (l.fecha === hoy && l.hora?.slice(0,5) < hh)
   })
 
-  return { llamadas, loading, recordatorio, cerrarRecordatorio, registrarResultado, agregarLlamada, vencidas, cargar }
+  return (
+    <LlamadasProgramadasContext.Provider value={{
+      llamadas, loading, recordatorio, cerrarRecordatorio, registrarResultado, agregarLlamada, editarLlamada, eliminarLlamada, vencidas, cargar,
+    }}>
+      {children}
+    </LlamadasProgramadasContext.Provider>
+  )
 }
+
+export const useLlamadasProgramadas = () => useContext(LlamadasProgramadasContext)

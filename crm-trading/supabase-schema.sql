@@ -248,6 +248,8 @@ CREATE POLICY "llamadas_programadas_insert" ON llamadas_programadas FOR INSERT
 CREATE POLICY "llamadas_programadas_update" ON llamadas_programadas FOR UPDATE
   USING ((auth.jwt() ->> 'app_role') IN ('supervisor','asesora'))
   WITH CHECK ((auth.jwt() ->> 'app_role') IN ('supervisor','asesora'));
+CREATE POLICY "llamadas_programadas_delete" ON llamadas_programadas FOR DELETE
+  USING ((auth.jwt() ->> 'app_role') IN ('supervisor','asesora'));
 
 -- ── cuotas: lectura para los 3 roles (Dashboard las muestra a todos), escritura solo supervisor ──
 CREATE POLICY "cuotas_select" ON cuotas FOR SELECT
