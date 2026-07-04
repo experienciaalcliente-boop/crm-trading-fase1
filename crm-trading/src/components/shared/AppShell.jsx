@@ -9,6 +9,7 @@ import { useAuth } from '../../context/AuthContext'
 import { useTheme } from '../../context/ThemeContext'
 import { tieneProximaPromocion } from '../../lib/api'
 import BuscadorGlobal from './BuscadorGlobal'
+import BrandMark from './BrandMark'
 
 export const NAV = [
   { to:'/dashboard',   icon:BarChart2,        label:'Dashboard',       sub:'Vista ejecutiva',      roles:['supervisor','asesora','orientador'] },
@@ -54,10 +55,10 @@ export default function AppShell() {
         {/* Logo */}
         <div style={{ padding:'16px', borderBottom:'1px solid var(--border-default)' }}>
           <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:10 }}>
-            <div style={{ width:32, height:32, borderRadius:8, background:'#4e8fff', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:700, color:'var(--text-primary)', fontSize:14, flexShrink:0 }}>A</div>
+            <BrandMark size={32} />
             <div style={{ minWidth:0 }}>
-              <div style={{ fontFamily:'Syne,sans-serif', fontWeight:700, color:'var(--text-primary)', fontSize:13, lineHeight:1 }}>AcademiaCRM</div>
-              <div style={{ fontSize:9, color:'var(--text-muted)', marginTop:2 }}>Trading School · V3.1</div>
+              <div style={{ fontFamily:'Syne,sans-serif', fontWeight:700, color:'var(--text-primary)', fontSize:13, lineHeight:1.15 }}>Experiencia al Cliente</div>
+              <div style={{ fontSize:9, color:'var(--text-muted)', marginTop:2 }}>Burs Advisory</div>
             </div>
           </div>
           {/* Buscador */}
@@ -72,13 +73,13 @@ export default function AppShell() {
               borderRadius:10, marginBottom:2, textDecoration:'none', transition:'all 0.15s',
               background: isActive ? 'var(--accent-light)' : 'transparent',
               border:`1px solid ${isActive ? 'rgba(78,143,255,0.4)' : 'transparent'}`,
-              color: isActive ? '#4e8fff' : '#506080',
+              color: isActive ? 'var(--accent)' : 'var(--text-muted)',
             })}>
               {({ isActive }) => (<>
                 <Icon size={14} style={{ flexShrink:0 }} />
                 <div style={{ flex:1, minWidth:0 }}>
                   <div style={{ fontSize:13, fontWeight:600, lineHeight:1 }}>{label}</div>
-                  <div style={{ fontSize:10, marginTop:2, color: isActive ? 'rgba(78,143,255,0.6)' : '#2e3d5c' }}>{sub}</div>
+                  <div style={{ fontSize:10, marginTop:2, color: isActive ? 'rgba(101,167,166,0.6)' : 'var(--text-faint)' }}>{sub}</div>
                 </div>
                 {isActive && <ChevronRight size={12} style={{ opacity:0.5 }} />}
               </>)}
@@ -92,7 +93,7 @@ export default function AppShell() {
             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:6 }}>
               <div>
                 <div style={{ fontSize:12, fontWeight:600, color:'var(--text-primary)' }}>{user.nombre}</div>
-                <div style={{ fontSize:10, color: ROL_COLORS[user.rol] || '#506080', marginTop:1, fontWeight:600, textTransform:'capitalize' }}>{user.rol}</div>
+                <div style={{ fontSize:10, color: ROL_COLORS[user.rol] || 'var(--text-muted)', marginTop:1, fontWeight:600, textTransform:'capitalize' }}>{user.rol}</div>
               </div>
               <div style={{ display:'flex', gap:4 }}>
                 <button onClick={toggle} title={theme === 'dark' ? 'Modo claro' : 'Modo oscuro'}

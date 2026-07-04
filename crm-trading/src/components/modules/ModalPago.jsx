@@ -15,9 +15,9 @@ const MONEDAS = [{ value: 'USD', label: 'USD — Dólares' }, { value: 'PEN', la
 const ESTADO_COLOR = {
   'Pagada':            '#2dd4a0',
   'Pago parcial':      '#f5b93a',
-  'No iniciada':       '#7a8aaa',
+  'No iniciada':       '#6f9c9a',
   'Prórroga':          '#b89eff',
-  'Reserva académica': '#7ab3ff',
+  'Reserva académica': '#65a7a6',
   'Retirado':          '#f07070',
 }
 
@@ -55,7 +55,7 @@ export default function ModalPago({ cuota, form, cuotasAlumno, setField, onGuard
 
           {/* Tipo de gestión */}
           <div style={{ marginBottom: 16 }}>
-            <label style={{ fontSize: 10, fontWeight: 700, color: '#7a8aaa', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 8 }}>
+            <label style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 8 }}>
               Tipo de gestión
             </label>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
@@ -64,9 +64,9 @@ export default function ModalPago({ cuota, form, cuotasAlumno, setField, onGuard
                   style={{
                     padding: '7px 14px', borderRadius: 8, fontSize: 12, fontWeight: 500,
                     cursor: 'pointer', transition: 'all 0.15s',
-                    background: form.tipo === t.value ? '#4e8fff' : 'rgba(255,255,255,0.05)',
-                    border: `1px solid ${form.tipo === t.value ? '#4e8fff' : 'rgba(255,255,255,0.1)'}`,
-                    color: form.tipo === t.value ? '#fff' : '#7a8aaa',
+                    background: form.tipo === t.value ? 'var(--accent)' : 'rgba(255,255,255,0.05)',
+                    border: `1px solid ${form.tipo === t.value ? 'var(--accent)' : 'rgba(255,255,255,0.1)'}`,
+                    color: form.tipo === t.value ? '#fff' : 'var(--text-muted)',
                   }}>
                   {t.label}
                 </button>
@@ -176,7 +176,7 @@ export default function ModalPago({ cuota, form, cuotasAlumno, setField, onGuard
 function Field({ label, children }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-      <label style={{ fontSize: 10, fontWeight: 700, color: '#7a8aaa', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{label}</label>
+      <label style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{label}</label>
       {children}
     </div>
   )
@@ -186,7 +186,7 @@ function InfoItem({ label, value, color }) {
   return (
     <div>
       <div style={{ fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 2 }}>{label}</div>
-      <div style={{ fontSize: 13, fontWeight: 600, color: color || '#e2e8f4' }}>{value}</div>
+      <div style={{ fontSize: 13, fontWeight: 600, color: color || 'var(--text-primary)' }}>{value}</div>
     </div>
   )
 }

@@ -41,7 +41,7 @@ export default function ModalTipificacion({ sesion, form, setField, onGuardar, o
 
           {/* Resultado */}
           <div style={{ marginBottom: 20 }}>
-            <label style={{ fontSize: 10, fontWeight: 700, color: '#7a8aaa', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 8 }}>
+            <label style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 8 }}>
               Resultado de la sesión
             </label>
             <div style={{ display: 'flex', gap: 8 }}>
@@ -52,7 +52,7 @@ export default function ModalTipificacion({ sesion, form, setField, onGuardar, o
                     cursor: 'pointer', transition: 'all 0.15s', textAlign: 'center',
                     background: form.estado === e.value ? `${e.color}20` : 'rgba(255,255,255,0.04)',
                     border: `1.5px solid ${form.estado === e.value ? e.color : 'rgba(255,255,255,0.08)'}`,
-                    color: form.estado === e.value ? e.color : '#7a8aaa',
+                    color: form.estado === e.value ? e.color : 'var(--text-muted)',
                   }}>
                   {e.label}
                 </button>
@@ -76,7 +76,7 @@ export default function ModalTipificacion({ sesion, form, setField, onGuardar, o
 
               {/* Checkboxes herramientas */}
               <div style={{ marginBottom: 16 }}>
-                <label style={{ fontSize: 10, fontWeight: 700, color: '#7a8aaa', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 10 }}>
+                <label style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 10 }}>
                   Herramientas verificadas
                 </label>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
@@ -87,7 +87,7 @@ export default function ModalTipificacion({ sesion, form, setField, onGuardar, o
                       <input type="checkbox" checked={form[key]}
                         onChange={e => setField(key, e.target.checked)}
                         style={{ width: 16, height: 16, accentColor: '#2dd4a0', cursor: 'pointer' }} />
-                      <span style={{ fontSize: 13, fontWeight: 500, color: form[key] ? '#2dd4a0' : '#9aaccb' }}>{label}</span>
+                      <span style={{ fontSize: 13, fontWeight: 500, color: form[key] ? '#2dd4a0' : 'var(--text-secondary)' }}>{label}</span>
                     </label>
                   ))}
                 </div>
@@ -143,7 +143,7 @@ export default function ModalTipificacion({ sesion, form, setField, onGuardar, o
 function Field({ label, children }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-      <label style={{ fontSize: 10, fontWeight: 700, color: '#7a8aaa', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{label}</label>
+      <label style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{label}</label>
       {children}
     </div>
   )

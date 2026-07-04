@@ -5,7 +5,7 @@ import { es } from 'date-fns/locale'
 
 const ESTADO_CONFIG = {
   pendiente:  { label: 'Pendiente',   color: 'var(--text-muted)', bg: 'rgba(80,96,128,0.12)',   border: 'rgba(80,96,128,0.25)'   },
-  en_proceso: { label: 'En proceso',  color: '#7ab3ff', bg: 'rgba(78,143,255,0.12)',  border: 'rgba(78,143,255,0.25)'  },
+  en_proceso: { label: 'En proceso',  color: 'var(--accent)', bg: 'rgba(101,167,166,0.12)',  border: 'rgba(101,167,166,0.25)'  },
   detenido:   { label: 'Detenido',    color: '#f5b93a', bg: 'rgba(245,166,35,0.12)',  border: 'rgba(245,166,35,0.25)'  },
   critico:    { label: 'Crítico',     color: '#f07070', bg: 'rgba(240,92,92,0.12)',   border: 'rgba(240,92,92,0.25)'   },
   listo:      { label: 'Listo ✓',    color: '#2dd4a0', bg: 'rgba(45,212,160,0.12)',  border: 'rgba(45,212,160,0.25)'  },
@@ -31,7 +31,7 @@ function EstadoBadge({ estado }) {
 }
 
 function AvanceBar({ pct }) {
-  const color = pct === 100 ? '#2dd4a0' : pct >= 50 ? '#7ab3ff' : pct > 0 ? '#f5b93a' : '#3d5070'
+  const color = pct === 100 ? '#2dd4a0' : pct >= 50 ? 'var(--accent)' : pct > 0 ? '#f5b93a' : 'var(--text-faint)'
   return (
     <div style={{ display:'flex', alignItems:'center', gap:8 }}>
       <div style={{ flex:1, height:5, background:'rgba(255,255,255,0.06)', borderRadius:3, overflow:'hidden' }}>
@@ -65,9 +65,9 @@ export default function OnboardingPage() {
         {/* Stats */}
         <div style={{ display:'grid', gridTemplateColumns:'repeat(6,1fr)', gap:8, marginBottom:20 }}>
           {[
-            { label:'Total',       value: o.stats.total,      color:'#7ab3ff' },
+            { label:'Total',       value: o.stats.total,      color:'var(--accent)' },
             { label:'Pendiente',   value: o.stats.pendiente,  color:'var(--text-muted)' },
-            { label:'En proceso',  value: o.stats.en_proceso, color:'#7ab3ff' },
+            { label:'En proceso',  value: o.stats.en_proceso, color:'var(--accent)' },
             { label:'Detenido',    value: o.stats.detenido,   color:'#f5b93a' },
             { label:'Crítico',     value: o.stats.critico,    color:'#f07070' },
             { label:'Listos',      value: o.stats.listo,      color:'#2dd4a0' },
@@ -99,7 +99,7 @@ export default function OnboardingPage() {
               </div>
               <div style={{ height:8, background:'rgba(255,255,255,0.06)', borderRadius:4, overflow:'hidden' }}>
                 <div style={{ height:'100%', width:`${paso.pct}%`,
-                  background: paso.pct < 50 && i > 0 ? '#f07070' : '#4e8fff',
+                  background: paso.pct < 50 && i > 0 ? '#f07070' : 'var(--accent)',
                   borderRadius:4, transition:'width 0.5s' }} />
               </div>
             </div>
@@ -113,9 +113,9 @@ export default function OnboardingPage() {
             return (
               <button key={f.key} onClick={() => o.setFiltro(f.key)}
                 style={{ padding:'5px 12px', borderRadius:20, fontSize:12, fontWeight:500, cursor:'pointer',
-                  background: o.filtro === f.key ? 'rgba(78,143,255,0.15)' : 'rgba(255,255,255,0.05)',
-                  border: `1px solid ${o.filtro === f.key ? 'rgba(78,143,255,0.4)' : 'rgba(255,255,255,0.1)'}`,
-                  color: o.filtro === f.key ? '#7ab3ff' : '#9aaccb' }}>
+                  background: o.filtro === f.key ? 'rgba(101,167,166,0.15)' : 'rgba(255,255,255,0.05)',
+                  border: `1px solid ${o.filtro === f.key ? 'rgba(101,167,166,0.4)' : 'rgba(255,255,255,0.1)'}`,
+                  color: o.filtro === f.key ? 'var(--accent)' : 'var(--text-secondary)' }}>
                 {f.label} {count > 0 && <span style={{ opacity:0.6 }}>({count})</span>}
               </button>
             )
@@ -185,7 +185,7 @@ export default function OnboardingPage() {
                               {completado && <CheckCircle size={12} style={{ color:'#2dd4a0' }} />}
                             </button>
                             <div style={{ flex:1 }}>
-                              <div style={{ fontSize:12, color: completado ? '#2dd4a0' : '#e2e8f4', fontWeight: completado ? 400 : 500,
+                              <div style={{ fontSize:12, color: completado ? '#2dd4a0' : 'var(--text-primary)', fontWeight: completado ? 400 : 500,
                                 textDecoration: completado ? 'line-through' : 'none' }}>
                                 {p.icon} {p.label}
                               </div>

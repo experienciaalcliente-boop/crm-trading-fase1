@@ -39,7 +39,7 @@ function EditBeneficio({ registro, onUpdated }) {
 
   if (!editing) return (
     <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-      <span style={{ color: registro.beneficio ? '#2dd4a0' : '#3d5070', fontWeight: registro.beneficio ? 600 : 400 }}>
+      <span style={{ color: registro.beneficio ? '#2dd4a0' : 'var(--text-faint)', fontWeight: registro.beneficio ? 600 : 400 }}>
         {registro.beneficio != null ? `$${Number(registro.beneficio).toFixed(2)}` : '—'}
       </span>
       <button onClick={() => setEditing(true)}
@@ -56,7 +56,7 @@ function EditBeneficio({ registro, onUpdated }) {
         type="number" min="0" step="0.01"
         value={valor}
         onChange={e => setValor(e.target.value)}
-        style={{ width:80, padding:'3px 6px', background:'var(--bg-input)', border:'1.5px solid #4e8fff', borderRadius:6, color:'#fff', fontSize:12 }}
+        style={{ width:80, padding:'3px 6px', background:'var(--bg-input)', border:'1.5px solid var(--accent)', borderRadius:6, color:'#fff', fontSize:12 }}
         autoFocus
         onKeyDown={e => { if (e.key === 'Enter') guardar(); if (e.key === 'Escape') setEditing(false) }}
       />
@@ -116,7 +116,7 @@ export default function HistorialAlumno({ historial, alumno, onRefresh }) {
           <span style={{ fontSize:12, color:'var(--text-muted)' }}>{alumno ? alumno.label : '— selecciona un alumno arriba —'}</span>
           {alumno && (
             <button onClick={() => navigate(`/alumno/${alumno.value}`)}
-              style={{ background:'none', border:'none', cursor:'pointer', color:'#4e8fff', display:'flex', alignItems:'center', gap:3, fontSize:11 }}
+              style={{ background:'none', border:'none', cursor:'pointer', color:'var(--accent)', display:'flex', alignItems:'center', gap:3, fontSize:11 }}
               title="Ver ficha completa">
               <ExternalLink size={12} /> Ficha 360°
             </button>
@@ -132,7 +132,7 @@ export default function HistorialAlumno({ historial, alumno, onRefresh }) {
       ) : !historial.length ? (
         <div style={{ display:'flex', flexDirection:'column', alignItems:'center', padding:'40px 20px', color:'var(--text-muted)', gap:8 }}>
           <History size={28} strokeWidth={1} />
-          <p style={{ fontSize:13 }}>Sin registros previos para <strong style={{ color:'#7ab3ff' }}>{alumno.label}</strong></p>
+          <p style={{ fontSize:13 }}>Sin registros previos para <strong style={{ color:'var(--accent)' }}>{alumno.label}</strong></p>
         </div>
       ) : (
         <div style={{ overflowX:'auto' }}>

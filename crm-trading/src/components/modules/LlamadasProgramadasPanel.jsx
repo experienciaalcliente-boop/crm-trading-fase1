@@ -14,7 +14,7 @@ export default function LlamadasProgramadasPanel({ llamadas, vencidas, onNuevo, 
             <div style={{ fontSize:10, color:'var(--text-muted)', marginTop:2 }}>Próximas llamadas de seguimiento</div>
           </div>
           <button onClick={onNuevo}
-            style={{ background:'rgba(78,143,255,0.15)', border:'1px solid rgba(78,143,255,0.3)', color:'#7ab3ff', padding:'5px 10px', borderRadius:8, cursor:'pointer', fontSize:11, fontWeight:600, display:'flex', alignItems:'center', gap:4 }}>
+            style={{ background:'rgba(101,167,166,0.15)', border:'1px solid rgba(101,167,166,0.3)', color:'var(--accent)', padding:'5px 10px', borderRadius:8, cursor:'pointer', fontSize:11, fontWeight:600, display:'flex', alignItems:'center', gap:4 }}>
             <Plus size={11} /> Agendar
           </button>
         </div>
@@ -37,9 +37,9 @@ export default function LlamadasProgramadasPanel({ llamadas, vencidas, onNuevo, 
                 <div style={{ fontSize:12, fontWeight:600, color:'var(--text-primary)', flex:1, marginRight:6 }}>
                   {l.alumno?.nombre || '—'}
                 </div>
-                <span style={{ fontSize:10, fontWeight:600, color: esVencida ? '#f07070' : esHoy ? '#f5b93a' : '#7ab3ff',
-                  background: esVencida ? 'rgba(240,92,92,0.1)' : esHoy ? 'rgba(245,166,35,0.1)' : 'rgba(78,143,255,0.1)',
-                  border: `1px solid ${esVencida ? 'rgba(240,92,92,0.25)' : esHoy ? 'rgba(245,166,35,0.25)' : 'rgba(78,143,255,0.25)'}`,
+                <span style={{ fontSize:10, fontWeight:600, color: esVencida ? '#f07070' : esHoy ? '#f5b93a' : 'var(--accent)',
+                  background: esVencida ? 'rgba(240,92,92,0.1)' : esHoy ? 'rgba(245,166,35,0.1)' : 'rgba(101,167,166,0.1)',
+                  border: `1px solid ${esVencida ? 'rgba(240,92,92,0.25)' : esHoy ? 'rgba(245,166,35,0.25)' : 'rgba(101,167,166,0.25)'}`,
                   padding:'1px 6px', borderRadius:20, whiteSpace:'nowrap' }}>
                   {esHoy ? `Hoy ${l.hora?.slice(0,5)}` : `${format(new Date(l.fecha + 'T00:00:00'), 'dd MMM', { locale: es })} · ${l.hora?.slice(0,5)}`}
                 </span>
@@ -67,7 +67,7 @@ export default function LlamadasProgramadasPanel({ llamadas, vencidas, onNuevo, 
 
       <div style={{ padding:'8px 14px', borderTop:'1px solid var(--border-default)', display:'flex', gap:12 }}>
         <span style={{ fontSize:11, color:'#f07070' }}>⚠ {vencidas.length} vencidas</span>
-        <span style={{ fontSize:11, color:'#7ab3ff' }}>· {llamadas.length} programadas</span>
+        <span style={{ fontSize:11, color:'var(--accent)' }}>· {llamadas.length} programadas</span>
       </div>
     </div>
   )

@@ -26,17 +26,17 @@ const ITEMS_VALIDACION = [
 ]
 
 const TIPO_TIMELINE = {
-  llamada:        { icon:'📞', color:'#7ab3ff' },
+  llamada:        { icon:'📞', color:'var(--accent)' },
   pago:           { icon:'💰', color:'#2dd4a0' },
   sesion_tecnica: { icon:'💻', color:'#b89eff' },
   cambio_estado:  { icon:'🔄', color:'#f5b93a' },
-  onboarding:     { icon:'🎓', color:'#4e8fff' },
+  onboarding:     { icon:'🎓', color:'var(--accent)' },
   validacion:     { icon:'✅', color:'#2dd4a0' },
   compromiso:     { icon:'🤝', color:'#f07070' },
   nota:           { icon:'📝', color:'var(--text-muted)' },
 }
 
-function Seccion({ title, children, color = '#4e8fff' }) {
+function Seccion({ title, children, color = 'var(--accent)' }) {
   return (
     <div style={{ marginBottom:24 }}>
       <h3 style={{ fontSize:13, fontWeight:700, color, textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:12, paddingBottom:8, borderBottom:`1px solid rgba(255,255,255,0.07)` }}>{title}</h3>
@@ -49,7 +49,7 @@ function InfoRow({ label, value, color }) {
   return (
     <div style={{ display:'flex', justifyContent:'space-between', padding:'6px 0', borderBottom:'1px solid rgba(255,255,255,0.04)' }}>
       <span style={{ fontSize:12, color:'var(--text-muted)' }}>{label}</span>
-      <span style={{ fontSize:12, color: color || '#e2e8f4', fontWeight:500 }}>{value || '—'}</span>
+      <span style={{ fontSize:12, color: color || 'var(--text-primary)', fontWeight:500 }}>{value || '—'}</span>
     </div>
   )
 }
@@ -164,7 +164,7 @@ export default function FichaAlumnoPage() {
               style={{ padding:'6px 14px', borderRadius:20, fontSize:12, fontWeight:500, cursor:'pointer', whiteSpace:'nowrap',
                 background: tabActiva === t.key ? 'rgba(78,143,255,0.15)' : 'transparent',
                 border: `1px solid ${tabActiva === t.key ? 'rgba(78,143,255,0.4)' : 'rgba(255,255,255,0.08)'}`,
-                color: tabActiva === t.key ? '#7ab3ff' : '#506080' }}>
+                color: tabActiva === t.key ? 'var(--accent)' : 'var(--text-muted)' }}>
               {t.label}
             </button>
           ))}
@@ -205,13 +205,13 @@ export default function FichaAlumnoPage() {
 
             {/* Onboarding */}
             <div className="crm-card" style={{ padding:18 }}>
-              <Seccion title="Onboarding" color="#7ab3ff">
+              <Seccion title="Onboarding" color="var(--accent)">
                 <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:10 }}>
                   <span style={{ fontSize:12, color:'var(--text-secondary)' }}>Avance</span>
-                  <span style={{ fontSize:18, fontWeight:700, color: avanceOnboarding===100?'#2dd4a0':'#7ab3ff', fontFamily:'Syne,sans-serif' }}>{avanceOnboarding}%</span>
+                  <span style={{ fontSize:18, fontWeight:700, color: avanceOnboarding===100?'#2dd4a0':'var(--accent)', fontFamily:'Syne,sans-serif' }}>{avanceOnboarding}%</span>
                 </div>
                 <div style={{ height:6, background:'rgba(255,255,255,0.06)', borderRadius:3, overflow:'hidden', marginBottom:12 }}>
-                  <div style={{ height:'100%', width:`${avanceOnboarding}%`, background: avanceOnboarding===100?'#2dd4a0':'#4e8fff', borderRadius:3 }} />
+                  <div style={{ height:'100%', width:`${avanceOnboarding}%`, background: avanceOnboarding===100?'#2dd4a0':'var(--accent)', borderRadius:3 }} />
                 </div>
                 {PASOS_ONBOARDING.map(p => {
                   const paso = onboarding.find(op => op.paso === p.key)
@@ -219,7 +219,7 @@ export default function FichaAlumnoPage() {
                   return (
                     <div key={p.key} style={{ display:'flex', alignItems:'center', gap:8, padding:'5px 0', borderBottom:'1px solid rgba(255,255,255,0.04)' }}>
                       <span style={{ fontSize:14 }}>{ok ? '✅' : '⬜'}</span>
-                      <span style={{ fontSize:12, color: ok ? '#2dd4a0' : '#9aaccb', textDecoration: ok ? 'line-through' : 'none' }}>{p.label}</span>
+                      <span style={{ fontSize:12, color: ok ? '#2dd4a0' : 'var(--text-secondary)', textDecoration: ok ? 'line-through' : 'none' }}>{p.label}</span>
                     </div>
                   )
                 })}
@@ -240,7 +240,7 @@ export default function FichaAlumnoPage() {
                     <label key={item.key} style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 0', borderBottom:'1px solid rgba(255,255,255,0.04)', cursor:'pointer' }}>
                       <input type="checkbox" checked={ok} onChange={() => toggleValidacion(item.key)} disabled={guardandoVal}
                         style={{ width:16, height:16, accentColor:'#2dd4a0', cursor:'pointer' }} />
-                      <span style={{ fontSize:12, color: ok ? '#2dd4a0' : '#9aaccb', textDecoration: ok ? 'line-through' : 'none' }}>{item.label}</span>
+                      <span style={{ fontSize:12, color: ok ? '#2dd4a0' : 'var(--text-secondary)', textDecoration: ok ? 'line-through' : 'none' }}>{item.label}</span>
                     </label>
                   )
                 })}
@@ -263,7 +263,7 @@ export default function FichaAlumnoPage() {
                         background: ok ? 'rgba(45,212,160,0.1)' : 'rgba(255,255,255,0.03)',
                         border: `1px solid ${ok ? 'rgba(45,212,160,0.25)' : 'rgba(255,255,255,0.07)'}` }}>
                         <div style={{ fontSize:20, marginBottom:4 }}>{ok ? '✅' : '⬜'}</div>
-                        <div style={{ fontSize:11, color: ok ? '#2dd4a0' : '#506080', fontWeight:600 }}>{label}</div>
+                        <div style={{ fontSize:11, color: ok ? '#2dd4a0' : 'var(--text-muted)', fontWeight:600 }}>{label}</div>
                       </div>
                     )
                   })}
@@ -315,11 +315,11 @@ export default function FichaAlumnoPage() {
                   return (
                     <tr key={c.id}>
                       <td style={{ textAlign:'center' }}>#{c.numero_cuota}</td>
-                      <td style={{ color: vencida ? '#f07070' : '#e2e8f4', fontSize:12 }}>{c.fecha_vence ? format(new Date(c.fecha_vence + 'T00:00:00'), 'dd MMM yyyy', { locale:es }) : '—'}</td>
-                      <td><span style={{ color: c.moneda==='USD'?'#7ab3ff':'#2dd4a0', fontSize:11, fontWeight:600 }}>{c.moneda}</span></td>
+                      <td style={{ color: vencida ? '#f07070' : 'var(--text-primary)', fontSize:12 }}>{c.fecha_vence ? format(new Date(c.fecha_vence + 'T00:00:00'), 'dd MMM yyyy', { locale:es }) : '—'}</td>
+                      <td><span style={{ color: c.moneda==='USD'?'var(--accent)':'#2dd4a0', fontSize:11, fontWeight:600 }}>{c.moneda}</span></td>
                       <td style={{ fontWeight:600 }}>{Number(c.monto).toFixed(2)}</td>
-                      <td style={{ color: c.monto_pagado > 0 ? '#f5b93a' : '#3d5070' }}>{c.monto_pagado > 0 ? Number(c.monto_pagado).toFixed(2) : '—'}</td>
-                      <td><span style={{ fontSize:11, fontWeight:600, color: c.estado==='Pagada'?'#2dd4a0':c.estado==='No iniciada'?'#506080':'#f5b93a' }}>{c.estado}</span></td>
+                      <td style={{ color: c.monto_pagado > 0 ? '#f5b93a' : 'var(--text-faint)' }}>{c.monto_pagado > 0 ? Number(c.monto_pagado).toFixed(2) : '—'}</td>
+                      <td><span style={{ fontSize:11, fontWeight:600, color: c.estado==='Pagada'?'#2dd4a0':c.estado==='No iniciada'?'var(--text-muted)':'#f5b93a' }}>{c.estado}</span></td>
                     </tr>
                   )
                 })}

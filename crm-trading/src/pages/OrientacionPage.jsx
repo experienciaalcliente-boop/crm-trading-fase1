@@ -10,20 +10,20 @@ import { format, addDays, subDays } from 'date-fns'
 import { es } from 'date-fns/locale'
 
 const rsStyles = {
-  control: (base, state) => ({ ...base, background: 'var(--bg-input)', border: `1.5px solid ${state.isFocused ? '#4e8fff' : '#2e3d5c'}`, borderRadius: 8, minHeight: 38, boxShadow: state.isFocused ? '0 0 0 3px rgba(78,143,255,0.15)' : 'none' }),
-  menu: (base) => ({ ...base, background: 'var(--bg-input)', border: '1.5px solid #2e3d5c', borderRadius: 10, boxShadow: '0 8px 28px rgba(0,0,0,0.5)', zIndex: 9999 }),
+  control: (base, state) => ({ ...base, background: 'var(--bg-input)', border: `1.5px solid ${state.isFocused ? 'var(--accent)' : 'var(--border-input)'}`, borderRadius: 8, minHeight: 38, boxShadow: state.isFocused ? '0 0 0 3px rgba(101,167,166,0.15)' : 'none' }),
+  menu: (base) => ({ ...base, background: 'var(--bg-input)', border: '1.5px solid var(--border-input)', borderRadius: 10, boxShadow: '0 8px 28px rgba(0,0,0,0.5)', zIndex: 9999 }),
   menuList: (base) => ({ ...base, background: 'var(--bg-input)', borderRadius: 10, padding: 4 }),
-  option: (base, state) => ({ ...base, background: state.isSelected ? 'rgba(78,143,255,0.25)' : state.isFocused ? 'rgba(78,143,255,0.15)' : '#1e2840', color: state.isSelected ? '#7ab3ff' : state.isFocused ? '#fff' : '#c8d8f0', borderRadius: 6, fontSize: 13, padding: '9px 12px' }),
-  singleValue: (base) => ({ ...base, color: '#fff', fontWeight: 500 }),
+  option: (base, state) => ({ ...base, background: state.isSelected ? 'rgba(101,167,166,0.25)' : state.isFocused ? 'rgba(101,167,166,0.15)' : 'var(--bg-input)', color: state.isSelected ? 'var(--accent)' : state.isFocused ? 'var(--text-primary)' : 'var(--text-secondary)', borderRadius: 6, fontSize: 13, padding: '9px 12px' }),
+  singleValue: (base) => ({ ...base, color: 'var(--text-primary)', fontWeight: 500 }),
   placeholder: (base) => ({ ...base, color: 'var(--text-muted)' }),
-  input: (base) => ({ ...base, color: '#fff' }),
-  indicatorSeparator: (base) => ({ ...base, background: '#2e3d5c' }),
+  input: (base) => ({ ...base, color: 'var(--text-primary)' }),
+  indicatorSeparator: (base) => ({ ...base, background: 'var(--border-input)' }),
   dropdownIndicator: (base) => ({ ...base, color: 'var(--text-muted)' }),
   noOptionsMessage: (base) => ({ ...base, color: 'var(--text-muted)', background: 'var(--bg-input)' }),
 }
 
 const ESTADO_STYLE = {
-  'Pendiente':     { bg: 'rgba(78,143,255,0.12)',  color: '#7ab3ff',  border: 'rgba(78,143,255,0.25)'  },
+  'Pendiente':     { bg: 'rgba(101,167,166,0.12)',  color: 'var(--accent)',  border: 'rgba(101,167,166,0.25)'  },
   'Concretada':    { bg: 'rgba(34,201,142,0.12)',  color: '#2dd4a0',  border: 'rgba(34,201,142,0.25)'  },
   'Reprogramada':  { bg: 'rgba(245,166,35,0.12)',  color: '#f5b93a',  border: 'rgba(245,166,35,0.25)'  },
   'No se conectó': { bg: 'rgba(240,92,92,0.12)',   color: '#f07070',  border: 'rgba(240,92,92,0.25)'   },
@@ -168,7 +168,7 @@ export default function OrientacionPage() {
         {/* Stats */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 10, marginBottom: 20 }}>
           {[
-            { label: 'Total',         value: o.stats.total,          color: '#7ab3ff' },
+            { label: 'Total',         value: o.stats.total,          color: 'var(--accent)' },
             { label: 'Pendientes',    value: o.stats.pendientes,     color: 'var(--text-muted)' },
             { label: 'Concretadas',   value: o.stats.concretadas,    color: '#2dd4a0' },
             { label: 'Reprogramadas', value: o.stats.reprogramadas,  color: '#f5b93a' },
@@ -186,9 +186,9 @@ export default function OrientacionPage() {
           {[['dia', 'Día'], ['historial', 'Historial completo']].map(([key, label]) => (
             <button key={key} onClick={() => o.setVista(key)}
               style={{ padding: '7px 14px', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer',
-                background: o.vista === key ? '#4e8fff' : 'rgba(255,255,255,0.04)',
-                border: `1px solid ${o.vista === key ? '#4e8fff' : 'rgba(255,255,255,0.08)'}`,
-                color: o.vista === key ? '#fff' : '#9aaccb' }}>
+                background: o.vista === key ? 'var(--accent)' : 'rgba(255,255,255,0.04)',
+                border: `1px solid ${o.vista === key ? 'var(--accent)' : 'rgba(255,255,255,0.08)'}`,
+                color: o.vista === key ? '#fff' : 'var(--text-secondary)' }}>
               {label}
             </button>
           ))}
@@ -240,7 +240,7 @@ export default function OrientacionPage() {
                   <tbody>
                     {o.sesiones.map(s => (
                       <tr key={s.id}>
-                        <td style={{ whiteSpace: 'nowrap', fontFamily: 'DM Mono, monospace', fontSize: 12, color: '#7ab3ff' }}>
+                        <td style={{ whiteSpace: 'nowrap', fontFamily: 'DM Mono, monospace', fontSize: 12, color: 'var(--accent)' }}>
                           {s.hora_inicio?.slice(0,5)} – {s.hora_fin?.slice(0,5)}
                         </td>
                         <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{s.alumno?.nombre || '—'}</td>
@@ -283,7 +283,7 @@ export default function OrientacionPage() {
               <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>Historial del mes</span>
               <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--text-muted)', marginRight: 10 }}>{o.historial.length} sesiones</span>
               <select value={o.mesHistorial} onChange={e => o.setMesHistorial(e.target.value)}
-                style={{ padding: '5px 10px', background: 'var(--bg-input)', border: '1.5px solid #2e3d5c', borderRadius: 8, color: 'var(--text-primary)', fontSize: 12, cursor: 'pointer' }}>
+                style={{ padding: '5px 10px', background: 'var(--bg-input)', border: '1.5px solid var(--border-input)', borderRadius: 8, color: 'var(--text-primary)', fontSize: 12, cursor: 'pointer' }}>
                 {/* Solo desde enero de este año — no hay datos de antes */}
                 {Array.from({ length: new Date().getMonth() + 1 }, (_, i) => {
                   const mesActual = new Date().getMonth() // 0=Ene ... i va de mesActual hacia atrás hasta 0
@@ -318,7 +318,7 @@ export default function OrientacionPage() {
                         <td style={{ whiteSpace: 'nowrap', fontSize: 12, color: 'var(--text-secondary)' }}>
                           {format(new Date(s.fecha + 'T00:00:00'), 'dd/MM/yyyy')}
                         </td>
-                        <td style={{ whiteSpace: 'nowrap', fontFamily: 'DM Mono, monospace', fontSize: 12, color: '#7ab3ff' }}>
+                        <td style={{ whiteSpace: 'nowrap', fontFamily: 'DM Mono, monospace', fontSize: 12, color: 'var(--accent)' }}>
                           {s.hora_inicio?.slice(0,5)} – {s.hora_fin?.slice(0,5)}
                         </td>
                         <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{s.alumno?.nombre || '—'}</td>
@@ -397,9 +397,9 @@ export default function OrientacionPage() {
                     style={{
                       padding: '5px 10px', borderRadius: 7, fontSize: 12, fontWeight: 500,
                       cursor: disabled ? 'not-allowed' : 'pointer', transition: 'all 0.15s',
-                      background: o.form.hora === h ? '#4e8fff' : disabled ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.06)',
-                      border: `1px solid ${o.form.hora === h ? '#4e8fff' : disabled ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.1)'}`,
-                      color: o.form.hora === h ? '#fff' : disabled ? '#2e3d5c' : '#9aaccb',
+                      background: o.form.hora === h ? 'var(--accent)' : disabled ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.06)',
+                      border: `1px solid ${o.form.hora === h ? 'var(--accent)' : disabled ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.1)'}`,
+                      color: o.form.hora === h ? '#fff' : disabled ? 'var(--text-faint)' : 'var(--text-secondary)',
                       textDecoration: ocupada ? 'line-through' : 'none',
                       opacity: pasada ? 0.35 : 1,
                     }}>
@@ -423,9 +423,9 @@ export default function OrientacionPage() {
                       style={{
                         padding: '5px 10px', borderRadius: 7, fontSize: 12, fontWeight: 500,
                         cursor: disabled ? 'not-allowed' : 'pointer', transition: 'all 0.15s',
-                        background: o.form.hora === h ? '#4e8fff' : disabled ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.06)',
-                        border: `1px solid ${o.form.hora === h ? '#4e8fff' : disabled ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.1)'}`,
-                        color: o.form.hora === h ? '#fff' : disabled ? '#2e3d5c' : '#9aaccb',
+                        background: o.form.hora === h ? 'var(--accent)' : disabled ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.06)',
+                        border: `1px solid ${o.form.hora === h ? 'var(--accent)' : disabled ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.1)'}`,
+                        color: o.form.hora === h ? '#fff' : disabled ? 'var(--text-faint)' : 'var(--text-secondary)',
                         textDecoration: ocupada ? 'line-through' : 'none',
                         opacity: pasada ? 0.35 : 1,
                       }}>
@@ -485,7 +485,7 @@ export default function OrientacionPage() {
 function Field({ label, children }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-      <label style={{ fontSize: 10, fontWeight: 700, color: '#7a8aaa', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{label}</label>
+      <label style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{label}</label>
       {children}
     </div>
   )

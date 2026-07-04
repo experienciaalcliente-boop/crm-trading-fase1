@@ -11,9 +11,9 @@ const DIAS_PAGO = ['Todos los días', 'Día 5', 'Día 15']
 const ESTADO_STYLE = {
   'Pagada':             { bg: 'rgba(34,201,142,0.12)', color: '#2dd4a0', border: 'rgba(34,201,142,0.25)' },
   'Pago parcial':       { bg: 'rgba(245,166,35,0.12)', color: '#f5b93a', border: 'rgba(245,166,35,0.25)' },
-  'No iniciada':        { bg: 'rgba(255,255,255,0.06)', color: '#7a8aaa', border: 'rgba(255,255,255,0.1)' },
+  'No iniciada':        { bg: 'rgba(255,255,255,0.06)', color: 'var(--text-muted)', border: 'rgba(255,255,255,0.1)' },
   'Prórroga':           { bg: 'rgba(167,139,250,0.12)', color: '#b89eff', border: 'rgba(167,139,250,0.25)' },
-  'Reserva académica':  { bg: 'rgba(78,143,255,0.12)', color: '#7ab3ff', border: 'rgba(78,143,255,0.25)' },
+  'Reserva académica':  { bg: 'rgba(101,167,166,0.12)', color: 'var(--accent)', border: 'rgba(101,167,166,0.25)' },
   'Retirado':           { bg: 'rgba(240,92,92,0.12)',  color: '#f07070', border: 'rgba(240,92,92,0.25)' },
 }
 
@@ -68,10 +68,10 @@ export default function RecaudacionPage() {
       {/* Métricas */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 10, marginBottom: 20 }}>
         {[
-          { label: 'Total cuotas',  value: r.stats.total,      color: '#7ab3ff' },
+          { label: 'Total cuotas',  value: r.stats.total,      color: 'var(--accent)' },
           { label: 'Pagadas',       value: r.stats.pagadas,    color: '#2dd4a0' },
           { label: 'Parciales',     value: r.stats.parciales,  color: '#f5b93a' },
-          { label: 'Pendientes',    value: r.stats.pendientes, color: '#7a8aaa' },
+          { label: 'Pendientes',    value: r.stats.pendientes, color: 'var(--text-muted)' },
           { label: 'Vencidas',      value: r.stats.vencidas,   color: '#f07070' },
           { label: 'Prórrogas',     value: r.stats.prorrogas,  color: '#b89eff' },
         ].map(({ label, value, color }) => (
@@ -91,9 +91,9 @@ export default function RecaudacionPage() {
               style={{
                 padding: '5px 12px', borderRadius: 20, fontSize: 12, fontWeight: 500,
                 cursor: 'pointer', transition: 'all 0.15s',
-                background: r.filtroEstado === e ? '#4e8fff' : 'rgba(255,255,255,0.05)',
-                border: `1px solid ${r.filtroEstado === e ? '#4e8fff' : 'rgba(255,255,255,0.1)'}`,
-                color: r.filtroEstado === e ? '#fff' : '#7a8aaa',
+                background: r.filtroEstado === e ? 'var(--accent)' : 'rgba(255,255,255,0.05)',
+                border: `1px solid ${r.filtroEstado === e ? 'var(--accent)' : 'rgba(255,255,255,0.1)'}`,
+                color: r.filtroEstado === e ? '#fff' : 'var(--text-muted)',
               }}>
               {e}
             </button>
@@ -104,7 +104,7 @@ export default function RecaudacionPage() {
         <select
           value={r.filtroMes}
           onChange={e => r.setFiltroMes(e.target.value)}
-          style={{ padding:'6px 10px', background:'var(--bg-input)', border:'1.5px solid #2e3d5c', borderRadius:8, color:'var(--text-primary)', fontSize:13, cursor:'pointer' }}>
+          style={{ padding:'6px 10px', background:'var(--bg-input)', border:'1.5px solid var(--border-input)', borderRadius:8, color:'var(--text-primary)', fontSize:13, cursor:'pointer' }}>
           {(() => {
             const opts = []
             const now = new Date()
@@ -124,7 +124,7 @@ export default function RecaudacionPage() {
           placeholder="🔍 Buscar alumno..."
           value={buscarAlumno}
           onChange={e => setBuscarAlumno(e.target.value)}
-          style={{ padding:'6px 12px', background:'var(--bg-input)', border:'1.5px solid #2e3d5c', borderRadius:8, color:'var(--text-primary)', fontSize:13, width:200 }}
+          style={{ padding:'6px 12px', background:'var(--bg-input)', border:'1.5px solid var(--border-input)', borderRadius:8, color:'var(--text-primary)', fontSize:13, width:200 }}
         />
 
         {/* Día de pago */}
@@ -136,7 +136,7 @@ export default function RecaudacionPage() {
                 cursor: 'pointer', transition: 'all 0.15s',
                 background: filtroDia === d ? '#9b71f5' : 'rgba(255,255,255,0.05)',
                 border: `1px solid ${filtroDia === d ? '#9b71f5' : 'rgba(255,255,255,0.1)'}`,
-                color: filtroDia === d ? '#fff' : '#7a8aaa',
+                color: filtroDia === d ? '#fff' : 'var(--text-muted)',
               }}>
               {d}
             </button>
@@ -147,7 +147,7 @@ export default function RecaudacionPage() {
         <select
           value={r.filtroPrograma}
           onChange={e => r.setFiltroPrograma(e.target.value)}
-          style={{ padding: '6px 12px', background: 'var(--bg-input)', border: '1.5px solid #2e3d5c', borderRadius: 8, color: 'var(--text-primary)', fontSize: 13, marginLeft: 'auto' }}>
+          style={{ padding: '6px 12px', background: 'var(--bg-input)', border: '1.5px solid var(--border-input)', borderRadius: 8, color: 'var(--text-primary)', fontSize: 13, marginLeft: 'auto' }}>
           <option value="Todos">Todos los programas</option>
           {r.programas.map(p => <option key={p} value={p}>{p}</option>)}
         </select>
@@ -191,15 +191,15 @@ export default function RecaudacionPage() {
                       </td>
                       <td style={{ fontSize: 12 }}>{cuota.alumno?.programa || '—'}</td>
                       <td style={{ fontSize: 12 }}>#{cuota.numero_cuota}</td>
-                      <td style={{ fontSize: 12, color: vencida ? '#f07070' : '#9aaccb', whiteSpace: 'nowrap' }}>
+                      <td style={{ fontSize: 12, color: vencida ? '#f07070' : 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
                         {format(new Date(cuota.fecha_vence + 'T00:00:00'), 'dd MMM yyyy', { locale: es })}
                       </td>
                       <td>
                         <span style={{ 
                           fontSize: 11, fontWeight: 700, padding: '2px 7px', borderRadius: 20,
-                          background: cuota.moneda === 'USD' ? 'rgba(78,143,255,0.15)' : 'rgba(46,204,138,0.15)',
-                          color: cuota.moneda === 'USD' ? '#7ab3ff' : '#2dd4a0',
-                          border: `1px solid ${cuota.moneda === 'USD' ? 'rgba(78,143,255,0.3)' : 'rgba(46,204,138,0.3)'}`,
+                          background: cuota.moneda === 'USD' ? 'rgba(101,167,166,0.15)' : 'rgba(46,204,138,0.15)',
+                          color: cuota.moneda === 'USD' ? 'var(--accent)' : '#2dd4a0',
+                          border: `1px solid ${cuota.moneda === 'USD' ? 'rgba(101,167,166,0.3)' : 'rgba(46,204,138,0.3)'}`,
                         }}>
                           {cuota.moneda}
                         </span>
@@ -207,7 +207,7 @@ export default function RecaudacionPage() {
                       <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
                         {Number(cuota.monto).toFixed(2)}
                       </td>
-                      <td style={{ color: cuota.monto_pagado > 0 ? '#f5b93a' : '#3d5070' }}>
+                      <td style={{ color: cuota.monto_pagado > 0 ? '#f5b93a' : 'var(--text-faint)' }}>
                         {cuota.monto_pagado > 0 ? Number(cuota.monto_pagado).toFixed(2) : '—'}
                       </td>
                       <td><EstadoBadge estado={cuota.estado} /></td>

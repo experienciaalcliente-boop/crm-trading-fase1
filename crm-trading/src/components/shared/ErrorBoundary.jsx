@@ -25,7 +25,7 @@ export default class ErrorBoundary extends Component {
             {this.state.info?.componentStack}
           </pre>
           <button onClick={() => window.location.reload()}
-            style={{ marginTop:20, padding:'10px 20px', background:'#4e8fff', border:'none', borderRadius:8, color:'#fff', cursor:'pointer', fontSize:13 }}>
+            style={{ marginTop:20, padding:'10px 20px', background:'var(--accent)', border:'none', borderRadius:8, color:'#fff', cursor:'pointer', fontSize:13 }}>
             Recargar página
           </button>
         </div>

@@ -406,8 +406,8 @@ export default function ImportPage() {
             style={{
               padding: '7px 16px', borderRadius: 9, fontSize: 13, fontWeight: 500,
               cursor: 'pointer', transition: 'all 0.15s', border: 'none',
-              background: tipo === key ? '#4e8fff' : 'transparent',
-              color: tipo === key ? '#fff' : '#506080',
+              background: tipo === key ? 'var(--accent)' : 'transparent',
+              color: tipo === key ? '#fff' : 'var(--text-muted)',
             }}>
             {val.titulo}
           </button>
@@ -417,7 +417,7 @@ export default function ImportPage() {
       {/* Info */}
       <div className="crm-card" style={{ padding: 16, marginBottom: 20 }}>
         <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4 }}>{info.titulo}</div>
-        <div style={{ fontSize: 12, color: '#7a8aaa', marginBottom: 8 }}>{info.descripcion}</div>
+        <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8 }}>{info.descripcion}</div>
         <div style={{ fontSize: 11, color: 'var(--text-muted)', background: 'rgba(255,255,255,0.04)', borderRadius: 8, padding: '8px 12px', fontFamily: 'DM Mono, monospace' }}>
           Columnas esperadas: {info.columnas}
         </div>
@@ -427,14 +427,14 @@ export default function ImportPage() {
       {!preview && (
         <label
           style={{ display: 'block', border: '2px dashed rgba(255,255,255,0.12)', borderRadius: 12, padding: 40, textAlign: 'center', cursor: 'pointer', transition: 'all 0.2s' }}
-          onDragOver={e => { e.preventDefault(); e.currentTarget.style.borderColor = '#4e8fff' }}
+          onDragOver={e => { e.preventDefault(); e.currentTarget.style.borderColor = 'var(--accent)' }}
           onDragLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)' }}
           onDrop={e => { e.preventDefault(); e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)'; handleFile(e.dataTransfer.files[0]) }}
         >
           <input ref={inputRef} type="file" accept=".csv,.xlsx,.xls" style={{ display: 'none' }}
             onChange={e => handleFile(e.target.files[0])} />
           <FileSpreadsheet size={32} style={{ color: 'var(--text-muted)', margin: '0 auto 12px' }} strokeWidth={1} />
-          <div style={{ fontSize: 14, fontWeight: 500, color: '#7a8aaa', marginBottom: 4 }}>Arrastra tu archivo aquí</div>
+          <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--text-muted)', marginBottom: 4 }}>Arrastra tu archivo aquí</div>
           <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>o haz clic para seleccionar · CSV o Excel (.xlsx)</div>
         </label>
       )}

@@ -53,7 +53,7 @@ export default function SetupPage() {
       body: (
         <div>
           <p className="mb-2">En Vercel → tu proyecto → Settings → Environment Variables, agrega:</p>
-          <pre className="rounded-lg p-3 text-xs font-mono leading-relaxed overflow-x-auto" style={{ background:'#1f2840', color:'#4e8fff' }}>
+          <pre className="rounded-lg p-3 text-xs font-mono leading-relaxed overflow-x-auto" style={{ background:'var(--bg-input)', color:'var(--accent)' }}>
 {`VITE_SUPABASE_URL=https://tu-proyecto.supabase.co
 VITE_SUPABASE_ANON_KEY=eyJhbGci...`}
           </pre>
@@ -96,7 +96,7 @@ VITE_SUPABASE_ANON_KEY=eyJhbGci...`}
           {steps.map((step) => (
             <div key={step.n} className="crm-card p-5 flex gap-4">
               <div className="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold"
-                style={{ backgroundColor:'rgba(78,143,255,0.15)', border:'1px solid rgba(78,143,255,0.3)', color:'#4e8fff' }}>
+                style={{ backgroundColor:'rgba(101,167,166,0.15)', border:'1px solid rgba(101,167,166,0.3)', color:'var(--accent)' }}>
                 {step.n}
               </div>
               <div className="flex-1">

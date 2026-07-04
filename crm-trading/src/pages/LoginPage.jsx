@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { Loader2 } from 'lucide-react'
+import BrandMark from '../components/shared/BrandMark'
 
 export default function LoginPage() {
   const { login, loading, error } = useAuth()
@@ -22,9 +23,11 @@ export default function LoginPage() {
       <div style={{ width:'100%', maxWidth:380 }}>
         {/* Logo */}
         <div style={{ textAlign:'center', marginBottom:40 }}>
-          <div style={{ width:64, height:64, borderRadius:16, background:'#4e8fff', display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto 16px', fontSize:28, fontWeight:700, color:'#fff' }}>A</div>
-          <h1 style={{ fontFamily:'Syne,sans-serif', fontWeight:700, color:'var(--text-primary)', fontSize:24, margin:0 }}>AcademiaCRM</h1>
-          <p style={{ color:'var(--text-muted)', fontSize:13, marginTop:6 }}>Escuela de Trading</p>
+          <div style={{ display:'flex', justifyContent:'center', marginBottom:16 }}>
+            <BrandMark size={64} />
+          </div>
+          <h1 style={{ fontFamily:'Syne,sans-serif', fontWeight:700, color:'var(--text-primary)', fontSize:24, margin:0 }}>Experiencia al Cliente</h1>
+          <p style={{ color:'var(--text-muted)', fontSize:13, marginTop:6 }}>Burs Advisory</p>
         </div>
 
         {/* Card */}
@@ -46,7 +49,7 @@ export default function LoginPage() {
               placeholder="Ingresa tu DNI"
               style={{
                 width:'100%', padding:'12px 16px', background:'var(--bg-input)',
-                border:'1.5px solid #2e3d5c', borderRadius:10,
+                border:'1.5px solid var(--border-input)', borderRadius:10,
                 color:'var(--text-primary)', outline:'none', boxSizing:'border-box', fontSize:15,
               }}
             />
@@ -65,7 +68,7 @@ export default function LoginPage() {
               placeholder="● ● ● ●"
               style={{
                 width:'100%', padding:'12px 16px', textAlign:'center', letterSpacing:'0.4em',
-                fontSize:20, background:'var(--bg-input)', border:'1.5px solid #2e3d5c', borderRadius:10,
+                fontSize:20, background:'var(--bg-input)', border:'1.5px solid var(--border-input)', borderRadius:10,
                 color:'var(--text-primary)', outline:'none', boxSizing:'border-box',
               }}
             />
@@ -80,15 +83,15 @@ export default function LoginPage() {
           <button
             onClick={handleSubmit}
             disabled={loading || !dni || pin.length < 4}
-            style={{ width:'100%', padding:'12px 0', borderRadius:10, background: (dni && pin.length >= 4) ? '#4e8fff' : '#1e2840',
-              border:'none', color: (dni && pin.length >= 4) ? '#fff' : '#3d5070', fontSize:14, fontWeight:700, cursor: (dni && pin.length >= 4) ? 'pointer' : 'not-allowed',
+            style={{ width:'100%', padding:'12px 0', borderRadius:10, background: (dni && pin.length >= 4) ? 'var(--accent)' : 'var(--bg-input)',
+              border:'none', color: (dni && pin.length >= 4) ? '#fff' : 'var(--text-faint)', fontSize:14, fontWeight:700, cursor: (dni && pin.length >= 4) ? 'pointer' : 'not-allowed',
               display:'flex', alignItems:'center', justifyContent:'center', gap:8, transition:'all 0.2s' }}>
             {loading ? <><Loader2 size={16} className="animate-spin" /> Verificando...</> : 'Ingresar'}
           </button>
         </div>
 
-        <p style={{ textAlign:'center', color:'#2a3450', fontSize:11, marginTop:20 }}>
-          AcademiaCRM V3.1 · Acceso restringido
+        <p style={{ textAlign:'center', color:'var(--text-faint)', fontSize:11, marginTop:20 }}>
+          Burs Advisory · Acceso restringido
         </p>
       </div>
     </div>

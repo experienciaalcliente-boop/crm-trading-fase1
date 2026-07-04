@@ -6,7 +6,7 @@ import { es } from 'date-fns/locale'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts'
 import { RiesgoBadge, UltimoContactoBadge } from '../components/shared/Badges'
 
-const COLORS = ['#4e8fff','#2dd4a0','#f5b93a','#f07070','#b89eff','#506080']
+const COLORS = ['#65a7a6','#2dd4a0','#f5b93a','#f07070','#b89eff','#6f9c9a']
 
 const fmt  = n => Number(n).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 const fmtN = n => Number(n).toLocaleString('es-PE')
@@ -23,7 +23,7 @@ const customTooltip = ({ active, payload, label }) => {
 
 const pctLabel = ({ percent }) => percent > 0 ? `${Math.round(percent * 100)}%` : ''
 
-function SectionTitle({ icon: Icon, title, color='#4e8fff' }) {
+function SectionTitle({ icon: Icon, title, color='#65a7a6' }) {
   return (
     <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:16, marginTop:28, paddingBottom:10, borderBottom:'1px solid var(--border-default)' }}>
       <div style={{ width:32, height:32, borderRadius:8, background:`${color}20`, border:`1px solid ${color}40`, display:'flex', alignItems:'center', justifyContent:'center' }}>
@@ -34,7 +34,7 @@ function SectionTitle({ icon: Icon, title, color='#4e8fff' }) {
   )
 }
 
-function KPICard({ label, value, sub, color='#e2e8f4', accent, badge }) {
+function KPICard({ label, value, sub, color='#e4f5f2', accent, badge }) {
   return (
     <div className="crm-card" style={{ padding:16, borderLeft: accent ? `3px solid ${accent}` : undefined }}>
       <div style={{ fontSize:10, fontWeight:700, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:6 }}>{label}</div>
@@ -45,7 +45,7 @@ function KPICard({ label, value, sub, color='#e2e8f4', accent, badge }) {
   )
 }
 
-function PctBar({ label, pct, count, total, color='#4e8fff' }) {
+function PctBar({ label, pct, count, total, color='#65a7a6' }) {
   return (
     <div style={{ marginBottom:10 }}>
       <div style={{ display:'flex', justifyContent:'space-between', marginBottom:4 }}>
@@ -83,13 +83,13 @@ export default function DashboardPage() {
         <div>
           <h1 style={{ fontFamily:'Syne,sans-serif', fontWeight:700, color:'var(--text-primary)', fontSize:22 }}>Dashboard ejecutivo</h1>
           <p style={{ fontSize:13, color:'var(--text-muted)', textTransform:'capitalize', marginTop:3 }}>
-            {hoyDisplay} · Mostrando: <span style={{ color:'#7ab3ff' }}>{mesDisplay}</span>
+            {hoyDisplay} · Mostrando: <span style={{ color:'var(--accent)' }}>{mesDisplay}</span>
           </p>
         </div>
         <div style={{ display:'flex', alignItems:'center', gap:10 }}>
           <span style={{ fontSize:11, color:'var(--text-muted)' }}>Act: {format(d.lastUpdate, 'HH:mm:ss')}</span>
           <select value={d.mesFiltro} onChange={e => d.setMesFiltro(e.target.value)}
-            style={{ padding:'6px 10px', background:'var(--bg-input)', border:'1.5px solid #2e3d5c', borderRadius:8, color:'var(--text-primary)', fontSize:13, cursor:'pointer' }}>
+            style={{ padding:'6px 10px', background:'var(--bg-input)', border:'1.5px solid var(--border-input)', borderRadius:8, color:'var(--text-primary)', fontSize:13, cursor:'pointer' }}>
             {Array.from({ length: 12 }, (_, i) => {
               const dt = new Date(new Date().getFullYear(), new Date().getMonth() - i, 1)
               const val = `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}`
@@ -105,12 +105,12 @@ export default function DashboardPage() {
         <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:10, marginBottom:4 }}>
           <KPICard label="Sesiones del mes" value={d.totalSesiones}       sub="Agendadas este mes"     color="#b89eff" accent="#b89eff" />
           <KPICard label="Concretadas"      value={d.sesionesConcretadas} sub="Sesiones realizadas"    color="#2dd4a0" accent="#2dd4a0" />
-          <KPICard label="Efectividad"      value={`${d.efectividadOrientador}%`} sub="No volvieron a agendar" color="#4e8fff" accent="#4e8fff" />
-          <KPICard label="Alumnos atendidos" value={d.alumnosUnicos}      sub="Este mes"               color="#7ab3ff" accent="#7ab3ff" />
+          <KPICard label="Efectividad"      value={`${d.efectividadOrientador}%`} sub="No volvieron a agendar" color="var(--accent)" accent="var(--accent)" />
+          <KPICard label="Alumnos atendidos" value={d.alumnosUnicos}      sub="Este mes"               color="var(--accent)" accent="var(--accent)" />
         </div>
       ) : (
         <div style={{ display:'grid', gridTemplateColumns: esAsesora ? 'repeat(3,1fr)' : 'repeat(4,1fr)', gap:10, marginBottom:4 }}>
-          <KPICard label="Alumnos activos"    value={d.totalAlumnosActivos}  sub="En curso + seguimiento"    color="#7ab3ff"  accent="#4e8fff" />
+          <KPICard label="Alumnos activos"    value={d.totalAlumnosActivos}  sub="En curso + seguimiento"    color="var(--accent)"  accent="var(--accent)" />
           <KPICard label="Contactabilidad"    value={`${d.contactabilidad}%`} sub={`${d.respondieron} respondieron`} color="#2dd4a0" accent="#2dd4a0" />
           <KPICard label="Riesgo Alto"        value={d.riesgoAlto}           sub="Requieren intervención"   color="#f07070"  accent="#f07070" />
           {!esAsesora && (
@@ -140,13 +140,13 @@ export default function DashboardPage() {
       {!esOrientador && (
       <>
       {/* ══ LLAMADAS ══ */}
-      <SectionTitle icon={Phone} title="Seguimiento de Llamadas" color="#4e8fff" />
+      <SectionTitle icon={Phone} title="Seguimiento de Llamadas" color="#65a7a6" />
 
       <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16, marginBottom:16 }}>
         <div className="crm-card" style={{ padding:18 }}>
           <div style={{ fontSize:12, fontWeight:700, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:14 }}>Contactabilidad por programa</div>
           {d.contactabilidadPorPrograma.slice(0,8).map(p => (
-            <PctBar key={p.programa} label={p.programa} pct={p.pct} count={p.respondieron} total={p.total} color="#4e8fff" />
+            <PctBar key={p.programa} label={p.programa} pct={p.pct} count={p.respondieron} total={p.total} color="#65a7a6" />
           ))}
         </div>
         <div className="crm-card" style={{ padding:18 }}>
@@ -183,10 +183,10 @@ export default function DashboardPage() {
                 {d.cuentasPorPrograma.map(p => (
                   <tr key={p.programa}>
                     <td style={{ fontSize:11 }}>{p.programa}</td>
-                    <td style={{ color:p.Demo>0?'#e2e8f4':'#3d5070', textAlign:'center' }}>{p.Demo||'—'}</td>
-                    <td style={{ color:p.Real>0?'#2dd4a0':'#3d5070', textAlign:'center' }}>{p.Real||'—'}</td>
-                    <td style={{ color:p.Fondeo>0?'#f5b93a':'#3d5070', textAlign:'center' }}>{p.Fondeo||'—'}</td>
-                    <td style={{ color:p['No opera']>0?'#f07070':'#3d5070', textAlign:'center' }}>{p['No opera']||'—'}</td>
+                    <td style={{ color:p.Demo>0?'var(--text-primary)':'var(--text-faint)', textAlign:'center' }}>{p.Demo||'—'}</td>
+                    <td style={{ color:p.Real>0?'#2dd4a0':'var(--text-faint)', textAlign:'center' }}>{p.Real||'—'}</td>
+                    <td style={{ color:p.Fondeo>0?'#f5b93a':'var(--text-faint)', textAlign:'center' }}>{p.Fondeo||'—'}</td>
+                    <td style={{ color:p['No opera']>0?'#f07070':'var(--text-faint)', textAlign:'center' }}>{p['No opera']||'—'}</td>
                   </tr>
                 ))}
               </tbody>
@@ -195,12 +195,12 @@ export default function DashboardPage() {
         </div>
         <div className="crm-card" style={{ padding:18 }}>
           <div style={{ fontSize:12, fontWeight:700, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:6 }}>Capital real (USD)</div>
-          <div style={{ fontSize:11, color:'var(--text-muted)', marginBottom:10 }}>Total: <span style={{ color:'#7ab3ff', fontWeight:700 }}>{d.totalCuentasReales}</span></div>
+          <div style={{ fontSize:11, color:'var(--text-muted)', marginBottom:10 }}>Total: <span style={{ color:'var(--accent)', fontWeight:700 }}>{d.totalCuentasReales}</span></div>
           {d.rangosCapital.map(r => (
             <div key={r.label} style={{ display:'flex', justifyContent:'space-between', padding:'5px 0', borderBottom:'1px solid rgba(255,255,255,0.05)' }}>
-              <span style={{ fontSize:12, color: r.label==='Sin dato'?'#506080':'#9aaccb', fontStyle:r.label==='Sin dato'?'italic':'normal' }}>{r.label}</span>
+              <span style={{ fontSize:12, color: r.label==='Sin dato'?'var(--text-muted)':'var(--text-secondary)', fontStyle:r.label==='Sin dato'?'italic':'normal' }}>{r.label}</span>
               <div style={{ display:'flex', gap:8 }}>
-                <span style={{ fontSize:12, color:r.count>0?'#e2e8f4':'#3d5070', fontWeight:600 }}>{r.count}</span>
+                <span style={{ fontSize:12, color:r.count>0?'var(--text-primary)':'var(--text-faint)', fontWeight:600 }}>{r.count}</span>
                 <span style={{ fontSize:11, color:'var(--text-muted)' }}>{d.totalCuentasReales>0?Math.round(r.count/d.totalCuentasReales*100):0}%</span>
               </div>
             </div>
@@ -237,10 +237,10 @@ export default function DashboardPage() {
                 {d.pipelinePorPrograma.map(p => (
                   <tr key={p.programa}>
                     <td style={{ fontWeight:500 }}>{p.programa}</td>
-                    <td style={{ color: p.Demo > 0 ? '#7ab3ff' : '#3d5070', textAlign:'center' }}>{p.Demo || '—'}</td>
-                    <td style={{ color: p.Real > 0 ? '#2dd4a0' : '#3d5070', textAlign:'center' }}>{p.Real || '—'}</td>
-                    <td style={{ color: p.Fondeo > 0 ? '#f5b93a' : '#3d5070', textAlign:'center' }}>{p.Fondeo || '—'}</td>
-                    <td style={{ color: p['No opera'] > 0 ? '#f07070' : '#3d5070', textAlign:'center' }}>{p['No opera'] || '—'}</td>
+                    <td style={{ color: p.Demo > 0 ? 'var(--accent)' : 'var(--text-faint)', textAlign:'center' }}>{p.Demo || '—'}</td>
+                    <td style={{ color: p.Real > 0 ? '#2dd4a0' : 'var(--text-faint)', textAlign:'center' }}>{p.Real || '—'}</td>
+                    <td style={{ color: p.Fondeo > 0 ? '#f5b93a' : 'var(--text-faint)', textAlign:'center' }}>{p.Fondeo || '—'}</td>
+                    <td style={{ color: p['No opera'] > 0 ? '#f07070' : 'var(--text-faint)', textAlign:'center' }}>{p['No opera'] || '—'}</td>
                   </tr>
                 ))}
               </tbody>
@@ -317,7 +317,7 @@ export default function DashboardPage() {
       {/* ══ DESEMPEÑO POR ASESORA (solo supervisor) ══ */}
       {esSupervisor && (
         <>
-          <SectionTitle icon={Users} title="Desempeño por Asesora" color="#7ab3ff" />
+          <SectionTitle icon={Users} title="Desempeño por Asesora" color="#65a7a6" />
 
           <div className="crm-card" style={{ marginBottom:16, overflowX:'auto' }}>
             <table className="crm-table">
@@ -346,7 +346,7 @@ export default function DashboardPage() {
                         <span style={{ fontSize:12, fontWeight:600, color:'var(--text-primary)', minWidth:32 }}>{a.contactabilidad}%</span>
                       </div>
                     </td>
-                    <td style={{ textAlign:'center', fontSize:12, color: a.tiempoReaccion ? (a.tiempoReaccion <= 24 ? '#2dd4a0' : a.tiempoReaccion <= 48 ? '#f5b93a' : '#f07070') : '#3d5070' }}>
+                    <td style={{ textAlign:'center', fontSize:12, color: a.tiempoReaccion ? (a.tiempoReaccion <= 24 ? '#2dd4a0' : a.tiempoReaccion <= 48 ? '#f5b93a' : '#f07070') : 'var(--text-faint)' }}>
                       {a.tiempoReaccion ? `${a.tiempoReaccion}h` : '—'}
                     </td>
                     <td style={{ textAlign:'center' }}>
@@ -371,7 +371,7 @@ export default function DashboardPage() {
       <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:10, marginBottom:16 }}>
         <KPICard label="Pagadas"      value={d.cuotasPagadas}   sub={`de ${d.totalCuotas} cuotas`} color="#2dd4a0" accent="#2dd4a0" />
         <KPICard label="Pago parcial" value={d.cuotasParciales} color="#f5b93a" accent="#f5b93a" />
-        <KPICard label="No iniciadas" value={d.cuotasPendientes} color="#7a8aaa" accent="#506080" />
+        <KPICard label="No iniciadas" value={d.cuotasPendientes} color="var(--text-muted)" accent="var(--text-muted)" />
         <KPICard label="Prórrogas"    value={d.cuotasProrrogas} color="#b89eff" accent="#b89eff" />
         <KPICard label="Vencen en 7d" value={d.proximas7.length} sub={`S/ ${fmt(d.montoProximas7)}`} color="#fb923c" accent="#ea580c" />
         <KPICard label="Vencen en 15d" value={d.proximas15.length} sub={`S/ ${fmt(d.montoProximas15)}`} color="#f5b93a" accent="#d97706" />
@@ -412,10 +412,10 @@ export default function DashboardPage() {
         <div style={{ fontSize:12, fontWeight:700, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:14 }}>Recaudación por programa</div>
         <ResponsiveContainer width="100%" height={200}>
           <BarChart data={d.recaudacionPorPrograma} margin={{ top:0, right:10, left:0, bottom:0 }}>
-            <XAxis dataKey="programa" tick={{ fill:'#506080', fontSize:11 }} axisLine={false} tickLine={false} />
-            <YAxis tick={{ fill:'#506080', fontSize:11 }} axisLine={false} tickLine={false} />
+            <XAxis dataKey="programa" tick={{ fill:'#6f9c9a', fontSize:11 }} axisLine={false} tickLine={false} />
+            <YAxis tick={{ fill:'#6f9c9a', fontSize:11 }} axisLine={false} tickLine={false} />
             <Tooltip content={customTooltip} />
-            <Bar dataKey="total"   name="Total"   fill="rgba(78,143,255,0.3)"  radius={[4,4,0,0]} />
+            <Bar dataKey="total"   name="Total"   fill="rgba(101,167,166,0.3)"  radius={[4,4,0,0]} />
             <Bar dataKey="pagadas" name="Pagadas" fill="#2dd4a0" radius={[4,4,0,0]} />
           </BarChart>
         </ResponsiveContainer>
@@ -433,7 +433,7 @@ export default function DashboardPage() {
         <KPICard label="Concretadas"      value={d.sesionesConcretadas} color="#2dd4a0" accent="#2dd4a0" />
         <KPICard label="Reprogramadas"    value={d.sesionesReprogram}   color="#f5b93a" accent="#f5b93a" />
         <KPICard label="No se conectaron" value={d.sesionesNoConecto}   color="#f07070" accent="#f07070" />
-        <KPICard label="Efectividad"      value={`${d.efectividadOrientador}%`} sub="No volvieron a agendar" color="#4e8fff" accent="#4e8fff" />
+        <KPICard label="Efectividad"      value={`${d.efectividadOrientador}%`} sub="No volvieron a agendar" color="var(--accent)" accent="var(--accent)" />
       </div>
 
       <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:16, marginBottom:16 }}>

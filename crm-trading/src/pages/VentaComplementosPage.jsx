@@ -5,14 +5,14 @@ import { es } from 'date-fns/locale'
 import Select from 'react-select'
 
 const rsStyles = {
-  control: (base, state) => ({ ...base, background: 'var(--bg-input)', border: `1.5px solid ${state.isFocused ? '#4e8fff' : '#2e3d5c'}`, borderRadius: 8, minHeight: 38, boxShadow: state.isFocused ? '0 0 0 3px rgba(78,143,255,0.15)' : 'none' }),
-  menu: (base) => ({ ...base, background: 'var(--bg-input)', border: '1.5px solid #2e3d5c', borderRadius: 10, boxShadow: '0 8px 28px rgba(0,0,0,0.5)', zIndex: 9999 }),
+  control: (base, state) => ({ ...base, background: 'var(--bg-input)', border: `1.5px solid ${state.isFocused ? 'var(--accent)' : 'var(--border-input)'}`, borderRadius: 8, minHeight: 38, boxShadow: state.isFocused ? '0 0 0 3px rgba(101,167,166,0.15)' : 'none' }),
+  menu: (base) => ({ ...base, background: 'var(--bg-input)', border: '1.5px solid var(--border-input)', borderRadius: 10, boxShadow: '0 8px 28px rgba(0,0,0,0.5)', zIndex: 9999 }),
   menuList: (base) => ({ ...base, background: 'var(--bg-input)', borderRadius: 10, padding: 4 }),
-  option: (base, state) => ({ ...base, background: state.isSelected ? 'rgba(78,143,255,0.25)' : state.isFocused ? 'rgba(78,143,255,0.15)' : '#1e2840', color: state.isSelected ? '#7ab3ff' : state.isFocused ? '#fff' : '#c8d8f0', borderRadius: 6, fontSize: 13, padding: '9px 12px' }),
-  singleValue: (base) => ({ ...base, color: '#fff', fontWeight: 500 }),
+  option: (base, state) => ({ ...base, background: state.isSelected ? 'rgba(101,167,166,0.25)' : state.isFocused ? 'rgba(101,167,166,0.15)' : 'var(--bg-input)', color: state.isSelected ? 'var(--accent)' : state.isFocused ? 'var(--text-primary)' : 'var(--text-secondary)', borderRadius: 6, fontSize: 13, padding: '9px 12px' }),
+  singleValue: (base) => ({ ...base, color: 'var(--text-primary)', fontWeight: 500 }),
   placeholder: (base) => ({ ...base, color: 'var(--text-muted)' }),
-  input: (base) => ({ ...base, color: '#fff' }),
-  indicatorSeparator: (base) => ({ ...base, background: '#2e3d5c' }),
+  input: (base) => ({ ...base, color: 'var(--text-primary)' }),
+  indicatorSeparator: (base) => ({ ...base, background: 'var(--border-input)' }),
   dropdownIndicator: (base) => ({ ...base, color: 'var(--text-muted)' }),
   noOptionsMessage: (base) => ({ ...base, color: 'var(--text-muted)', background: 'var(--bg-input)' }),
 }
@@ -43,7 +43,7 @@ export default function VentaComplementosPage() {
       {/* ── Formulario ── */}
       <div className="crm-card" style={{ padding:20, width:380, flexShrink:0 }}>
         <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:18 }}>
-          <ShoppingBag size={16} style={{ color:'#7ab3ff' }} />
+          <ShoppingBag size={16} style={{ color:'var(--accent)' }} />
           <h2 style={{ fontFamily:'Syne,sans-serif', fontWeight:700, color:'var(--text-primary)', fontSize:15, margin:0 }}>Registrar venta de complemento</h2>
         </div>
 
@@ -107,9 +107,9 @@ export default function VentaComplementosPage() {
               {['Vigente','Finalizado'].map(op => (
                 <button key={op} onClick={() => v.setField('estado_mentoria', op)}
                   style={{ flex:1, padding:'7px 0', borderRadius:8, fontSize:12, fontWeight:600, cursor:'pointer',
-                    background: v.form.estado_mentoria === op ? 'rgba(78,143,255,0.15)' : 'rgba(255,255,255,0.04)',
-                    border: `1px solid ${v.form.estado_mentoria === op ? 'rgba(78,143,255,0.4)' : 'rgba(255,255,255,0.08)'}`,
-                    color: v.form.estado_mentoria === op ? '#7ab3ff' : '#9aaccb' }}>
+                    background: v.form.estado_mentoria === op ? 'rgba(101,167,166,0.15)' : 'rgba(255,255,255,0.04)',
+                    border: `1px solid ${v.form.estado_mentoria === op ? 'rgba(101,167,166,0.4)' : 'rgba(255,255,255,0.08)'}`,
+                    color: v.form.estado_mentoria === op ? 'var(--accent)' : 'var(--text-secondary)' }}>
                   {op}
                 </button>
               ))}
@@ -148,7 +148,7 @@ export default function VentaComplementosPage() {
             </div>
           )}
           <div style={{ height:6, background:'rgba(255,255,255,0.06)', borderRadius:3, overflow:'hidden', marginTop:10 }}>
-            <div style={{ height:'100%', width:`${Math.min(100, Math.round(v.totalVentasMes / v.MINIMO_COMPLEMENTOS_COMISION * 100))}%`, background:'#7ab3ff', borderRadius:3 }} />
+            <div style={{ height:'100%', width:`${Math.min(100, Math.round(v.totalVentasMes / v.MINIMO_COMPLEMENTOS_COMISION * 100))}%`, background:'var(--accent)', borderRadius:3 }} />
           </div>
         </div>
 

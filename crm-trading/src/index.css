@@ -7,24 +7,24 @@
    TEMA OSCURO (default)
 ══════════════════════════════════════════════ */
 :root {
-  --bg-base:        #0b0e14;
-  --bg-surface:     #0f1520;
-  --bg-card:        #151c2c;
-  --bg-input:       #1e2840;
-  --bg-input-focus: #222f4a;
-  --bg-hover:       rgba(78,143,255,0.08);
+  --bg-base:        #08161a;
+  --bg-surface:     #0b1c21;
+  --bg-card:        #13353e;
+  --bg-input:       #1c4047;
+  --bg-input-focus: #234b53;
+  --bg-hover:       rgba(101,167,166,0.08);
 
   --border-default: rgba(255,255,255,0.09);
-  --border-input:   #2e3d5c;
-  --border-focus:   #4e8fff;
+  --border-input:   #365f63;
+  --border-focus:   #65a7a6;
 
-  --text-primary:   #e2e8f4;
-  --text-secondary: #9aaccb;
-  --text-muted:     #506080;
-  --text-faint:     #2e3d5c;
+  --text-primary:   #e4f5f2;
+  --text-secondary: #9bc3bf;
+  --text-muted:     #6f9c9a;
+  --text-faint:     #365f63;
 
-  --accent:         #4e8fff;
-  --accent-light:   rgba(78,143,255,0.15);
+  --accent:         #65a7a6;
+  --accent-light:   rgba(101,167,166,0.15);
 
   --green:    #2dd4a0;
   --yellow:   #f5b93a;
@@ -33,31 +33,31 @@
 
   --shadow:   0 2px 12px rgba(0,0,0,0.25);
 
-  --scrollbar-thumb: #2a3450;
+  --scrollbar-thumb: #24444a;
 }
 
 /* ══════════════════════════════════════════════
    TEMA CLARO
 ══════════════════════════════════════════════ */
 html.light {
-  --bg-base:        #f0f4f8;
-  --bg-surface:     #e8edf5;
+  --bg-base:        #eff7f5;
+  --bg-surface:     #e7f3f0;
   --bg-card:        #ffffff;
-  --bg-input:       #f5f8ff;
-  --bg-input-focus: #eef3ff;
-  --bg-hover:       rgba(78,143,255,0.06);
+  --bg-input:       #f3faf9;
+  --bg-input-focus: #ecf7f5;
+  --bg-hover:       rgba(28,64,71,0.06);
 
   --border-default: rgba(0,0,0,0.1);
-  --border-input:   #c8d4e8;
-  --border-focus:   #4e8fff;
+  --border-input:   #cfe6e2;
+  --border-focus:   #1c4047;
 
-  --text-primary:   #0f172a;
-  --text-secondary: #334155;
-  --text-muted:     #64748b;
-  --text-faint:     #cbd5e1;
+  --text-primary:   #0f2a2e;
+  --text-secondary: #33565a;
+  --text-muted:     #5c8286;
+  --text-faint:     #d6ebe8;
 
-  --accent:         #2563eb;
-  --accent-light:   rgba(37,99,235,0.1);
+  --accent:         #1c4047;
+  --accent-light:   rgba(28,64,71,0.1);
 
   --green:    #16a34a;
   --yellow:   #d97706;
@@ -66,7 +66,7 @@ html.light {
 
   --shadow:   0 2px 12px rgba(0,0,0,0.08);
 
-  --scrollbar-thumb: #c8d4e8;
+  --scrollbar-thumb: #cfe6e2;
 }
 
 /* ══════════════════════════════════════════════

@@ -24,9 +24,9 @@ export default function PanelDerecho({ asesoras, asesorasPanelOpts, registrosHoy
               <button key={nombre}
                 onClick={() => setAsesoraPanel(nombre === 'Todas' ? null : (nombre === asesoraPanel ? null : nombre))}
                 style={{ padding:'4px 11px', borderRadius:20, fontSize:11, fontWeight:600, cursor:'pointer', transition:'all 0.15s',
-                  background: isActive ? 'rgba(78,143,255,0.15)' : 'rgba(255,255,255,0.04)',
-                  border:`1px solid ${isActive ? 'rgba(78,143,255,0.35)' : 'rgba(255,255,255,0.08)'}`,
-                  color: isActive ? '#7ab3ff' : '#506080' }}>
+                  background: isActive ? 'rgba(101,167,166,0.15)' : 'rgba(255,255,255,0.04)',
+                  border:`1px solid ${isActive ? 'rgba(101,167,166,0.35)' : 'rgba(255,255,255,0.08)'}`,
+                  color: isActive ? 'var(--accent)' : 'var(--text-muted)' }}>
                 {nombre === 'Todas' ? nombre : nombre.split(' ')[0]}
               </button>
             )
@@ -37,7 +37,7 @@ export default function PanelDerecho({ asesoras, asesorasPanelOpts, registrosHoy
       {/* Stats del día */}
       <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8, padding:12, borderBottom:'1px solid var(--border-default)' }}>
         {[
-          { label:'Llamadas hoy',  value:stats.total,            color:{ bg:'rgba(78,143,255,0.1)',  border:'rgba(78,143,255,0.2)',  text:'#7ab3ff' } },
+          { label:'Llamadas hoy',  value:stats.total,            color:{ bg:'rgba(101,167,166,0.1)',  border:'rgba(101,167,166,0.2)',  text:'var(--accent)' } },
           { label:'Respondieron',  value:stats.respondieron,     color:{ bg:'rgba(34,201,142,0.1)',  border:'rgba(34,201,142,0.2)',  text:'#2dd4a0' } },
           { label:'Sin resp. hoy', value:registrosHoy.filter(r => r.respondio === 'No' && (asesoraPanel ? r.asesora?.nombre === asesoraPanel : true)).length,
             color:{ bg:'rgba(245,166,35,0.1)', border:'rgba(245,166,35,0.2)', text:'#f5b93a' } },
@@ -79,7 +79,7 @@ export default function PanelDerecho({ asesoras, asesorasPanelOpts, registrosHoy
             <div key={r.id}
               onClick={() => onSeleccionarAlumno && onSeleccionarAlumno(r)}
               style={{ padding:'11px 14px', borderBottom:'1px solid rgba(255,255,255,0.05)', transition:'all 0.15s', cursor: onSeleccionarAlumno ? 'pointer' : 'default' }}
-              onMouseEnter={e => { e.currentTarget.style.background='rgba(78,143,255,0.08)'; e.currentTarget.style.borderLeft='2px solid #4e8fff' }}
+              onMouseEnter={e => { e.currentTarget.style.background='rgba(101,167,166,0.08)'; e.currentTarget.style.borderLeft='2px solid var(--accent)' }}
               onMouseLeave={e => { e.currentTarget.style.background='transparent'; e.currentTarget.style.borderLeft='none' }}>
               <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:2 }}>
                 <div style={{ fontSize:13, fontWeight:600, color:'var(--text-primary)', flex:1, marginRight:6 }}>{r.alumno?.nombre || '—'}</div>
@@ -91,7 +91,7 @@ export default function PanelDerecho({ asesoras, asesorasPanelOpts, registrosHoy
               <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginTop:3 }}>
                 <div style={{ fontSize:10, color:'var(--text-muted)' }}>{r.asesora?.nombre || ''}</div>
                 {onSeleccionarAlumno && (
-                  <span style={{ fontSize:9, color:'#4e8fff', background:'rgba(78,143,255,0.12)', border:'1px solid rgba(78,143,255,0.25)', padding:'1px 7px', borderRadius:10, fontWeight:700 }}>
+                  <span style={{ fontSize:9, color:'var(--accent)', background:'rgba(101,167,166,0.12)', border:'1px solid rgba(101,167,166,0.25)', padding:'1px 7px', borderRadius:10, fontWeight:700 }}>
                     ✎ Registrar
                   </span>
                 )}
