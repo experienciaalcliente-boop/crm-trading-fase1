@@ -7,11 +7,15 @@ import { supabase } from '../lib/supabase'
 const DURACION_PROGRAMA_DIAS = 24 * 7 // 24 semanas
 
 // Un alumno deja de considerarse "programa activo" cuando su fecha_inicio +
-// 24 semanas ya pasó. Los que no tienen fecha_inicio (datos legados) se
-// consideran activos. Se exporta para que tanto fetchAlumnos() como el
-// Dashboard (que trae su propia lista de alumnos) apliquen la misma regla.
+// 24 semanas ya pasó. Los que no tienen fecha_inicio se consideran NO
+// activos: se confirmó en la base que fecha_inicio solo falta en baldes
+// históricos genéricos ("ALUMNOS ANTIGUOS", "SEPTIEMBRE 2025", etc.), nunca
+// en una cohorte real con nombre "Mes-AA" — antes se trataban como activos
+// por defecto, lo que colaba miles de alumnos viejos (y sus asesoras) en
+// vistas que deberían mostrar solo la operación vigente. Se exporta para
+// que tanto fetchAlumnos() como el Dashboard apliquen la misma regla.
 export function programaActivo(alumno) {
-  if (!alumno.fecha_inicio) return true
+  if (!alumno.fecha_inicio) return false
   const fin = new Date(alumno.fecha_inicio + 'T00:00:00')
   fin.setDate(fin.getDate() + DURACION_PROGRAMA_DIAS)
   return fin >= new Date()

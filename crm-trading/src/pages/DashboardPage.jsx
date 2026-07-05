@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext'
 import { Loader2, RefreshCw, Phone, CreditCard, MonitorSmartphone, TrendingUp, Smile } from 'lucide-react'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, LabelList } from 'recharts'
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts'
 
 const COLORS = ['#65a7a6','#2dd4a0','#f5b93a','#f07070','#b89eff','#6f9c9a']
 
@@ -22,44 +22,21 @@ const customTooltip = ({ active, payload, label }) => {
 
 const pctLabel = ({ percent }) => percent > 0 ? `${Math.round(percent * 100)}%` : ''
 
-// Series fijas de la evolución de cuentas — mismo color que ya usa "Tipos de
-// cuenta" en esta misma página (consistencia dentro de la vista). Orden de
-// apilado de "peor" a "mejor": No opera, Demo, Real, Fondeo, Sin registro.
-const EVOLUCION_SERIES = [
-  { key:'No opera',    pctKey:'pctNoOpera',    color:'#f07070' },
-  { key:'Demo',        pctKey:'pctDemo',       color:'#65a7a6' },
-  { key:'Real',        pctKey:'pctReal',       color:'#2dd4a0' },
-  { key:'Fondeo',      pctKey:'pctFondeo',     color:'#f5b93a' },
-  { key:'Sin registro',pctKey:'pctSinRegistro',color:'#7a828c' },
-]
-
-// Etiqueta directa solo si el segmento mide lo suficiente para no recortar
-// el texto — un segmento angosto se lee mejor en la leyenda/tooltip que con
-// un "%" apretado adentro.
-function renderStackLabel({ x, y, width, height, value }) {
-  if (!value || value < 8) return null
-  return (
-    <text x={x + width / 2} y={y + height / 2} textAnchor="middle" dominantBaseline="middle"
-      fontSize={11} fontWeight={700} fill="#0b1c21">
-      {value}%
-    </text>
-  )
+// Heatmap de avance: rampa secuencial de un solo hue (mint claro → teal
+// oscuro, los mismos tonos de marca) — 0% = casi sin avance, 100% = todo
+// el programa ya en Real/Fondeo.
+function pctToColor(pct) {
+  const t = Math.max(0, Math.min(100, pct)) / 100
+  const from = [176, 237, 228] // #b0ede4
+  const to   = [28, 64, 71]    // #1c4047
+  const rgb = from.map((c, i) => Math.round(c + (to[i] - c) * t))
+  return `rgb(${rgb.join(',')})`
 }
 
-const evolucionTooltip = ({ active, payload, label }) => {
-  if (!active || !payload?.length) return null
-  const row = payload[0]?.payload
-  if (!row) return null
-  return (
-    <div style={{ background:'var(--bg-input)', border:'1px solid var(--border-default)', borderRadius:8, padding:'10px 14px', fontSize:12 }}>
-      <div style={{ color:'var(--text-primary)', fontWeight:700, marginBottom:6 }}>{label} · {row.total} alumnos</div>
-      {EVOLUCION_SERIES.map(({ key, pctKey, color }) => (
-        <div key={key} style={{ display:'flex', justifyContent:'space-between', gap:16, color }}>
-          <span>{key}</span><span>{row[key]} ({row[pctKey]}%)</span>
-        </div>
-      ))}
-    </div>
-  )
+const MESES_CORTOS = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']
+function formatMesCorto(mesStr) {
+  const [y, m] = mesStr.split('-').map(Number)
+  return `${MESES_CORTOS[m-1]} ${String(y).slice(-2)}`
 }
 
 function SectionTitle({ icon: Icon, title, color='#65a7a6' }) {
@@ -186,7 +163,7 @@ export default function DashboardPage() {
       {/* ══ LLAMADAS ══ */}
       <SectionTitle icon={Phone} title="Seguimiento de Llamadas" color="#65a7a6" />
 
-      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16, marginBottom:16 }}>
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1.7fr', gap:16, marginBottom:16 }}>
         <div className="crm-card" style={{ padding:18 }}>
           <div style={{ fontSize:12, fontWeight:700, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:14 }}>Contactabilidad por programa</div>
           {d.contactabilidadPorPrograma.slice(0,8).map(p => (
@@ -287,28 +264,48 @@ export default function DashboardPage() {
 
       <div className="crm-card" style={{ padding:18, marginBottom:16 }}>
         <div style={{ fontSize:12, fontWeight:700, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:4 }}>
-          Composición de cuentas por cohorte · Ene-26 en adelante
+          Avance por cohorte, mes a mes · Ene-26 en adelante
         </div>
         <div style={{ fontSize:11, color:'var(--text-muted)', marginBottom:14 }}>
-          % de alumnos por tipo de cuenta en cada programa, en orden cronológico — lo esperado es ver Demo y No opera bajar, y Real/Fondeo subir con el tiempo.
+          % de alumnos de cada programa que ya tenían cuenta Real o Fondeo hasta ese mes. Lo esperado: cada fila se va oscureciendo de izquierda a derecha.
         </div>
-        {d.evolucionPorPrograma.length === 0 ? (
+        {d.evolucionHeatmap.filas.length === 0 ? (
           <div style={{ color:'var(--text-muted)', fontSize:13, textAlign:'center', padding:'30px 0' }}>Sin alumnos registrados desde Ene-26</div>
         ) : (
-          <ResponsiveContainer width="100%" height={340}>
-            <BarChart data={d.evolucionPorPrograma} margin={{ top:20, right:10, left:0, bottom:0 }}>
-              <XAxis dataKey="programa" tick={{ fill:'#6f9c9a', fontSize:11 }} axisLine={false} tickLine={false} />
-              <YAxis domain={[0,100]} tickFormatter={v => `${v}%`} tick={{ fill:'#6f9c9a', fontSize:11 }} axisLine={false} tickLine={false} />
-              <Tooltip content={evolucionTooltip} />
-              <Legend wrapperStyle={{ fontSize:11, color:'var(--text-secondary)' }} />
-              {EVOLUCION_SERIES.map(({ key, pctKey, color }, i) => (
-                <Bar key={key} dataKey={pctKey} name={key} stackId="cuentas" fill={color}
-                  radius={i === EVOLUCION_SERIES.length - 1 ? [4,4,0,0] : [0,0,0,0]}>
-                  <LabelList dataKey={pctKey} content={renderStackLabel} />
-                </Bar>
-              ))}
-            </BarChart>
-          </ResponsiveContainer>
+          <div style={{ overflowX:'auto' }}>
+            <table style={{ borderCollapse:'separate', borderSpacing:4, width:'100%' }}>
+              <thead>
+                <tr>
+                  <th style={{ textAlign:'left', fontSize:11, color:'var(--text-muted)', padding:'0 8px 6px', whiteSpace:'nowrap' }}>Programa</th>
+                  {d.evolucionHeatmap.meses.map(m => (
+                    <th key={m} style={{ fontSize:10, color:'var(--text-muted)', fontWeight:600, padding:'0 4px 6px', textAlign:'center', minWidth:56 }}>
+                      {formatMesCorto(m)}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {d.evolucionHeatmap.filas.map(fila => (
+                  <tr key={fila.programa}>
+                    <td style={{ fontSize:12, fontWeight:600, color:'var(--text-primary)', padding:'2px 8px', whiteSpace:'nowrap' }}>{fila.programa}</td>
+                    {d.evolucionHeatmap.meses.map(m => {
+                      const celda = fila.celdas[m]
+                      if (!celda) return <td key={m} style={{ padding:2 }}><div style={{ height:34, borderRadius:6, background:'rgba(255,255,255,0.02)' }} /></td>
+                      const t = celda.pct / 100
+                      return (
+                        <td key={m} style={{ padding:2 }}
+                          title={`${fila.programa} · ${formatMesCorto(m)}: ${celda.pct}% en Real/Fondeo (${celda.avanzados}/${celda.total} alumnos)`}>
+                          <div style={{ height:34, borderRadius:6, background:pctToColor(celda.pct), display:'flex', alignItems:'center', justifyContent:'center', cursor:'default' }}>
+                            <span style={{ fontSize:11, fontWeight:700, color: t > 0.5 ? '#eaf5f2' : '#1c2b2e' }}>{celda.pct}%</span>
+                          </div>
+                        </td>
+                      )
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
       </>

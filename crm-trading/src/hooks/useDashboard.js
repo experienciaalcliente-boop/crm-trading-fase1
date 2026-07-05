@@ -179,52 +179,78 @@ export function useDashboard() {
       llamadasMes.filter(r => r.alumno?.programa === prog && r.respondio === 'Sí')
         .map(r => r.alumno?.nombre).filter(Boolean)
     )
+    // fecha_inicio siempre existe acá — alumnosActivos ya excluye los que no
+    // la tienen (ver programaActivo en lib/api.js).
+    const fechaOrden = alumnosProg.reduce((min, a) => (!min || a.fecha_inicio < min) ? a.fecha_inicio : min, null)
     return {
-      programa: prog, total: alumnosProg.length, respondieron: respondieron.size,
+      programa: prog, fechaOrden, total: alumnosProg.length, respondieron: respondieron.size,
       pct: alumnosProg.length > 0 ? Math.round((respondieron.size / alumnosProg.length) * 100) : 0
     }
-  }).sort((a,b) => b.total - a.total)
+  }).sort((a,b) => (b.fechaOrden || '').localeCompare(a.fechaOrden || ''))
 
-  // ── Evolución de cuentas por programa (Ene-26 en adelante) ─
+  // ── Heatmap de avance por programa × mes (Ene-26 en adelante) ─
   // A propósito NO se limita a alumnosActivos: esta vista es histórica y
   // debe mostrar cómo evolucionó cada cohorte con el tiempo, incluso las
-  // que ya culminaron. Se cruza por alumno_id, no por nombre (mismo motivo
-  // que el fix de Desempeño por Asesora: evitar colisiones de texto libre).
-  const ultimoRegPorAlumnoId = {}
+  // que ya culminaron. Para cada programa y cada mes calendario desde su
+  // inicio hasta el mes actual, calcula qué % de sus alumnos ya tenían
+  // cuenta Real o Fondeo como último registro conocido HASTA ese mes — un
+  // snapshot histórico (no el estado actual), que es lo que permite ver si
+  // cada cohorte avanza mes a mes en vez de una sola foto de hoy.
+  const registrosPorAlumnoId = {}
   llamadas.forEach(r => {
-    if (!r.alumno_id || !r.cuenta) return
-    if (!ultimoRegPorAlumnoId[r.alumno_id]) ultimoRegPorAlumnoId[r.alumno_id] = r
+    if (!r.alumno_id || !r.cuenta || !r.fecha) return
+    if (!registrosPorAlumnoId[r.alumno_id]) registrosPorAlumnoId[r.alumno_id] = []
+    registrosPorAlumnoId[r.alumno_id].push(r)
   })
+  Object.values(registrosPorAlumnoId).forEach(regs => regs.sort((a,b) => a.fecha.localeCompare(b.fecha)))
+
+  function ultimoRegistroHasta(alumnoId, finMesStr) {
+    const regs = registrosPorAlumnoId[alumnoId]
+    if (!regs) return null
+    let resultado = null
+    for (const r of regs) {
+      if (r.fecha > finMesStr) break
+      resultado = r
+    }
+    return resultado
+  }
 
   const gruposEvolucion = {}
   ;(raw.alumnosEvolucion || []).forEach(al => {
-    if (!al.programa) return
+    if (!al.programa || !al.fecha_inicio) return
     if (!gruposEvolucion[al.programa]) gruposEvolucion[al.programa] = { programa: al.programa, fechaOrden: al.fecha_inicio, alumnos: [] }
     gruposEvolucion[al.programa].alumnos.push(al)
-    if (al.fecha_inicio && (!gruposEvolucion[al.programa].fechaOrden || al.fecha_inicio < gruposEvolucion[al.programa].fechaOrden)) {
-      gruposEvolucion[al.programa].fechaOrden = al.fecha_inicio
-    }
+    if (al.fecha_inicio < gruposEvolucion[al.programa].fechaOrden) gruposEvolucion[al.programa].fechaOrden = al.fecha_inicio
   })
 
-  const evolucionPorPrograma = Object.values(gruposEvolucion)
+  const mesActualStr = new Date().toISOString().slice(0, 7)
+
+  const filasHeatmap = Object.values(gruposEvolucion)
     .map(({ programa, fechaOrden, alumnos: als }) => {
-      const total = als.length
-      const conteo = { Demo:0, Real:0, Fondeo:0, 'No opera':0, 'Sin registro':0 }
-      als.forEach(al => {
-        const ult = ultimoRegPorAlumnoId[al.id]
-        if (ult && conteo[ult.cuenta] !== undefined) conteo[ult.cuenta]++
-        else conteo['Sin registro']++
-      })
-      const pct = k => total > 0 ? Math.round((conteo[k] / total) * 100) : 0
-      return {
-        programa, fechaOrden, total,
-        Demo: conteo.Demo, Real: conteo.Real, Fondeo: conteo.Fondeo,
-        'No opera': conteo['No opera'], 'Sin registro': conteo['Sin registro'],
-        pctDemo: pct('Demo'), pctReal: pct('Real'), pctFondeo: pct('Fondeo'),
-        pctNoOpera: pct('No opera'), pctSinRegistro: pct('Sin registro'),
+      const meses = []
+      let [ay, am] = fechaOrden.slice(0, 7).split('-').map(Number)
+      while (`${ay}-${String(am).padStart(2,'0')}` <= mesActualStr) {
+        meses.push(`${ay}-${String(am).padStart(2,'0')}`)
+        am++
+        if (am > 12) { am = 1; ay++ }
       }
+      const celdas = {}
+      meses.forEach(mes => {
+        const [my, mm] = mes.split('-').map(Number)
+        const finMes = `${mes}-${String(new Date(my, mm, 0).getDate()).padStart(2,'0')}`
+        let avanzados = 0
+        als.forEach(al => {
+          const ult = ultimoRegistroHasta(al.id, finMes)
+          if (ult && (ult.cuenta === 'Real' || ult.cuenta === 'Fondeo')) avanzados++
+        })
+        celdas[mes] = { pct: als.length > 0 ? Math.round((avanzados / als.length) * 100) : 0, avanzados, total: als.length }
+      })
+      return { programa, fechaOrden, meses, celdas }
     })
-    .sort((a,b) => (a.fechaOrden || '').localeCompare(b.fechaOrden || ''))
+    .sort((a,b) => a.fechaOrden.localeCompare(b.fechaOrden))
+
+  const mesesHeatmap = [...new Set(filasHeatmap.flatMap(f => f.meses))].sort()
+  const evolucionHeatmap = { filas: filasHeatmap, meses: mesesHeatmap }
 
   // ── Desempeño por asesora ─────────────────────────────────
   // Se agrupa por asesora_id (identidad real), no por el texto libre
@@ -399,7 +425,7 @@ export function useDashboard() {
   return {
     loading, cargar, lastUpdate, mesFiltro, setMesFiltro,
     hoy, programas, alumnosConRiesgo, riesgoAlto,
-    evolucionPorPrograma,
+    evolucionHeatmap,
     desempenoPorAsesora,
     totalAlumnosActivos, totalLlamadas:llamadasMes.length,
     alumnosQueRespondieronMes, respondieron:alumnosQueRespondieronMes.size,
