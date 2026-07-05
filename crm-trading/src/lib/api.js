@@ -46,12 +46,16 @@ export async function tieneProximaPromocion(asesoraId) {
 }
 
 // La relación real de un alumno es por CodAlumno (igual que ya se usa en
-// cuotas) — nombre+programa es solo respaldo para alumnos legado sin código
-// cargado. Se separa en dos grupos porque cada uno usa una restricción única
-// distinta, y se deduplica dentro de cada grupo (quedándose con la última
-// aparición) porque un mismo INSERT no puede afectar la misma fila dos veces:
-// eso es justo lo que producía "ON CONFLICT DO UPDATE command cannot affect
-// row a second time" cuando el Excel traía un alumno repetido.
+// cuotas) — la tabla ya no tiene restricción única por nombre+programa
+// (se eliminó: chocaba con altas reales cuando un alumno nuevo compartía
+// nombre+programa con uno ya existente). Se deduplica por código dentro
+// del lote (quedándose con la última aparición) porque un mismo INSERT no
+// puede afectar la misma fila dos veces: eso es justo lo que producía
+// "ON CONFLICT DO UPDATE command cannot affect row a second time" cuando
+// el Excel traía un alumno repetido. Los pocos alumnos legado sin código
+// (hoy 3) se resuelven a mano por nombre+programa, sin restricción de BD.
+const CHUNK_ALUMNOS = 500
+
 export async function upsertAlumnos(rows) {
   const conCodigo = new Map()
   const sinCodigo = new Map()
@@ -61,19 +65,22 @@ export async function upsertAlumnos(rows) {
   }
 
   const resultados = []
-  if (conCodigo.size) {
+  const filasConCodigo = [...conCodigo.values()]
+  for (let i = 0; i < filasConCodigo.length; i += CHUNK_ALUMNOS) {
     const { data, error } = await supabase
       .from('alumnos')
-      .upsert([...conCodigo.values()], { onConflict: 'codigo_alumno', ignoreDuplicates: false })
+      .upsert(filasConCodigo.slice(i, i + CHUNK_ALUMNOS), { onConflict: 'codigo_alumno', ignoreDuplicates: false })
       .select()
     if (error) throw error
     resultados.push(...data)
   }
-  if (sinCodigo.size) {
-    const { data, error } = await supabase
-      .from('alumnos')
-      .upsert([...sinCodigo.values()], { onConflict: 'nombre,programa', ignoreDuplicates: false })
-      .select()
+
+  for (const r of sinCodigo.values()) {
+    const { data: existente } = await supabase
+      .from('alumnos').select('id').eq('nombre', r.nombre).eq('programa', r.programa).maybeSingle()
+    const { data, error } = existente
+      ? await supabase.from('alumnos').update(r).eq('id', existente.id).select()
+      : await supabase.from('alumnos').insert(r).select()
     if (error) throw error
     resultados.push(...data)
   }
