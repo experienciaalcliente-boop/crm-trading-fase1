@@ -1,10 +1,9 @@
 import { useDashboard } from '../hooks/useDashboard'
 import { useAuth } from '../context/AuthContext'
-import { Loader2, RefreshCw, Phone, CreditCard, MonitorSmartphone, TrendingUp, AlertTriangle, Users, Target, Smile } from 'lucide-react'
+import { Loader2, RefreshCw, Phone, CreditCard, MonitorSmartphone, TrendingUp, Smile } from 'lucide-react'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts'
-import { RiesgoBadge, UltimoContactoBadge } from '../components/shared/Badges'
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, LabelList } from 'recharts'
 
 const COLORS = ['#65a7a6','#2dd4a0','#f5b93a','#f07070','#b89eff','#6f9c9a']
 
@@ -22,6 +21,46 @@ const customTooltip = ({ active, payload, label }) => {
 }
 
 const pctLabel = ({ percent }) => percent > 0 ? `${Math.round(percent * 100)}%` : ''
+
+// Series fijas de la evolución de cuentas — mismo color que ya usa "Tipos de
+// cuenta" en esta misma página (consistencia dentro de la vista). Orden de
+// apilado de "peor" a "mejor": No opera, Demo, Real, Fondeo, Sin registro.
+const EVOLUCION_SERIES = [
+  { key:'No opera',    pctKey:'pctNoOpera',    color:'#f07070' },
+  { key:'Demo',        pctKey:'pctDemo',       color:'#65a7a6' },
+  { key:'Real',        pctKey:'pctReal',       color:'#2dd4a0' },
+  { key:'Fondeo',      pctKey:'pctFondeo',     color:'#f5b93a' },
+  { key:'Sin registro',pctKey:'pctSinRegistro',color:'#7a828c' },
+]
+
+// Etiqueta directa solo si el segmento mide lo suficiente para no recortar
+// el texto — un segmento angosto se lee mejor en la leyenda/tooltip que con
+// un "%" apretado adentro.
+function renderStackLabel({ x, y, width, height, value }) {
+  if (!value || value < 8) return null
+  return (
+    <text x={x + width / 2} y={y + height / 2} textAnchor="middle" dominantBaseline="middle"
+      fontSize={11} fontWeight={700} fill="#0b1c21">
+      {value}%
+    </text>
+  )
+}
+
+const evolucionTooltip = ({ active, payload, label }) => {
+  if (!active || !payload?.length) return null
+  const row = payload[0]?.payload
+  if (!row) return null
+  return (
+    <div style={{ background:'var(--bg-input)', border:'1px solid var(--border-default)', borderRadius:8, padding:'10px 14px', fontSize:12 }}>
+      <div style={{ color:'var(--text-primary)', fontWeight:700, marginBottom:6 }}>{label} · {row.total} alumnos</div>
+      {EVOLUCION_SERIES.map(({ key, pctKey, color }) => (
+        <div key={key} style={{ display:'flex', justifyContent:'space-between', gap:16, color }}>
+          <span>{key}</span><span>{row[key]} ({row[pctKey]}%)</span>
+        </div>
+      ))}
+    </div>
+  )
+}
 
 function SectionTitle({ icon: Icon, title, color='#65a7a6' }) {
   return (
@@ -108,14 +147,19 @@ export default function DashboardPage() {
           <KPICard label="Efectividad"      value={`${d.efectividadOrientador}%`} sub="No volvieron a agendar" color="var(--accent)" accent="var(--accent)" />
           <KPICard label="Alumnos atendidos" value={d.alumnosUnicos}      sub="Este mes"               color="var(--accent)" accent="var(--accent)" />
         </div>
-      ) : (
-        <div style={{ display:'grid', gridTemplateColumns: esAsesora ? 'repeat(3,1fr)' : 'repeat(4,1fr)', gap:10, marginBottom:4 }}>
+      ) : esAsesora ? (
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:10, marginBottom:4 }}>
           <KPICard label="Alumnos activos"    value={d.totalAlumnosActivos}  sub="En curso + seguimiento"    color="var(--accent)"  accent="var(--accent)" />
           <KPICard label="Contactabilidad"    value={`${d.contactabilidad}%`} sub={`${d.respondieron} respondieron`} color="#2dd4a0" accent="#2dd4a0" />
           <KPICard label="Riesgo Alto"        value={d.riesgoAlto}           sub="Requieren intervención"   color="#f07070"  accent="#f07070" />
-          {!esAsesora && (
-            <KPICard label="Beneficio total"    value={`S/ ${fmt(d.beneficioTotal)}`} sub="Convertido a soles" color="#f5b93a" accent="#f5b93a" />
-          )}
+        </div>
+      ) : (
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(5,1fr)', gap:10, marginBottom:4 }}>
+          <KPICard label="Alumnos activos"    value={d.totalAlumnosActivos}  sub="En curso + seguimiento"    color="var(--accent)"  accent="var(--accent)" />
+          <KPICard label="Contactabilidad"    value={`${d.contactabilidad}%`} sub={`${d.respondieron} respondieron`} color="#2dd4a0" accent="#2dd4a0" />
+          <KPICard label="SAT general"        value="—" sub="Sin datos aún" color="var(--text-muted)" accent="var(--text-muted)" />
+          <KPICard label="NPS general"        value="—" sub="Sin datos aún" color="var(--text-muted)" accent="var(--text-muted)" />
+          <KPICard label="Beneficio total"    value={`S/ ${fmt(d.beneficioTotal)}`} sub="Convertido a soles" color="#f5b93a" accent="#f5b93a" />
         </div>
       )}
 
@@ -149,13 +193,43 @@ export default function DashboardPage() {
             <PctBar key={p.programa} label={p.programa} pct={p.pct} count={p.respondieron} total={p.total} color="#65a7a6" />
           ))}
         </div>
-        <div className="crm-card" style={{ padding:18 }}>
-          <div style={{ fontSize:12, fontWeight:700, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:14 }}>Rendimiento hoy por asesora</div>
-          {d.statsPorAsesora.length === 0 ? (
-            <div style={{ color:'var(--text-muted)', fontSize:13, textAlign:'center', padding:'20px 0' }}>Sin registros hoy</div>
-          ) : d.statsPorAsesora.map(a => (
-            <PctBar key={a.asesora} label={a.asesora} pct={a.pct} count={a.respondieron} total={a.total} color="#2dd4a0" />
-          ))}
+        <div className="crm-card" style={{ padding:18, overflowX:'auto' }}>
+          <div style={{ fontSize:12, fontWeight:700, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:14 }}>Desempeño por asesora</div>
+          <table className="crm-table">
+            <thead>
+              <tr>
+                <th>Asesora</th>
+                <th>Alumnos</th>
+                <th>Llamadas</th>
+                <th>Contactabilidad</th>
+                <th>Riesgo Alto</th>
+                <th>Sin contacto 7d+</th>
+              </tr>
+            </thead>
+            <tbody>
+              {d.desempenoPorAsesora.map(a => (
+                <tr key={a.asesora}>
+                  <td style={{ fontWeight:600, color:'var(--text-primary)' }}>{a.asesora}</td>
+                  <td style={{ textAlign:'center' }}>{a.totalAlumnos}</td>
+                  <td style={{ textAlign:'center' }}>{a.llamadasMes}</td>
+                  <td>
+                    <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                      <div style={{ flex:1, height:6, background:'rgba(255,255,255,0.06)', borderRadius:3 }}>
+                        <div style={{ height:'100%', width:`${a.contactabilidad}%`, background: a.contactabilidad >= 70 ? '#2dd4a0' : a.contactabilidad >= 40 ? '#f5b93a' : '#f07070', borderRadius:3 }} />
+                      </div>
+                      <span style={{ fontSize:12, fontWeight:600, color:'var(--text-primary)', minWidth:32 }}>{a.contactabilidad}%</span>
+                    </div>
+                  </td>
+                  <td style={{ textAlign:'center' }}>
+                    {a.riesgoAlto > 0 ? <span style={{ color:'#f87171', fontWeight:700 }}>{a.riesgoAlto}</span> : <span style={{ color:'var(--text-muted)' }}>—</span>}
+                  </td>
+                  <td style={{ textAlign:'center' }}>
+                    {a.sinContacto7 > 0 ? <span style={{ color:'#fb923c', fontWeight:700 }}>{a.sinContacto7}</span> : <span style={{ color:'var(--text-muted)' }}>—</span>}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
 
@@ -208,159 +282,36 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* ══ PIPELINE ══ */}
-      <SectionTitle icon={TrendingUp} title="Pipeline Demo → Real → Fondeo" color="#2dd4a0" />
+      {/* ══ EVOLUCIÓN DE CUENTAS POR PROGRAMA ══ */}
+      <SectionTitle icon={TrendingUp} title="Evolución de Cuentas por Programa" color="#65a7a6" />
 
-      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16, marginBottom:16 }}>
-        {/* Dona pipeline */}
-        <div className="crm-card" style={{ padding:18 }}>
-          <div style={{ fontSize:12, fontWeight:700, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:14 }}>Distribución actual (historial completo)</div>
-          <ResponsiveContainer width="100%" height={180}>
-            <PieChart>
-              <Pie data={Object.entries(d.pipeline).map(([k,v])=>({name:k,value:v}))}
-                cx="50%" cy="50%" innerRadius={45} outerRadius={75} paddingAngle={3} dataKey="value">
-                {Object.keys(d.pipeline).map((_,i) => <Cell key={i} fill={COLORS[i]} />)}
-              </Pie>
-              <Tooltip content={customTooltip} />
+      <div className="crm-card" style={{ padding:18, marginBottom:16 }}>
+        <div style={{ fontSize:12, fontWeight:700, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:4 }}>
+          Composición de cuentas por cohorte · Ene-26 en adelante
+        </div>
+        <div style={{ fontSize:11, color:'var(--text-muted)', marginBottom:14 }}>
+          % de alumnos por tipo de cuenta en cada programa, en orden cronológico — lo esperado es ver Demo y No opera bajar, y Real/Fondeo subir con el tiempo.
+        </div>
+        {d.evolucionPorPrograma.length === 0 ? (
+          <div style={{ color:'var(--text-muted)', fontSize:13, textAlign:'center', padding:'30px 0' }}>Sin alumnos registrados desde Ene-26</div>
+        ) : (
+          <ResponsiveContainer width="100%" height={340}>
+            <BarChart data={d.evolucionPorPrograma} margin={{ top:20, right:10, left:0, bottom:0 }}>
+              <XAxis dataKey="programa" tick={{ fill:'#6f9c9a', fontSize:11 }} axisLine={false} tickLine={false} />
+              <YAxis domain={[0,100]} tickFormatter={v => `${v}%`} tick={{ fill:'#6f9c9a', fontSize:11 }} axisLine={false} tickLine={false} />
+              <Tooltip content={evolucionTooltip} />
               <Legend wrapperStyle={{ fontSize:11, color:'var(--text-secondary)' }} />
-            </PieChart>
+              {EVOLUCION_SERIES.map(({ key, pctKey, color }, i) => (
+                <Bar key={key} dataKey={pctKey} name={key} stackId="cuentas" fill={color}
+                  radius={i === EVOLUCION_SERIES.length - 1 ? [4,4,0,0] : [0,0,0,0]}>
+                  <LabelList dataKey={pctKey} content={renderStackLabel} />
+                </Bar>
+              ))}
+            </BarChart>
           </ResponsiveContainer>
-        </div>
-
-        {/* Pipeline por programa */}
-        <div className="crm-card" style={{ padding:18 }}>
-          <div style={{ fontSize:12, fontWeight:700, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:14 }}>Pipeline por programa</div>
-          <div style={{ overflowX:'auto' }}>
-            <table className="crm-table">
-              <thead><tr><th>Programa</th><th>Demo</th><th>Real</th><th>Fondeo</th><th>No op.</th></tr></thead>
-              <tbody>
-                {d.pipelinePorPrograma.map(p => (
-                  <tr key={p.programa}>
-                    <td style={{ fontWeight:500 }}>{p.programa}</td>
-                    <td style={{ color: p.Demo > 0 ? 'var(--accent)' : 'var(--text-faint)', textAlign:'center' }}>{p.Demo || '—'}</td>
-                    <td style={{ color: p.Real > 0 ? '#2dd4a0' : 'var(--text-faint)', textAlign:'center' }}>{p.Real || '—'}</td>
-                    <td style={{ color: p.Fondeo > 0 ? '#f5b93a' : 'var(--text-faint)', textAlign:'center' }}>{p.Fondeo || '—'}</td>
-                    <td style={{ color: p['No opera'] > 0 ? '#f07070' : 'var(--text-faint)', textAlign:'center' }}>{p['No opera'] || '—'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          {d.alumnosDemoEstancados.length > 0 && (
-            <div style={{ marginTop:12, padding:'8px 10px', borderRadius:8, background:'rgba(245,166,35,0.08)', border:'1px solid rgba(245,166,35,0.2)', fontSize:11, color:'#f5b93a' }}>
-              ⚠️ {d.alumnosDemoEstancados.length} alumnos en Demo desde semana 12+
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* ══ SECCIÓN RIESGO ══ */}
-      <SectionTitle icon={AlertTriangle} title="Sistema de Riesgo de Deserción" color="#f07070" />
-
-      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:10, marginBottom:16 }}>
-        {/* Distribución de riesgo */}
-        <div className="crm-card" style={{ padding:18 }}>
-          <div style={{ fontSize:12, fontWeight:700, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:14 }}>Distribución de riesgo</div>
-          {[
-            { label:'Bajo 🟢',  value: d.riesgoBajo,  color:'#4ade80', pct: d.totalAlumnosActivos > 0 ? Math.round(d.riesgoBajo/d.totalAlumnosActivos*100) : 0 },
-            { label:'Medio 🟡', value: d.riesgoMedio, color:'#fbbf24', pct: d.totalAlumnosActivos > 0 ? Math.round(d.riesgoMedio/d.totalAlumnosActivos*100) : 0 },
-            { label:'Alto 🔴',  value: d.riesgoAlto,  color:'#f87171', pct: d.totalAlumnosActivos > 0 ? Math.round(d.riesgoAlto/d.totalAlumnosActivos*100) : 0 },
-          ].map(({ label, value, color, pct }) => (
-            <div key={label} style={{ marginBottom:12 }}>
-              <div style={{ display:'flex', justifyContent:'space-between', marginBottom:4 }}>
-                <span style={{ fontSize:13, color:'var(--text-secondary)' }}>{label}</span>
-                <span style={{ fontSize:13, fontWeight:700, color }}>{value} <span style={{ color:'var(--text-muted)', fontWeight:400, fontSize:11 }}>({pct}%)</span></span>
-              </div>
-              <div style={{ height:6, background:'rgba(255,255,255,0.06)', borderRadius:3, overflow:'hidden' }}>
-                <div style={{ height:'100%', width:`${pct}%`, background:color, borderRadius:3 }} />
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Último contacto */}
-        <div className="crm-card" style={{ padding:18 }}>
-          <div style={{ fontSize:12, fontWeight:700, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:14 }}>Último contacto efectivo</div>
-          {[
-            { label:'< 7 días (reciente)',    value: d.segContacto.reciente,    color:'#4ade80' },
-            { label:'7–14 días',              value: d.segContacto.d7,          color:'#fbbf24' },
-            { label:'14–21 días (urgente)',   value: d.segContacto.d14,         color:'#fb923c' },
-            { label:'> 21 días (crítico)',    value: d.segContacto.d21,         color:'#f87171' },
-            { label:'Sin contacto registrado',value: d.segContacto.sinContacto, color:'var(--text-muted)' },
-          ].map(({ label, value, color }) => (
-            <div key={label} style={{ display:'flex', justifyContent:'space-between', padding:'6px 0', borderBottom:'1px solid rgba(255,255,255,0.05)' }}>
-              <span style={{ fontSize:12, color:'var(--text-secondary)' }}>{label}</span>
-              <span style={{ fontSize:13, fontWeight:700, color }}>{value}</span>
-            </div>
-          ))}
-        </div>
-
-        {/* Alumnos en riesgo alto */}
-        <div className="crm-card" style={{ padding:18, overflowY:'auto', maxHeight:220 }}>
-          <div style={{ fontSize:12, fontWeight:700, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:10 }}>Alumnos en riesgo alto</div>
-          {d.alumnosRiesgoAlto.length === 0 ? (
-            <div style={{ color:'var(--text-muted)', fontSize:12, textAlign:'center', padding:'20px 0' }}>✓ Sin alumnos en riesgo alto</div>
-          ) : d.alumnosRiesgoAlto.slice(0,8).map(al => (
-            <div key={al.id} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'5px 0', borderBottom:'1px solid rgba(255,255,255,0.04)' }}>
-              <div>
-                <div style={{ fontSize:12, fontWeight:600, color:'var(--text-primary)' }}>{al.nombre}</div>
-                <div style={{ fontSize:10, color:'var(--text-muted)' }}>{al.programa}</div>
-              </div>
-              <RiesgoBadge nivel={al.riesgo_nivel} score={al.riesgo_score} />
-            </div>
-          ))}
-        </div>
+        )}
       </div>
       </>
-      )}
-
-      {/* ══ DESEMPEÑO POR ASESORA (solo supervisor) ══ */}
-      {esSupervisor && (
-        <>
-          <SectionTitle icon={Users} title="Desempeño por Asesora" color="#65a7a6" />
-
-          <div className="crm-card" style={{ marginBottom:16, overflowX:'auto' }}>
-            <table className="crm-table">
-              <thead>
-                <tr>
-                  <th>Asesora</th>
-                  <th>Alumnos</th>
-                  <th>Llamadas</th>
-                  <th>Contactabilidad</th>
-                  <th>T. Reacción</th>
-                  <th>Riesgo Alto</th>
-                  <th>Sin contacto 7d+</th>
-                </tr>
-              </thead>
-              <tbody>
-                {d.desempenoPorAsesora.map((a, i) => (
-                  <tr key={a.asesora}>
-                    <td style={{ fontWeight:600, color:'var(--text-primary)' }}>{a.asesora}</td>
-                    <td style={{ textAlign:'center' }}>{a.totalAlumnos}</td>
-                    <td style={{ textAlign:'center' }}>{a.llamadasMes}</td>
-                    <td>
-                      <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                        <div style={{ flex:1, height:6, background:'rgba(255,255,255,0.06)', borderRadius:3 }}>
-                          <div style={{ height:'100%', width:`${a.contactabilidad}%`, background: a.contactabilidad >= 70 ? '#2dd4a0' : a.contactabilidad >= 40 ? '#f5b93a' : '#f07070', borderRadius:3 }} />
-                        </div>
-                        <span style={{ fontSize:12, fontWeight:600, color:'var(--text-primary)', minWidth:32 }}>{a.contactabilidad}%</span>
-                      </div>
-                    </td>
-                    <td style={{ textAlign:'center', fontSize:12, color: a.tiempoReaccion ? (a.tiempoReaccion <= 24 ? '#2dd4a0' : a.tiempoReaccion <= 48 ? '#f5b93a' : '#f07070') : 'var(--text-faint)' }}>
-                      {a.tiempoReaccion ? `${a.tiempoReaccion}h` : '—'}
-                    </td>
-                    <td style={{ textAlign:'center' }}>
-                      {a.riesgoAlto > 0 ? <span style={{ color:'#f87171', fontWeight:700 }}>{a.riesgoAlto}</span> : <span style={{ color:'var(--text-muted)' }}>—</span>}
-                    </td>
-                    <td style={{ textAlign:'center' }}>
-                      {a.sinContacto7 > 0 ? <span style={{ color:'#fb923c', fontWeight:700 }}>{a.sinContacto7}</span> : <span style={{ color:'var(--text-muted)' }}>—</span>}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </>
       )}
 
       {/* ══ RECAUDACIÓN (solo supervisor) ══ */}

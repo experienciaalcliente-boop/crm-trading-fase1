@@ -38,7 +38,7 @@ function calcularRiesgoLocal(alumno, cuotas, llamadas) {
 }
 
 async function fetchDashboard() {
-  const [r1, r2, r3, r4] = await Promise.all([
+  const [r1, r2, r3, r4, r5, r6] = await Promise.all([
     supabase.from('registros_llamadas')
       .select('id, fecha, respondio, avance, cuenta, capital_real, fase_fondeo, beneficio, retiro, monto_retiro, created_at, alumno_id, alumno:alumnos(nombre, programa), asesora:asesoras(nombre)')
       .order('fecha', { ascending: false })
@@ -52,12 +52,21 @@ async function fetchDashboard() {
     supabase.from('alumnos')
       .select('id, nombre, programa, estado, semana_actual, asesora, asesora_id, riesgo_nivel, riesgo_score, ultimo_contacto_at, nivel_atencion, estado_operativo, fecha_inicio')
       .in('estado', ['Activo', 'En Curso', 'En Seguimiento', 'activo', 'en curso', 'en seguimiento']),
+    supabase.from('asesoras').select('id, nombre'),
+    // Evolución por programa: histórico completo desde Ene-26, sin filtrar por
+    // estado ni por programaActivo (a propósito — esta vista debe mostrar
+    // cómo evolucionaron cohortes que ya culminaron, no solo las vigentes).
+    supabase.from('alumnos')
+      .select('id, nombre, programa, fecha_inicio')
+      .gte('fecha_inicio', '2026-01-01'),
   ])
   return {
-    llamadas:      (r1.data || []).filter(Boolean),
-    cuotas:        (r2.data || []).filter(Boolean),
-    sesiones:      (r3.data || []).filter(Boolean),
-    alumnosActivos:(r4.data || []).filter(Boolean).filter(programaActivo),
+    llamadas:        (r1.data || []).filter(Boolean),
+    cuotas:          (r2.data || []).filter(Boolean),
+    sesiones:        (r3.data || []).filter(Boolean),
+    alumnosActivos:  (r4.data || []).filter(Boolean).filter(programaActivo),
+    asesoras:        (r5.data || []).filter(Boolean),
+    alumnosEvolucion:(r6.data || []).filter(Boolean),
   }
 }
 
@@ -67,7 +76,7 @@ export function useDashboard() {
     const d = new Date()
     return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`
   })
-  const [raw,     setRaw]     = useState({ llamadas:[], cuotas:[], sesiones:[], alumnosActivos:[] })
+  const [raw,     setRaw]     = useState({ llamadas:[], cuotas:[], sesiones:[], alumnosActivos:[], asesoras:[], alumnosEvolucion:[] })
   const [loading, setLoading] = useState(true)
   const [lastUpdate, setLastUpdate] = useState(new Date())
 
@@ -123,7 +132,6 @@ export function useDashboard() {
   const llamadasMes = llamadas.filter(r => r.fecha >= inicioMes && r.fecha <= finMes)
   const cuotasMes   = cuotas.filter(c => c.fecha_vence >= inicioMes && c.fecha_vence <= finMes)
   const sesionesMes = sesiones.filter(s => s.fecha >= inicioMes && s.fecha <= finMes)
-  const llamadasHoy = llamadas.filter(r => r.fecha === hoy)
 
   const TC_DEFAULT = 3.6
   const tcPorAlumno = {}
@@ -152,23 +160,11 @@ export function useDashboard() {
     return { ...al, riesgo_score: score, riesgo_nivel: nivel }
   })
 
-  const riesgoBajo  = alumnosConRiesgo.filter(a => a.riesgo_nivel === 'Bajo').length
-  const riesgoMedio = alumnosConRiesgo.filter(a => a.riesgo_nivel === 'Medio').length
-  const riesgoAlto  = alumnosConRiesgo.filter(a => a.riesgo_nivel === 'Alto').length
-  const alumnosRiesgoAlto = alumnosConRiesgo
-    .filter(a => a.riesgo_nivel === 'Alto')
-    .sort((a, b) => b.riesgo_score - a.riesgo_score)
-
-  // ── Último contacto ───────────────────────────────────────
-  const segContacto = { reciente:0, d7:0, d14:0, d21:0, sinContacto:0 }
-  alumnosConRiesgo.forEach(al => {
-    if (!al.ultimo_contacto_at) { segContacto.sinContacto++; return }
-    const dias = Math.floor((new Date() - new Date(al.ultimo_contacto_at + 'T00:00:00')) / 86400000)
-    if (dias < 7)       segContacto.reciente++
-    else if (dias < 14) segContacto.d7++
-    else if (dias < 21) segContacto.d14++
-    else                segContacto.d21++
-  })
+  // Solo el conteo total sigue vivo — alimenta el KPI de la vista de
+  // asesora y la columna "Riesgo Alto" de Desempeño por Asesora. El resto
+  // del desglose (bajo/medio, segmentación por último contacto, listado)
+  // solo lo usaba la sección "Sistema de Riesgo" ya eliminada del dashboard.
+  const riesgoAlto = alumnosConRiesgo.filter(a => a.riesgo_nivel === 'Alto').length
 
   // ── Contactabilidad ───────────────────────────────────────
   const alumnosQueRespondieronMes = new Set(
@@ -189,86 +185,79 @@ export function useDashboard() {
     }
   }).sort((a,b) => b.total - a.total)
 
-  // ── Pipeline Demo→Real→Fondeo (historial completo) ────────
-  const ultimoRegPorAlumno = {}
+  // ── Evolución de cuentas por programa (Ene-26 en adelante) ─
+  // A propósito NO se limita a alumnosActivos: esta vista es histórica y
+  // debe mostrar cómo evolucionó cada cohorte con el tiempo, incluso las
+  // que ya culminaron. Se cruza por alumno_id, no por nombre (mismo motivo
+  // que el fix de Desempeño por Asesora: evitar colisiones de texto libre).
+  const ultimoRegPorAlumnoId = {}
   llamadas.forEach(r => {
-    const nombre = r.alumno?.nombre
-    if (!nombre || !r.cuenta) return
-    if (!ultimoRegPorAlumno[nombre]) ultimoRegPorAlumno[nombre] = r
+    if (!r.alumno_id || !r.cuenta) return
+    if (!ultimoRegPorAlumnoId[r.alumno_id]) ultimoRegPorAlumnoId[r.alumno_id] = r
   })
 
-  const pipeline = { Demo:0, Real:0, Fondeo:0, 'No opera':0, 'Sin registro':0 }
-  alumnosActivos.forEach(al => {
-    const ult = ultimoRegPorAlumno[al.nombre]
-    if (!ult) { pipeline['Sin registro']++; return }
-    if (pipeline[ult.cuenta] !== undefined) pipeline[ult.cuenta]++
-    else pipeline['Sin registro']++
-  })
-
-  const pipelinePorPrograma = programas.map(prog => {
-    const ultProg = {}
-    llamadas.filter(r => r.alumno?.programa === prog && r.cuenta).forEach(r => {
-      const n = r.alumno?.nombre
-      if (n && !ultProg[n]) ultProg[n] = r
-    })
-    const unicos = Object.values(ultProg)
-    return {
-      programa: prog,
-      Demo:      unicos.filter(r => r.cuenta === 'Demo').length,
-      Real:      unicos.filter(r => r.cuenta === 'Real').length,
-      Fondeo:    unicos.filter(r => r.cuenta === 'Fondeo').length,
-      'No opera':unicos.filter(r => r.cuenta === 'No opera').length,
-    }
-  }).filter(p => p.Demo + p.Real + p.Fondeo + p['No opera'] > 0)
-
-  const alumnosDemoEstancados = alumnosActivos.filter(al => {
-    const ult    = ultimoRegPorAlumno[al.nombre]
-    const semana = parseInt(al.semana_actual) || 0
-    return ult && ult.cuenta === 'Demo' && semana >= 12
-  })
-
-  // ── Activación ────────────────────────────────────────────
-  const alumnosActivados = alumnosActivos.filter(al => {
-    const ult = ultimoRegPorAlumno[al.nombre]
-    if (!ult || !ult.cuenta || ult.cuenta === 'No opera') return false
-    if ((ult.avance || 0) < 20) return false
-    if (!al.ultimo_contacto_at) return false
-    return Math.floor((new Date() - new Date(al.ultimo_contacto_at + 'T00:00:00')) / 86400000) <= 14
-  })
-  const pctActivacion = totalAlumnosActivos > 0
-    ? Math.round((alumnosActivados.length / totalAlumnosActivos) * 100) : 0
-
-  const activacionPorPrograma = programas.map(prog => {
-    const alumnosProg  = alumnosActivos.filter(a => a.programa === prog)
-    const activadosProg = alumnosProg.filter(al => {
-      const ult = ultimoRegPorAlumno[al.nombre]
-      if (!ult || !ult.cuenta || ult.cuenta === 'No opera') return false
-      if ((ult.avance || 0) < 20) return false
-      if (!al.ultimo_contacto_at) return false
-      return Math.floor((new Date() - new Date(al.ultimo_contacto_at + 'T00:00:00')) / 86400000) <= 14
-    })
-    return {
-      programa: prog, total: alumnosProg.length, activados: activadosProg.length,
-      pct: alumnosProg.length > 0 ? Math.round((activadosProg.length / alumnosProg.length) * 100) : 0
+  const gruposEvolucion = {}
+  ;(raw.alumnosEvolucion || []).forEach(al => {
+    if (!al.programa) return
+    if (!gruposEvolucion[al.programa]) gruposEvolucion[al.programa] = { programa: al.programa, fechaOrden: al.fecha_inicio, alumnos: [] }
+    gruposEvolucion[al.programa].alumnos.push(al)
+    if (al.fecha_inicio && (!gruposEvolucion[al.programa].fechaOrden || al.fecha_inicio < gruposEvolucion[al.programa].fechaOrden)) {
+      gruposEvolucion[al.programa].fechaOrden = al.fecha_inicio
     }
   })
+
+  const evolucionPorPrograma = Object.values(gruposEvolucion)
+    .map(({ programa, fechaOrden, alumnos: als }) => {
+      const total = als.length
+      const conteo = { Demo:0, Real:0, Fondeo:0, 'No opera':0, 'Sin registro':0 }
+      als.forEach(al => {
+        const ult = ultimoRegPorAlumnoId[al.id]
+        if (ult && conteo[ult.cuenta] !== undefined) conteo[ult.cuenta]++
+        else conteo['Sin registro']++
+      })
+      const pct = k => total > 0 ? Math.round((conteo[k] / total) * 100) : 0
+      return {
+        programa, fechaOrden, total,
+        Demo: conteo.Demo, Real: conteo.Real, Fondeo: conteo.Fondeo,
+        'No opera': conteo['No opera'], 'Sin registro': conteo['Sin registro'],
+        pctDemo: pct('Demo'), pctReal: pct('Real'), pctFondeo: pct('Fondeo'),
+        pctNoOpera: pct('No opera'), pctSinRegistro: pct('Sin registro'),
+      }
+    })
+    .sort((a,b) => (a.fechaOrden || '').localeCompare(b.fechaOrden || ''))
 
   // ── Desempeño por asesora ─────────────────────────────────
-  const todasAsesoras = [...new Set(alumnosActivos.map(a => a.asesora).filter(Boolean))]
-  const desempenoPorAsesora = todasAsesoras.map(asesora => {
-    const misAlumnos  = alumnosActivos.filter(a => a.asesora === asesora)
-    const misLlamadas = llamadasMes.filter(r => r.asesora?.nombre === asesora)
+  // Se agrupa por asesora_id (identidad real), no por el texto libre
+  // alumnos.asesora — ese texto viene del Excel y puede traer variantes del
+  // mismo nombre (ej. "Silva Sosa Anael" vs "Anael S."), lo que duplicaba la
+  // fila de una misma persona. Los pocos alumnos legado sin asesora_id caen
+  // a un grupo de respaldo por su texto tal cual, para no perderlos.
+  const nombrePorAsesoraId = {}
+  ;(raw.asesoras || []).forEach(a => { nombrePorAsesoraId[a.id] = a.nombre })
+
+  const gruposAsesora = {}
+  alumnosActivos.forEach(al => {
+    const key = al.asesora_id || `sin-id:${al.asesora || 'Sin asignar'}`
+    if (!gruposAsesora[key]) {
+      gruposAsesora[key] = { nombre: nombrePorAsesoraId[al.asesora_id] || al.asesora || 'Sin asignar', alumnos: [] }
+    }
+    gruposAsesora[key].alumnos.push(al)
+  })
+
+  const desempenoPorAsesora = Object.values(gruposAsesora).map(({ nombre, alumnos: misAlumnos }) => {
+    const misAlumnoIds = new Set(misAlumnos.map(a => a.id))
+    const misLlamadas = llamadasMes.filter(r => misAlumnoIds.has(r.alumno_id))
     const unicosContactados = new Set(
-      misLlamadas.filter(r => r.respondio === 'Sí').map(r => r.alumno?.nombre).filter(Boolean)
+      misLlamadas.filter(r => r.respondio === 'Sí').map(r => r.alumno_id).filter(Boolean)
     )
     const contactabilidadAs = misAlumnos.length > 0
       ? Math.round((unicosContactados.size / misAlumnos.length) * 100) : 0
-    const riesgoAltoAs = alumnosConRiesgo.filter(a => a.asesora === asesora && a.riesgo_nivel === 'Alto').length
+    const riesgoAltoAs = alumnosConRiesgo.filter(a => misAlumnoIds.has(a.id) && a.riesgo_nivel === 'Alto').length
     const sinContacto7 = misAlumnos.filter(al => {
       if (!al.ultimo_contacto_at) return true
       return Math.floor((new Date() - new Date(al.ultimo_contacto_at + 'T00:00:00')) / 86400000) >= 7
     }).length
-    return { asesora, totalAlumnos:misAlumnos.length, llamadasMes:misLlamadas.length,
+    return { asesora: nombre, totalAlumnos:misAlumnos.length, llamadasMes:misLlamadas.length,
       contactabilidad:contactabilidadAs, unicosContactados:unicosContactados.size,
       riesgoAlto:riesgoAltoAs, sinContacto7 }
   }).sort((a,b) => b.contactabilidad - a.contactabilidad)
@@ -330,12 +319,6 @@ export function useDashboard() {
     const tc = tcPorAlumno[r.alumno?.nombre] || TC_DEFAULT
     return s + (parseFloat(r.beneficio || 0) * tc)
   }, 0)
-
-  const statsPorAsesora = [...new Set(llamadasHoy.map(r => r.asesora?.nombre).filter(Boolean))].map(a => {
-    const regs = llamadasHoy.filter(r => r.asesora?.nombre === a)
-    const resp = regs.filter(r => r.respondio === 'Sí').length
-    return { asesora:a, total:regs.length, respondieron:resp, pct:regs.length > 0 ? Math.round(resp/regs.length*100) : 0 }
-  })
 
   // ── Recaudación ───────────────────────────────────────────
   const totalCuotas      = cuotasMes.length
@@ -415,18 +398,15 @@ export function useDashboard() {
 
   return {
     loading, cargar, lastUpdate, mesFiltro, setMesFiltro,
-    hoy, programas, alumnosConRiesgo,
-    riesgoBajo, riesgoMedio, riesgoAlto, alumnosRiesgoAlto,
-    segContacto,
-    pipeline, pipelinePorPrograma, alumnosDemoEstancados,
-    alumnosActivados, pctActivacion, activacionPorPrograma,
+    hoy, programas, alumnosConRiesgo, riesgoAlto,
+    evolucionPorPrograma,
     desempenoPorAsesora,
     totalAlumnosActivos, totalLlamadas:llamadasMes.length,
     alumnosQueRespondieronMes, respondieron:alumnosQueRespondieronMes.size,
     contactabilidad, contactabilidadPorPrograma,
     tiposCuenta, totalCuentas, cuentasPorPrograma,
     rangosCapital, cuentasReales, totalCuentasReales, fasesFondeo,
-    retiros, beneficioTotal, llamadasHoy, statsPorAsesora,
+    retiros, beneficioTotal,
     totalCuotas, cuotasPagadas, cuotasParciales, cuotasPendientes,
     cuotasProrrogas, cuotasReservas, cuotasRetirados,
     montoTotalPEN, montoTotalUSD, montoPagadoPEN, montoPagadoUSD,
