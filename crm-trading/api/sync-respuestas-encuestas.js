@@ -1,8 +1,15 @@
-// Vercel Cron (cada 15 min) — trae las respuestas nuevas de ambas encuestas
-// de NPS/satisfacción (Google Forms) y las guarda en Supabase. Se identifica
+// El plan Hobby de Vercel no permite crons más frecuentes que 1/día, así que
+// esto ya no corre por cron: lo dispara el propio frontend cada vez que se
+// carga el Dashboard (ver fetchEncuestasSatisfaccion en lib/api.js). Para no
+// golpear la API de Google en cada carga de página, se auto-limita a 1
+// ejecución real cada 5 minutos (tabla sync_estado) — el resto de llamadas
+// responde de inmediato sin tocar Google. Trae las respuestas nuevas de
+// ambas encuestas de NPS/satisfacción y las guarda en Supabase. Se identifica
 // cada pregunta por su questionId (fijo mientras no se cambie la estructura
 // de las encuestas — ver sync-programas-encuestas.js para ese otro cron).
 import { createClient } from '@supabase/supabase-js'
+
+const INTERVALO_MIN_MS = 5 * 60 * 1000
 
 const FORMS = {
   asesoria: {
@@ -67,13 +74,26 @@ async function sincronizarFormulario(tipo, { formId, q }, accessToken, supabase)
 }
 
 export default async function handler(req, res) {
-  const auth = req.headers.authorization
-  if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
-    return res.status(401).json({ error: 'No autorizado' })
-  }
-
   try {
     const supabase = createClient(process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
+
+    const { data: estado } = await supabase
+      .from('sync_estado')
+      .select('ultima_ejecucion')
+      .eq('id', 'respuestas_encuestas')
+      .single()
+
+    const ahora = Date.now()
+    const ultima = estado?.ultima_ejecucion ? new Date(estado.ultima_ejecucion).getTime() : 0
+    if (ahora - ultima < INTERVALO_MIN_MS) {
+      return res.status(200).json({ ok: true, saltado: true })
+    }
+
+    await supabase
+      .from('sync_estado')
+      .update({ ultima_ejecucion: new Date(ahora).toISOString() })
+      .eq('id', 'respuestas_encuestas')
+
     const accessToken = await obtenerAccessToken()
     const resultados = await Promise.all(
       Object.entries(FORMS).map(([tipo, cfg]) => sincronizarFormulario(tipo, cfg, accessToken, supabase))

@@ -916,10 +916,16 @@ export async function insertVentaComplemento(payload) {
 // ─────────────────────────────────────────
 // ENCUESTAS DE SATISFACCIÓN (NPS / CSAT)
 // ─────────────────────────────────────────
-// Se sincronizan solas cada 15 min desde Google Forms (ver
-// api/sync-respuestas-encuestas.js) — acá solo se leen y se calculan los
-// indicadores.
+// Antes de leer, dispara la sincronización con Google Forms (ver
+// api/sync-respuestas-encuestas.js) — el propio endpoint se auto-limita a 1
+// sincronización real cada 5 min, así que llamarlo en cada carga del
+// Dashboard es seguro y mantiene los indicadores casi al día.
 export async function fetchEncuestasSatisfaccion() {
+  try {
+    await fetch('/api/sync-respuestas-encuestas')
+  } catch (err) {
+    console.error('No se pudo sincronizar encuestas:', err)
+  }
   const { data, error } = await supabase
     .from('encuestas_satisfaccion')
     .select('id, tipo, programa, nps_score, csat_label, fecha_respuesta')

@@ -3,7 +3,6 @@
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ],
   "crons": [
-    { "path": "/api/sync-programas-encuestas", "schedule": "0 5 1 * *" },
-    { "path": "/api/sync-respuestas-encuestas", "schedule": "*/15 * * * *" }
+    { "path": "/api/sync-programas-encuestas", "schedule": "0 5 1 * *" }
   ]
 }
