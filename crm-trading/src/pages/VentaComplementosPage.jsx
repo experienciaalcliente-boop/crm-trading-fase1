@@ -1,8 +1,10 @@
 import { useVentasComplementos } from '../hooks/useVentasComplementos'
+import { useAuth } from '../context/AuthContext'
 import { Loader2, ShoppingBag, CheckCircle2 } from 'lucide-react'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import Select from 'react-select'
+import ResumenVentasEquipo from '../components/modules/ResumenVentasEquipo'
 
 const rsStyles = {
   control: (base, state) => ({ ...base, background: 'var(--bg-input)', border: `1.5px solid ${state.isFocused ? 'var(--accent)' : 'var(--border-input)'}`, borderRadius: 8, minHeight: 38, boxShadow: state.isFocused ? '0 0 0 3px rgba(101,167,166,0.15)' : 'none' }),
@@ -28,6 +30,8 @@ function Field({ label, children }) {
 
 export default function VentaComplementosPage() {
   const v = useVentasComplementos()
+  const { user } = useAuth()
+  const esSupervisor = user?.rol === 'supervisor'
 
   if (v.loading) return (
     <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'100%', gap:10, color:'var(--text-muted)' }}>
@@ -128,64 +132,70 @@ export default function VentaComplementosPage() {
         </button>
       </div>
 
-      {/* ── Ventas del mes ── */}
+      {/* ── Ventas del mes (propia) o Resumen de equipo (supervisor) ── */}
       <div style={{ flex:1, minWidth:0 }}>
-        <div style={{ marginBottom:16 }}>
-          <h1 style={{ fontFamily:'Syne,sans-serif', fontWeight:700, color:'var(--text-primary)', fontSize:20 }}>Ventas del mes</h1>
-          <p style={{ fontSize:13, color:'var(--text-muted)', marginTop:3 }}>
-            {v.totalVentasMes} complementos vendidos este mes
-          </p>
-        </div>
-
-        <div className="crm-card" style={{ padding:16, marginBottom:16 }}>
-          {v.faltanParaComision > 0 ? (
-            <div style={{ fontSize:13, color:'#f5b93a' }}>
-              Te faltan <b>{v.faltanParaComision}</b> complemento{v.faltanParaComision === 1 ? '' : 's'} más este mes para comisionar (mínimo {v.MINIMO_COMPLEMENTOS_COMISION}).
+        {esSupervisor ? (
+          <ResumenVentasEquipo />
+        ) : (
+          <>
+            <div style={{ marginBottom:16 }}>
+              <h1 style={{ fontFamily:'Syne,sans-serif', fontWeight:700, color:'var(--text-primary)', fontSize:20 }}>Ventas del mes</h1>
+              <p style={{ fontSize:13, color:'var(--text-muted)', marginTop:3 }}>
+                {v.totalVentasMes} complementos vendidos este mes
+              </p>
             </div>
-          ) : (
-            <div style={{ display:'flex', alignItems:'center', gap:8, fontSize:13, color:'#2dd4a0' }}>
-              <CheckCircle2 size={16} /> Ya alcanzaste el mínimo de {v.MINIMO_COMPLEMENTOS_COMISION} complementos para comisionar este mes.
-            </div>
-          )}
-          <div style={{ height:6, background:'rgba(255,255,255,0.06)', borderRadius:3, overflow:'hidden', marginTop:10 }}>
-            <div style={{ height:'100%', width:`${Math.min(100, Math.round(v.totalVentasMes / v.MINIMO_COMPLEMENTOS_COMISION * 100))}%`, background:'var(--accent)', borderRadius:3 }} />
-          </div>
-        </div>
 
-        <div className="crm-card" style={{ overflowX:'auto' }}>
-          <table className="crm-table">
-            <thead>
-              <tr>
-                <th>Fecha</th>
-                <th>Alumno</th>
-                <th>Programa</th>
-                <th>Complemento</th>
-                <th>Valor</th>
-                <th>Comisión</th>
-                <th>N° Operación</th>
-                <th>Detalle</th>
-              </tr>
-            </thead>
-            <tbody>
-              {v.ventas.length === 0 ? (
-                <tr><td colSpan={8} style={{ textAlign:'center', color:'var(--text-muted)', padding:20 }}>Sin ventas registradas este mes</td></tr>
-              ) : v.ventas.map(ve => (
-                <tr key={ve.id}>
-                  <td>{format(new Date(ve.fecha_registro + 'T00:00:00'), 'dd/MM/yyyy')}</td>
-                  <td style={{ fontWeight:500 }}>{ve.alumno?.nombre || '—'}</td>
-                  <td>{ve.alumno?.programa || '—'}</td>
-                  <td>{ve.complemento}</td>
-                  <td>$ {ve.valor_producto}</td>
-                  <td style={{ color:'#2dd4a0' }}>S/ {ve.valor_comision}</td>
-                  <td style={{ fontSize:11, color:'var(--text-muted)' }}>{ve.nro_operacion}</td>
-                  <td style={{ fontSize:11, color:'var(--text-muted)' }}>
-                    {ve.estado_mentoria || (ve.fecha_inicio ? `${ve.fecha_inicio} → ${ve.fecha_fin}` : '—')}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+            <div className="crm-card" style={{ padding:16, marginBottom:16 }}>
+              {v.faltanParaComision > 0 ? (
+                <div style={{ fontSize:13, color:'#f5b93a' }}>
+                  Te faltan <b>{v.faltanParaComision}</b> complemento{v.faltanParaComision === 1 ? '' : 's'} más este mes para comisionar (mínimo {v.MINIMO_COMPLEMENTOS_COMISION}).
+                </div>
+              ) : (
+                <div style={{ display:'flex', alignItems:'center', gap:8, fontSize:13, color:'#2dd4a0' }}>
+                  <CheckCircle2 size={16} /> Ya alcanzaste el mínimo de {v.MINIMO_COMPLEMENTOS_COMISION} complementos para comisionar este mes.
+                </div>
+              )}
+              <div style={{ height:6, background:'rgba(255,255,255,0.06)', borderRadius:3, overflow:'hidden', marginTop:10 }}>
+                <div style={{ height:'100%', width:`${Math.min(100, Math.round(v.totalVentasMes / v.MINIMO_COMPLEMENTOS_COMISION * 100))}%`, background:'var(--accent)', borderRadius:3 }} />
+              </div>
+            </div>
+
+            <div className="crm-card" style={{ overflowX:'auto' }}>
+              <table className="crm-table">
+                <thead>
+                  <tr>
+                    <th>Fecha</th>
+                    <th>Alumno</th>
+                    <th>Programa</th>
+                    <th>Complemento</th>
+                    <th>Valor</th>
+                    <th>Comisión</th>
+                    <th>N° Operación</th>
+                    <th>Detalle</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {v.ventas.length === 0 ? (
+                    <tr><td colSpan={8} style={{ textAlign:'center', color:'var(--text-muted)', padding:20 }}>Sin ventas registradas este mes</td></tr>
+                  ) : v.ventas.map(ve => (
+                    <tr key={ve.id}>
+                      <td>{format(new Date(ve.fecha_registro + 'T00:00:00'), 'dd/MM/yyyy')}</td>
+                      <td style={{ fontWeight:500 }}>{ve.alumno?.nombre || '—'}</td>
+                      <td>{ve.alumno?.programa || '—'}</td>
+                      <td>{ve.complemento}</td>
+                      <td>$ {ve.valor_producto}</td>
+                      <td style={{ color:'#2dd4a0' }}>S/ {ve.valor_comision}</td>
+                      <td style={{ fontSize:11, color:'var(--text-muted)' }}>{ve.nro_operacion}</td>
+                      <td style={{ fontSize:11, color:'var(--text-muted)' }}>
+                        {ve.estado_mentoria || (ve.fecha_inicio ? `${ve.fecha_inicio} → ${ve.fecha_fin}` : '—')}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
       </div>
     </div>
   )

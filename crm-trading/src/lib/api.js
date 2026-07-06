@@ -891,6 +891,19 @@ export async function fetchVentasComplementos(asesoraId, mes) {
   return data || []
 }
 
+// Todas las ventas desde una fecha (no limitado a un solo mes como
+// fetchVentasComplementos) — para el resumen de equipo del supervisor:
+// historial completo, desglose por asesora/complemento y evolución mensual.
+export async function fetchVentasComplementosDesde(fechaInicio) {
+  const { data, error } = await supabase
+    .from('ventas_complementos')
+    .select('*, alumno:alumnos(nombre, programa), asesora:asesoras(nombre)')
+    .gte('fecha_registro', fechaInicio)
+    .order('fecha_registro', { ascending: false })
+  if (error) throw error
+  return data || []
+}
+
 export async function insertVentaComplemento(payload) {
   const { data, error } = await supabase
     .from('ventas_complementos')
