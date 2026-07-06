@@ -8,6 +8,7 @@ import HistorialAlumno from '../components/modules/HistorialAlumno'
 import PanelDerecho from '../components/modules/PanelDerecho'
 import LlamadasProgramadasPanel from '../components/modules/LlamadasProgramadasPanel'
 import AgendarLlamadaModal from '../components/modules/AgendarLlamadaModal'
+import EfectividadDiariaAsesoras from '../components/modules/EfectividadDiariaAsesoras'
 
 export default function LlamadasPage() {
   try {
@@ -19,6 +20,15 @@ export default function LlamadasPage() {
 }
 
 function LlamadasPageInner() {
+  const { user } = useAuth()
+  // El supervisor no registra llamadas — necesita monitoreo diario de sus
+  // asesoras, no el formulario de captura. Se separa en un componente propio
+  // para no llamar a useLlamadas() (fetches de alumnos/form) sin necesidad.
+  if (user?.rol === 'supervisor') return <EfectividadDiariaAsesoras />
+  return <RegistroLlamadasAsesora />
+}
+
+function RegistroLlamadasAsesora() {
   const state = useLlamadas()
   const lp = useLlamadasProgramadas()
   const { user } = useAuth()

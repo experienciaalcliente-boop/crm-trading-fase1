@@ -143,6 +143,20 @@ export async function fetchRegistrosHoy() {
   return (data || []).filter(r => r.asesora?.rol !== 'orientador')
 }
 
+// Llamadas que cada asesora programó HOY (no las que caen hoy, sino las que
+// agendó hoy, sin importar la fecha futura) — mide su actividad de agenda
+// del día, para el monitoreo diario del supervisor.
+export async function fetchAgendadasHoy() {
+  const hoy = new Date().toISOString().split('T')[0]
+  const { data, error } = await supabase
+    .from('llamadas_programadas')
+    .select('id, asesora_id, created_at')
+    .gte('created_at', `${hoy}T00:00:00`)
+    .lte('created_at', `${hoy}T23:59:59`)
+  if (error) throw error
+  return data || []
+}
+
 // Alumnos cuyo ÚLTIMO registro es "No respondió"
 // Si después hubo un "Sí", ya no aparecen
 export async function fetchSinResponderAcumulado() {
