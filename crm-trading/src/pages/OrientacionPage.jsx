@@ -4,6 +4,7 @@ import { useOrientacion } from '../hooks/useOrientacion'
 import { useAuth } from '../context/AuthContext'
 import { updateSesionZoomUrl } from '../lib/api'
 import ModalTipificacion from '../components/modules/ModalTipificacion'
+import EfectividadDiariaOrientacion from '../components/modules/EfectividadDiariaOrientacion'
 import Select from 'react-select'
 import { Loader2, RefreshCw, Video, Clock, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react'
 import { format, addDays, subDays } from 'date-fns'
@@ -144,6 +145,16 @@ function ZoomCell({ sesion, onUpdate }) {
 }
 
 export default function OrientacionPage() {
+  const { user } = useAuth()
+  // El supervisor no agenda ni tipifica sesiones — necesita monitoreo diario
+  // del orientador y de qué tanto están agendando las asesoras hacia él, no
+  // la agenda operativa. Se separa en un componente propio para no llamar a
+  // useOrientacion() (fetches de alumnos/sesiones/historial) sin necesidad.
+  if (user?.rol === 'supervisor') return <EfectividadDiariaOrientacion />
+  return <AgendaOrientacionTecnica />
+}
+
+function AgendaOrientacionTecnica() {
   const o = useOrientacion()
   const { user } = useAuth()
   const esOrientador = user?.rol === 'orientador'

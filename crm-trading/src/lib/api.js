@@ -390,6 +390,20 @@ export async function fetchSesionesHoy() {
   return data || []
 }
 
+// Sesiones que se AGENDARON hoy (por created_at), sin importar para qué
+// fecha quedaron programadas — mide la actividad de agenda del día de cada
+// asesora hacia el orientador, para el monitoreo diario del supervisor.
+export async function fetchSesionesAgendadasHoy() {
+  const hoy = new Date().toISOString().split('T')[0]
+  const { data, error } = await supabase
+    .from('sesiones_orientacion')
+    .select('id, agendado_por, estado, created_at')
+    .gte('created_at', `${hoy}T00:00:00`)
+    .lte('created_at', `${hoy}T23:59:59`)
+  if (error) throw error
+  return data || []
+}
+
 export async function fetchSesionesFecha(fecha) {
   const { data, error } = await supabase
     .from('sesiones_orientacion')
