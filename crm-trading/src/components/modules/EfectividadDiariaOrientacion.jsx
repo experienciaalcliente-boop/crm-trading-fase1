@@ -48,8 +48,6 @@ export default function EfectividadDiariaOrientacion() {
               <th>Sesiones de hoy que agendó</th>
               <th>Concretadas</th>
               <th>Agendando hoy</th>
-              <th>NPS</th>
-              <th>SAT</th>
             </tr>
           </thead>
           <tbody>
@@ -59,15 +57,13 @@ export default function EfectividadDiariaOrientacion() {
                 <td style={{ textAlign:'center' }}>{f.sesionesHoy}</td>
                 <td style={{ textAlign:'center' }}>{f.concretadas}</td>
                 <td style={{ textAlign:'center' }}>{f.agendadasHoy}</td>
-                <td style={{ textAlign:'center', color:'var(--text-muted)' }}>—</td>
-                <td style={{ textAlign:'center', color:'var(--text-muted)' }}>—</td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
       <div style={{ fontSize:11, color:'var(--text-muted)', marginTop:10, marginBottom:24 }}>
-        "Sesiones de hoy que agendó" y "Concretadas" cuentan sesiones programadas para el día de hoy. "Agendando hoy" cuenta sesiones nuevas que esa asesora creó hoy (para cualquier fecha). NPS y SAT: sin datos aún — próximamente.
+        "Sesiones de hoy que agendó" y "Concretadas" cuentan sesiones programadas para el día de hoy. "Agendando hoy" cuenta sesiones nuevas que esa asesora creó hoy (para cualquier fecha). El NPS/SAT de la sesión es del orientador, no de la asesora que agendó — se muestra más abajo, junto a sus demás indicadores.
       </div>
 
       {/* ── Indicadores del orientador (mes actual) ── */}
@@ -75,11 +71,13 @@ export default function EfectividadDiariaOrientacion() {
         <h2 style={{ fontFamily:'Syne,sans-serif', fontWeight:700, color:'var(--text-primary)', fontSize:16 }}>Indicadores del orientador (mes actual)</h2>
       </div>
 
-      <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:10, marginBottom:16 }}>
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(6,1fr)', gap:10, marginBottom:16 }}>
         <KPICard label="Sesiones del mes"  value={io.totalSesionesMes} />
         <KPICard label="Concretadas"       value={io.concretadasMes} color="#2dd4a0" />
         <KPICard label="Efectividad"       value={`${io.efectividad}%`} sub="No volvieron a agendar" color="var(--accent)" />
         <KPICard label="Alumnos atendidos" value={io.alumnosUnicosMes} />
+        <KPICard label="NPS"               value={io.nps != null ? io.nps : '—'} sub={io.totalEncuestas > 0 ? `${io.totalEncuestas} respuestas` : 'Sin datos aún'} />
+        <KPICard label="SAT"               value={io.csat != null ? `${io.csat}%` : '—'} sub={io.totalEncuestas > 0 ? `${io.totalEncuestas} respuestas` : 'Sin datos aún'} color="#2dd4a0" />
       </div>
 
       <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16 }}>

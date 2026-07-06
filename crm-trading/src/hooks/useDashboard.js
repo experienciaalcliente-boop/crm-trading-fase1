@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
-import { programaActivo } from '../lib/api'
+import { programaActivo, fetchEncuestasSatisfaccion, calcularNPS, calcularCSAT, mapaProgramaAsesora } from '../lib/api'
 import toast from 'react-hot-toast'
 
 // Safe calcularRiesgo — no crashes
@@ -38,7 +38,7 @@ function calcularRiesgoLocal(alumno, cuotas, llamadas) {
 }
 
 async function fetchDashboard() {
-  const [r1, r2, r3, r4, r5, r6] = await Promise.all([
+  const [r1, r2, r3, r4, r5, r6, encuestas] = await Promise.all([
     supabase.from('registros_llamadas')
       .select('id, fecha, respondio, avance, cuenta, capital_real, fase_fondeo, beneficio, retiro, monto_retiro, created_at, alumno_id, alumno:alumnos(nombre, programa), asesora:asesoras(nombre)')
       .order('fecha', { ascending: false })
@@ -59,6 +59,7 @@ async function fetchDashboard() {
     supabase.from('alumnos')
       .select('id, nombre, programa, fecha_inicio')
       .gte('fecha_inicio', '2026-01-01'),
+    fetchEncuestasSatisfaccion(),
   ])
   return {
     llamadas:        (r1.data || []).filter(Boolean),
@@ -67,6 +68,7 @@ async function fetchDashboard() {
     alumnosActivos:  (r4.data || []).filter(Boolean).filter(programaActivo),
     asesoras:        (r5.data || []).filter(Boolean),
     alumnosEvolucion:(r6.data || []).filter(Boolean),
+    encuestas,
   }
 }
 
@@ -76,7 +78,7 @@ export function useDashboard() {
     const d = new Date()
     return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`
   })
-  const [raw,     setRaw]     = useState({ llamadas:[], cuotas:[], sesiones:[], alumnosActivos:[], asesoras:[], alumnosEvolucion:[] })
+  const [raw,     setRaw]     = useState({ llamadas:[], cuotas:[], sesiones:[], alumnosActivos:[], asesoras:[], alumnosEvolucion:[], encuestas:[] })
   const [loading, setLoading] = useState(true)
   const [lastUpdate, setLastUpdate] = useState(new Date())
 
@@ -288,6 +290,36 @@ export function useDashboard() {
       riesgoAlto:riesgoAltoAs, sinContacto7 }
   }).sort((a,b) => b.contactabilidad - a.contactabilidad)
 
+  // ── Encuestas de satisfacción (NPS / CSAT) ────────────────
+  // Se escopean al mes seleccionado, igual que el resto de indicadores del
+  // Dashboard. La encuesta de asesoría solo trae el programa del alumno, no
+  // la asesora — se cruza programa→asesora (mapaProgramaAsesora) para poder
+  // desglosar por persona.
+  const encuestasMes = (raw.encuestas || []).filter(e => {
+    const fecha = e.fecha_respuesta?.slice(0, 10)
+    return fecha && fecha >= inicioMes && fecha <= finMes
+  })
+  const encuestasAsesoriaMes = encuestasMes.filter(e => e.tipo === 'asesoria')
+  const encuestasOrientacionMes = encuestasMes.filter(e => e.tipo === 'orientacion')
+
+  const programaAsesoraMap = mapaProgramaAsesora(alumnosActivos)
+  const encuestasAsesoriaConId = encuestasAsesoriaMes.map(e => ({ ...e, asesora_id: programaAsesoraMap[e.programa] || null }))
+
+  const resumenEncuesta = rows => ({
+    nps: calcularNPS(rows.map(e => e.nps_score)),
+    csat: calcularCSAT(rows.map(e => e.csat_label)),
+    total: rows.length,
+  })
+
+  const encuestaAsesoriaGeneral = resumenEncuesta(encuestasAsesoriaMes)
+  const encuestaOrientacionGeneral = resumenEncuesta(encuestasOrientacionMes)
+  const encuestaGeneralCombinada = resumenEncuesta(encuestasMes)
+  const misEncuestasAsesoria = esAsesora ? encuestasAsesoriaConId.filter(e => e.asesora_id === user.asesora_id) : []
+  const encuestaAsesoriaPropia = resumenEncuesta(misEncuestasAsesoria)
+  const encuestaPorAsesora = Object.entries(nombrePorAsesoraId).map(([asesoraId, nombre]) => ({
+    asesoraId, nombre, ...resumenEncuesta(encuestasAsesoriaConId.filter(e => e.asesora_id === asesoraId)),
+  }))
+
   // ── Tipos de cuenta del mes ───────────────────────────────
   const ultimoRegMesPorAlumno = {}
   llamadasMes.forEach(r => {
@@ -427,6 +459,8 @@ export function useDashboard() {
     hoy, programas, alumnosConRiesgo, riesgoAlto,
     evolucionHeatmap,
     desempenoPorAsesora,
+    encuestaAsesoriaGeneral, encuestaOrientacionGeneral, encuestaGeneralCombinada,
+    encuestaAsesoriaPropia, encuestaPorAsesora,
     totalAlumnosActivos, totalLlamadas:llamadasMes.length,
     alumnosQueRespondieronMes, respondieron:alumnosQueRespondieronMes.size,
     contactabilidad, contactabilidadPorPrograma,

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
-import { fetchSesionesHoy, fetchSesionesAgendadasHoy, fetchOrientadorId, fetchHistorialSesiones } from '../lib/api'
+import { fetchSesionesHoy, fetchSesionesAgendadasHoy, fetchOrientadorId, fetchHistorialSesiones,
+  fetchEncuestasSatisfaccion, calcularNPS, calcularCSAT } from '../lib/api'
 
 // Mismas asesoras que agendan sesiones en el panel de Orientación Técnica
 // (el orientador no agenda — lo hacen ellas en su nombre).
@@ -14,6 +15,7 @@ export function useEfectividadDiariaOrientacion() {
   const [sesionesHoy,  setSesionesHoy]  = useState([])
   const [agendadasHoy, setAgendadasHoy] = useState([])
   const [sesionesMes,  setSesionesMes]  = useState([])
+  const [encuestas,    setEncuestas]    = useState([])
   const [loading,      setLoading]      = useState(true)
 
   const cargar = useCallback(async () => {
@@ -21,14 +23,16 @@ export function useEfectividadDiariaOrientacion() {
     try {
       const orientadorId = await fetchOrientadorId()
       const mesActual = new Date().toISOString().slice(0, 7)
-      const [sh, ah, sm] = await Promise.all([
+      const [sh, ah, sm, enc] = await Promise.all([
         fetchSesionesHoy(),
         fetchSesionesAgendadasHoy(),
         fetchHistorialSesiones(orientadorId, mesActual),
+        fetchEncuestasSatisfaccion(),
       ])
       setSesionesHoy(sh)
       setAgendadasHoy(ah)
       setSesionesMes(sm)
+      setEncuestas(enc)
     } catch (err) {
       console.error(err)
     } finally {
@@ -81,6 +85,12 @@ export function useEfectividadDiariaOrientacion() {
     'MT5 Sync':    concretadasMes.filter(s => s.tiene_ingreso_trade).length,
   }
 
+  // El NPS/SAT de esta encuesta es del orientador (solo hay uno) — no tiene
+  // sentido desglosarlo por asesora, porque la asesora solo agenda la
+  // sesión, no la da ella.
+  const mesActual = new Date().toISOString().slice(0, 7)
+  const encuestasMes = encuestas.filter(e => e.tipo === 'orientacion' && e.fecha_respuesta?.slice(0, 7) === mesActual)
+
   const indicadoresOrientador = {
     totalSesionesMes: sesionesMes.length,
     concretadasMes: concretadasMes.length,
@@ -88,6 +98,9 @@ export function useEfectividadDiariaOrientacion() {
     efectividad,
     motivosFrecuentes,
     herramientas,
+    nps: calcularNPS(encuestasMes.map(e => e.nps_score)),
+    csat: calcularCSAT(encuestasMes.map(e => e.csat_label)),
+    totalEncuestas: encuestasMes.length,
   }
 
   return { stats, filasPorAsesora, indicadoresOrientador, loading, cargar }

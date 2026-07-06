@@ -134,28 +134,41 @@ export default function DashboardPage() {
         <div style={{ display:'grid', gridTemplateColumns:'repeat(5,1fr)', gap:10, marginBottom:4 }}>
           <KPICard label="Alumnos activos"    value={d.totalAlumnosActivos}  sub="En curso + seguimiento"    color="var(--accent)"  accent="var(--accent)" />
           <KPICard label="Contactabilidad"    value={`${d.contactabilidad}%`} sub={`${d.respondieron} respondieron`} color="#2dd4a0" accent="#2dd4a0" />
-          <KPICard label="SAT general"        value="—" sub="Sin datos aún" color="var(--text-muted)" accent="var(--text-muted)" />
-          <KPICard label="NPS general"        value="—" sub="Sin datos aún" color="var(--text-muted)" accent="var(--text-muted)" />
+          <KPICard label="SAT general"        value={d.encuestaGeneralCombinada.csat != null ? `${d.encuestaGeneralCombinada.csat}%` : '—'} sub={d.encuestaGeneralCombinada.total > 0 ? `${d.encuestaGeneralCombinada.total} respuestas` : 'Sin datos aún'} color="var(--accent)" accent="var(--accent)" />
+          <KPICard label="NPS general"        value={d.encuestaGeneralCombinada.nps != null ? d.encuestaGeneralCombinada.nps : '—'} sub={d.encuestaGeneralCombinada.total > 0 ? `${d.encuestaGeneralCombinada.total} respuestas` : 'Sin datos aún'} color="var(--accent)" accent="var(--accent)" />
           <KPICard label="Beneficio total"    value={`S/ ${fmt(d.beneficioTotal)}`} sub="Convertido a soles" color="#f5b93a" accent="#f5b93a" />
         </div>
       )}
 
       {/* ══ NPS / SATISFACCIÓN (asesora y orientador) ══ */}
-      {(esAsesora || esOrientador) && (
+      {(esAsesora || esOrientador) && (() => {
+        const enc = esAsesora ? d.encuestaAsesoriaPropia : d.encuestaOrientacionGeneral
+        return (
         <>
           <SectionTitle icon={Smile} title="Encuesta de Satisfacción" color="#f5b93a" />
           <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16, marginBottom:16 }}>
             <div className="crm-card" style={{ padding:18, textAlign:'center' }}>
               <div style={{ fontSize:12, fontWeight:700, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:14 }}>NPS</div>
-              <div style={{ fontSize:13, color:'var(--text-muted)', padding:'20px 0' }}>Sin datos aún — próximamente</div>
+              {enc.total > 0 ? (
+                <>
+                  <div style={{ fontSize:32, fontWeight:700, color:'var(--text-primary)', fontFamily:'Syne,sans-serif' }}>{enc.nps}</div>
+                  <div style={{ fontSize:11, color:'var(--text-muted)', marginTop:6 }}>{enc.total} respuestas este mes</div>
+                </>
+              ) : <div style={{ fontSize:13, color:'var(--text-muted)', padding:'20px 0' }}>Sin datos aún este mes</div>}
             </div>
             <div className="crm-card" style={{ padding:18, textAlign:'center' }}>
-              <div style={{ fontSize:12, fontWeight:700, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:14 }}>SAT (satisfacción por llamada)</div>
-              <div style={{ fontSize:13, color:'var(--text-muted)', padding:'20px 0' }}>Sin datos aún — próximamente</div>
+              <div style={{ fontSize:12, fontWeight:700, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:14 }}>SAT (satisfacción)</div>
+              {enc.total > 0 ? (
+                <>
+                  <div style={{ fontSize:32, fontWeight:700, color:'#2dd4a0', fontFamily:'Syne,sans-serif' }}>{enc.csat}%</div>
+                  <div style={{ fontSize:11, color:'var(--text-muted)', marginTop:6 }}>{enc.total} respuestas este mes</div>
+                </>
+              ) : <div style={{ fontSize:13, color:'var(--text-muted)', padding:'20px 0' }}>Sin datos aún este mes</div>}
             </div>
           </div>
         </>
-      )}
+        )
+      })()}
 
       {/* Secciones de asesora/supervisor — no le competen al orientador */}
       {!esOrientador && (

@@ -76,15 +76,15 @@ export default function EfectividadDiariaAsesoras() {
                     ? <span style={{ color:'#fb923c', fontWeight:700 }}>{f.sinResponderAcumulado}</span>
                     : <span style={{ color:'var(--text-muted)' }}>—</span>}
                 </td>
-                <td style={{ textAlign:'center', color:'var(--text-muted)' }}>—</td>
-                <td style={{ textAlign:'center', color:'var(--text-muted)' }}>—</td>
+                <td style={{ textAlign:'center', color: f.nps != null ? 'var(--text-primary)' : 'var(--text-muted)' }}>{f.nps != null ? f.nps : '—'}</td>
+                <td style={{ textAlign:'center', color: f.csat != null ? '#2dd4a0' : 'var(--text-muted)' }}>{f.csat != null ? `${f.csat}%` : '—'}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
       <div style={{ fontSize:11, color:'var(--text-muted)', marginTop:10 }}>
-        NPS y SAT: sin datos aún — próximamente.
+        NPS y SAT del mes actual, cruzados por el programa que responde cada alumno en la encuesta.
       </div>
     </div>
   )

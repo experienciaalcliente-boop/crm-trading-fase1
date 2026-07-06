@@ -912,3 +912,57 @@ export async function insertVentaComplemento(payload) {
   if (error) throw error
   return data
 }
+
+// ─────────────────────────────────────────
+// ENCUESTAS DE SATISFACCIÓN (NPS / CSAT)
+// ─────────────────────────────────────────
+// Se sincronizan solas cada 15 min desde Google Forms (ver
+// api/sync-respuestas-encuestas.js) — acá solo se leen y se calculan los
+// indicadores.
+export async function fetchEncuestasSatisfaccion() {
+  const { data, error } = await supabase
+    .from('encuestas_satisfaccion')
+    .select('id, tipo, programa, nps_score, csat_label, fecha_respuesta')
+  if (error) throw error
+  return data || []
+}
+
+// NPS estándar: % Promotores (9-10) − % Detractores (0-6). Devuelve null (no
+// 0) cuando no hay respuestas, para distinguir "sin datos" de "NPS real 0".
+export function calcularNPS(scores) {
+  const validos = (scores || []).filter(s => s != null)
+  if (!validos.length) return null
+  const promotores = validos.filter(s => s >= 9).length
+  const detractores = validos.filter(s => s <= 6).length
+  return Math.round(((promotores - detractores) / validos.length) * 100)
+}
+
+// CSAT "top-2-box": % que marcó las dos opciones más positivas de la escala
+// de 5 (Satisfecho / Muy satisfecho) — el estándar más usado en la industria
+// para encuestas de satisfacción de 5 puntos.
+export function calcularCSAT(labels) {
+  const validos = (labels || []).filter(Boolean)
+  if (!validos.length) return null
+  const satisfechos = validos.filter(l => l === 'Satisfecho' || l === 'Muy satisfecho').length
+  return Math.round((satisfechos / validos.length) * 100)
+}
+
+// La encuesta de asesoría solo pregunta el programa del alumno, no su
+// asesora — para poder desglosar NPS/CSAT por asesora se cruza
+// programa→asesora usando a qué asesora pertenece la MAYORÍA de alumnos de
+// ese programa (en la práctica cada programa activo es casi siempre de una
+// sola asesora; ver conversación del 2026-07-06).
+export function mapaProgramaAsesora(alumnos) {
+  const conteos = {}
+  alumnos.forEach(al => {
+    if (!al.programa || !al.asesora_id) return
+    if (!conteos[al.programa]) conteos[al.programa] = {}
+    conteos[al.programa][al.asesora_id] = (conteos[al.programa][al.asesora_id] || 0) + 1
+  })
+  const mapa = {}
+  Object.entries(conteos).forEach(([programa, porAsesora]) => {
+    const [asesoraId] = Object.entries(porAsesora).sort((a, b) => b[1] - a[1])[0]
+    mapa[programa] = asesoraId
+  })
+  return mapa
+}
