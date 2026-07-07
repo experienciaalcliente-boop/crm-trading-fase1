@@ -37,16 +37,26 @@ function mesAnioToFecha(mesAnio) {
   return `${anio}-${String(idx + 1).padStart(2, '0')}-01`
 }
 
-// ── Convierte número serial de Excel a fecha YYYY-MM-DD ────────
+// ── Convierte número serial de Excel o fecha en texto (ISO o DD/MM/YYYY)
+// a YYYY-MM-DD. Excel exporta las fechas como texto DD/MM/YYYY en vez de
+// serial cuando la celda ya viene formateada como fecha — sin esta
+// conversión, ese texto se manda tal cual a Postgres, que lo interpreta
+// como MM/DD/YYYY y revienta con "date/time field value out of range"
+// apenas el día supera 12 (ej. "15/07/2026").
 function excelSerialToFecha(val) {
   if (!val) return ''
   const str = String(val).trim()
-  // Ya tiene formato fecha texto
-  if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str
+  // Ya tiene formato ISO
+  if (/^\d{4}-\d{2}-\d{2}/.test(str)) return str.slice(0, 10)
   const num = parseInt(str)
-  if (!isNaN(num) && num > 40000 && num < 60000) {
+  if (!isNaN(num) && num > 40000 && num < 60000 && String(num) === str) {
     const date = new Date((num - 25569) * 86400 * 1000)
     return date.toISOString().split('T')[0]
+  }
+  const dmy = str.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})/)
+  if (dmy) {
+    const [, d, m, y] = dmy
+    return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`
   }
   return str
 }
@@ -148,15 +158,7 @@ export default function ImportPage() {
       .map(r => {
         const programa = excelSerialToMesAnio(col(r, 'programa', 'program'))
         const fechaInicioRaw = col(r, 'fechainicio', 'fecha de inicio', 'inicio', 'start', 'fecha inicio')
-        let fecha_inicio = null
-        if (fechaInicioRaw) {
-          const num = parseInt(fechaInicioRaw)
-          if (!isNaN(num) && num > 40000 && num < 60000) {
-            fecha_inicio = new Date((num - 25569) * 86400 * 1000).toISOString().split('T')[0]
-          } else {
-            fecha_inicio = fechaInicioRaw.toString().split(' ')[0].split('T')[0] || null
-          }
-        }
+        let fecha_inicio = fechaInicioRaw ? (excelSerialToFecha(fechaInicioRaw) || null) : null
         // El archivo real no trae columna de fecha de inicio: el mes de
         // cohorte en "Programa" (ej. "Jul-26") es el único dato disponible,
         // así que se usa el primer día de ese mes como fallback.
@@ -328,15 +330,7 @@ export default function ImportPage() {
       const nroVal          = vals[1]
 
       // Fecha
-      const fecha_vence = (() => {
-        if (!fechaVal) return new Date().toISOString().split('T')[0]
-        const str = String(fechaVal).trim()
-        const num = parseInt(str)
-        if (!isNaN(num) && num > 40000 && num < 60000) {
-          return new Date((num - 25569) * 86400 * 1000).toISOString().split('T')[0]
-        }
-        return str.split(' ')[0].split('T')[0]
-      })()
+      const fecha_vence = excelSerialToFecha(fechaVal) || new Date().toISOString().split('T')[0]
 
       // Moneda — 'Dólares' tiene tilde en la o, hay que normalizar antes de comparar
       const monedaValRaw = r['Moneda acordada'] || r['Moneda Acordada'] || vals[11] || ''
