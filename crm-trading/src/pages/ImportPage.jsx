@@ -48,9 +48,9 @@ function excelSerialToFecha(val) {
   const str = String(val).trim()
   // Ya tiene formato ISO
   if (/^\d{4}-\d{2}-\d{2}/.test(str)) return str.slice(0, 10)
-  const num = parseInt(str)
-  if (!isNaN(num) && num > 40000 && num < 60000 && String(num) === str) {
-    const date = new Date((num - 25569) * 86400 * 1000)
+  const num = parseFloat(str)
+  if (!isNaN(num) && num > 40000 && num < 60000 && /^[\d.]+$/.test(str)) {
+    const date = new Date(Math.round((num - 25569) * 86400 * 1000))
     return date.toISOString().split('T')[0]
   }
   const dmy = str.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})/)
