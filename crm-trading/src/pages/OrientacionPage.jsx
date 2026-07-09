@@ -5,6 +5,8 @@ import { useAuth } from '../context/AuthContext'
 import { updateSesionZoomUrl } from '../lib/api'
 import ModalTipificacion from '../components/modules/ModalTipificacion'
 import EfectividadDiariaOrientacion from '../components/modules/EfectividadDiariaOrientacion'
+import EncuestaResumen from '../components/shared/EncuestaResumen'
+import ComentariosPorDia from '../components/shared/ComentariosPorDia'
 import Select from 'react-select'
 import { Loader2, RefreshCw, Video, Clock, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react'
 import { format, addDays, subDays } from 'date-fns'
@@ -364,7 +366,14 @@ function AgendaOrientacionTecnica() {
           </div>
         )}
 
-        {esOrientador && <EncuestaOrientador encuesta={o.encuestaPropia} comentarios={o.comentariosPropios} />}
+        {esOrientador && (
+          <EncuestaOrientador
+            encuesta={o.encuestaPropia}
+            fecha={o.fechaComentarios}
+            setFecha={o.setFechaComentarios}
+            comentarios={o.comentariosDelDia}
+          />
+        )}
       </div>
 
       {/* ── PANEL DERECHO: Agendar (el orientador no agenda, solo atiende) ── */}
@@ -504,50 +513,22 @@ function Field({ label, children }) {
   )
 }
 
-// Encuesta de satisfacción del orientador (mes actual) — vive acá porque es
-// el detalle de "orientación técnica"; el resumen ejecutivo combinado sigue
-// en el Dashboard, y el supervisor ve su propia versión en su panel de
-// monitoreo (pestaña Orientación Técnica → vista supervisor).
-function EncuestaOrientador({ encuesta, comentarios }) {
+// Encuesta de satisfacción del orientador (resultados generales de todo el
+// histórico) — vive acá porque es el detalle de "orientación técnica"; el
+// resumen ejecutivo combinado sigue en el Dashboard, y el supervisor ve su
+// propia versión en su panel de monitoreo (pestaña Orientación Técnica →
+// vista supervisor). Los comentarios sí se navegan día a día.
+function EncuestaOrientador({ encuesta, fecha, setFecha, comentarios }) {
   return (
     <div style={{ marginTop: 24 }}>
-      <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>Encuesta de satisfacción (mes actual)</div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
-        <div className="crm-card" style={{ padding: 18, textAlign: 'center' }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>NPS</div>
-          {encuesta.total > 0 ? (
-            <>
-              <div style={{ fontSize: 28, fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'Syne,sans-serif' }}>{encuesta.nps}%</div>
-              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6 }}>{encuesta.total} respuestas</div>
-            </>
-          ) : <div style={{ fontSize: 13, color: 'var(--text-muted)', padding: '12px 0' }}>Sin datos aún este mes</div>}
-        </div>
-        <div className="crm-card" style={{ padding: 18, textAlign: 'center' }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>SAT</div>
-          {encuesta.total > 0 ? (
-            <>
-              <div style={{ fontSize: 28, fontWeight: 700, color: '#2dd4a0', fontFamily: 'Syne,sans-serif' }}>{encuesta.csat}%</div>
-              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6 }}>{encuesta.total} respuestas</div>
-            </>
-          ) : <div style={{ fontSize: 13, color: 'var(--text-muted)', padding: '12px 0' }}>Sin datos aún este mes</div>}
-        </div>
-      </div>
-      <div className="crm-card" style={{ padding: 18 }}>
-        <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 14 }}>Comentarios de tus alumnos</div>
-        {comentarios.length === 0 ? (
-          <div style={{ fontSize: 13, color: 'var(--text-muted)', padding: '10px 0' }}>Sin comentarios este mes</div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxHeight: 240, overflowY: 'auto' }}>
-            {comentarios.map((c, i) => (
-              <div key={i} style={{ padding: '10px 12px', background: 'rgba(255,255,255,0.03)', borderRadius: 8, borderLeft: '3px solid #f5b93a' }}>
-                <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.4 }}>"{c.comentario}"</div>
-                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6 }}>
-                  {c.programa || 'Sin programa'} · {c.fecha ? new Date(c.fecha).toLocaleDateString('es-PE') : ''}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+      <EncuestaResumen
+        titulo="Encuesta de satisfacción"
+        resumen={encuesta}
+        labelR3="Consulta resuelta"
+        labelR4="Explicaciones claras"
+      />
+      <div style={{ marginTop: 16 }}>
+        <ComentariosPorDia fecha={fecha} setFecha={setFecha} comentarios={comentarios} titulo="Comentarios de tus alumnos" />
       </div>
     </div>
   )

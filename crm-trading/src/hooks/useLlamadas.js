@@ -1,7 +1,7 @@
 // v-2026-06-20 16:06:13
 import { useState, useEffect, useCallback } from 'react'
 import { fetchAlumnos, fetchAsesorasLlamadas, fetchAsesoras, fetchRegistrosHoy, fetchHistorialAlumno, fetchNextCodigo, insertRegistroLlamada, suscribirRegistrosHoy, fetchSinResponderAcumulado, calcularSemanaRegistro,
-  fetchEncuestasSatisfaccion, calcularNPS, calcularCSAT, mapaProgramaAsesora } from '../lib/api'
+  fetchEncuestasSatisfaccion, calcularNPS, calcularCSAT, mapaProgramaAsesora, distribucionEscala, distribucionCategorica } from '../lib/api'
 import { useAuth } from '../context/AuthContext'
 import toast from 'react-hot-toast'
 import { format } from 'date-fns'
@@ -26,6 +26,8 @@ const formInicial = () => ({
   observaciones: '',
 })
 
+const hoyStr = () => new Date().toISOString().split('T')[0]
+
 export function useLlamadas() {
   const { user } = useAuth()
   const asesoraIdPropia = user?.rol === 'asesora' ? user.asesora_id : undefined
@@ -39,6 +41,7 @@ export function useLlamadas() {
   const [saving,          setSaving]          = useState(false)
   const [asesoraPanel,    setAsesoraPanel]    = useState(null)
   const [sinResponder,    setSinResponder]    = useState([])
+  const [fechaComentarios, setFechaComentarios] = useState(hoyStr())
   const [encuestas,       setEncuestas]       = useState([])
 
   // ── Carga inicial ──
@@ -259,23 +262,27 @@ export function useLlamadas() {
   }
 
   // ── Encuesta de satisfacción propia (solo asesora) ─────────
-  // Cruza programa→asesora sobre sus propios alumnos (ya vienen filtrados a
-  // asesoraIdPropia) para saber qué respuestas de la encuesta le corresponden.
-  const mesActual = new Date().toISOString().slice(0, 7)
-  const encuestasMes = encuestas.filter(e => e.tipo === 'asesoria' && e.fecha_respuesta?.slice(0, 7) === mesActual)
+  // Resultados generales (todo el histórico, no un solo mes), cruzando
+  // programa→asesora sobre sus propios alumnos para saber qué respuestas de
+  // la encuesta le corresponden. Los comentarios sí se navegan día a día.
+  const encuestasAsesoria = encuestas.filter(e => e.tipo === 'asesoria')
   const programaAsesoraMap = mapaProgramaAsesora(alumnos)
   const misEncuestas = asesoraIdPropia
-    ? encuestasMes.filter(e => programaAsesoraMap[e.programa] === asesoraIdPropia)
+    ? encuestasAsesoria.filter(e => programaAsesoraMap[e.programa] === asesoraIdPropia)
     : []
   const encuestaPropia = {
+    total: misEncuestas.length,
     nps: calcularNPS(misEncuestas.map(e => e.nps_score)),
     csat: calcularCSAT(misEncuestas.map(e => e.csat_label)),
-    total: misEncuestas.length,
+    npsDist: distribucionEscala(misEncuestas, 'nps_score', 0, 10),
+    csatDist: distribucionCategorica(misEncuestas, 'csat_label'),
+    r3Dist: distribucionCategorica(misEncuestas, 'respuesta_3'),
+    r4Dist: distribucionCategorica(misEncuestas, 'respuesta_4'),
   }
-  const comentariosPropios = misEncuestas
+  const comentariosDelDia = misEncuestas
+    .filter(e => e.fecha_respuesta?.slice(0, 10) === fechaComentarios)
     .filter(e => e.comentario && e.comentario.trim())
-    .map(e => ({ comentario: e.comentario.trim(), programa: e.programa, fecha: e.fecha_respuesta }))
-    .sort((a, b) => (b.fecha || '').localeCompare(a.fecha || ''))
+    .map(e => ({ comentario: e.comentario.trim(), programa: e.programa }))
 
   return {
     alumnos, asesoras, asesorasForm, registrosHoy, historial,
@@ -283,7 +290,7 @@ export function useLlamadas() {
     programasOpts, alumnosOpts, asesorasOpts,
     guardar, limpiar, recargarHistorial, seleccionarDesdePanelDerecho,
     loading, saving,
-    encuestaPropia, comentariosPropios,
+    encuestaPropia, fechaComentarios, setFechaComentarios, comentariosDelDia,
     asesoraPanel, setAsesoraPanel, stats, sinResponder,
     asesorasPanelOpts,
   }

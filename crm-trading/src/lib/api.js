@@ -960,3 +960,36 @@ export function mapaProgramaAsesora(alumnos) {
   })
   return mapa
 }
+
+// Distribución de una pregunta de escala numérica (ej. NPS 0-10) — incluye
+// todos los valores del rango aunque tengan 0 respuestas, para que la barra
+// se vea completa como en el resumen nativo de Google Forms.
+export function distribucionEscala(rows, campo, min, max) {
+  const conteos = {}
+  let total = 0
+  rows.forEach(r => {
+    const v = r[campo]
+    if (v == null) return
+    conteos[v] = (conteos[v] || 0) + 1
+    total++
+  })
+  const arr = []
+  for (let i = min; i <= max; i++) {
+    const count = conteos[i] || 0
+    arr.push({ label: String(i), count, pct: total > 0 ? Math.round((count / total) * 100) : 0 })
+  }
+  return arr
+}
+
+// Distribución de una pregunta de opción (CSAT, escalas de acuerdo, etc.) —
+// no se conoce de antemano el set fijo de opciones, así que se tabula lo
+// que realmente aparece en las respuestas, ordenado de mayor a menor.
+export function distribucionCategorica(rows, campo) {
+  const validos = rows.filter(r => r[campo])
+  const conteos = {}
+  validos.forEach(r => { conteos[r[campo]] = (conteos[r[campo]] || 0) + 1 })
+  const total = validos.length
+  return Object.entries(conteos)
+    .sort((a, b) => b[1] - a[1])
+    .map(([label, count]) => ({ label, count, pct: total > 0 ? Math.round((count / total) * 100) : 0 }))
+}

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { fetchAlumnos, fetchSesionesFecha, fetchHistorialSesiones, insertSesion, updateSesion, crearReunionZoom, deleteSesion, fetchOrientadorId,
-  fetchEncuestasSatisfaccion, calcularNPS, calcularCSAT } from '../lib/api'
+  fetchEncuestasSatisfaccion, calcularNPS, calcularCSAT, distribucionEscala, distribucionCategorica } from '../lib/api'
 import { useAuth } from '../context/AuthContext'
 import toast from 'react-hot-toast'
 import { format } from 'date-fns'
@@ -55,6 +55,7 @@ export function useOrientacion() {
   const [loadingHistorial, setLoadingHistorial] = useState(false)
   const [mesHistorial,  setMesHistorial]  = useState(() => new Date().toISOString().slice(0, 7))
   const [encuestas,     setEncuestas]     = useState([])
+  const [fechaComentarios, setFechaComentarios] = useState(format(new Date(), 'yyyy-MM-dd'))
 
   useEffect(() => {
     fetchOrientadorId().then(setOrientadorId).catch(console.error)
@@ -239,17 +240,22 @@ export function useOrientacion() {
   }
 
   // ── Encuesta de satisfacción propia (solo orientador) ──────
-  const mesActual = new Date().toISOString().slice(0, 7)
-  const encuestasMes = encuestas.filter(e => e.tipo === 'orientacion' && e.fecha_respuesta?.slice(0, 7) === mesActual)
+  // Resultados generales (todo el histórico, como el resumen nativo de
+  // Google Forms) — los comentarios sí se navegan día a día.
+  const encuestasOrientacion = encuestas.filter(e => e.tipo === 'orientacion')
   const encuestaPropia = {
-    nps: calcularNPS(encuestasMes.map(e => e.nps_score)),
-    csat: calcularCSAT(encuestasMes.map(e => e.csat_label)),
-    total: encuestasMes.length,
+    total: encuestasOrientacion.length,
+    nps: calcularNPS(encuestasOrientacion.map(e => e.nps_score)),
+    csat: calcularCSAT(encuestasOrientacion.map(e => e.csat_label)),
+    npsDist: distribucionEscala(encuestasOrientacion, 'nps_score', 0, 10),
+    csatDist: distribucionCategorica(encuestasOrientacion, 'csat_label'),
+    r3Dist: distribucionCategorica(encuestasOrientacion, 'respuesta_3'),
+    r4Dist: distribucionCategorica(encuestasOrientacion, 'respuesta_4'),
   }
-  const comentariosPropios = encuestasMes
+  const comentariosDelDia = encuestasOrientacion
+    .filter(e => e.fecha_respuesta?.slice(0, 10) === fechaComentarios)
     .filter(e => e.comentario && e.comentario.trim())
-    .map(e => ({ comentario: e.comentario.trim(), programa: e.programa, fecha: e.fecha_respuesta }))
-    .sort((a, b) => (b.fecha || '').localeCompare(a.fecha || ''))
+    .map(e => ({ comentario: e.comentario.trim(), programa: e.programa }))
 
   return {
     alumnos, alumnosOpts, sesiones, loading, saving,
@@ -260,7 +266,7 @@ export function useOrientacion() {
     stats, MOTIVOS, cargarSesiones, eliminarSesion,
     vista, setVista, historial, loadingHistorial, cargarHistorial,
     mesHistorial, setMesHistorial,
-    encuestaPropia, comentariosPropios,
+    encuestaPropia, fechaComentarios, setFechaComentarios, comentariosDelDia,
   }
 }
 

@@ -1,6 +1,8 @@
 import { Loader2, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react'
 import { format, addDays, subDays } from 'date-fns'
 import { useEfectividadDiariaOrientacion } from '../../hooks/useEfectividadDiariaOrientacion'
+import EncuestaResumen from '../shared/EncuestaResumen'
+import ComentariosPorDia from '../shared/ComentariosPorDia'
 
 const hoyStr = () => new Date().toISOString().split('T')[0]
 
@@ -14,30 +16,8 @@ function KPICard({ label, value, sub, color }) {
   )
 }
 
-function ComentariosCard({ comentarios }) {
-  return (
-    <div className="crm-card" style={{ padding:18 }}>
-      <div style={{ fontSize:12, fontWeight:700, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:14 }}>Comentarios de la encuesta (día seleccionado)</div>
-      {comentarios.length === 0 ? (
-        <div style={{ fontSize:13, color:'var(--text-muted)', padding:'10px 0' }}>Sin comentarios ese día</div>
-      ) : (
-        <div style={{ display:'flex', flexDirection:'column', gap:10, maxHeight:240, overflowY:'auto' }}>
-          {comentarios.map((c, i) => (
-            <div key={i} style={{ padding:'10px 12px', background:'rgba(255,255,255,0.03)', borderRadius:8, borderLeft:'3px solid #f5b93a' }}>
-              <div style={{ fontSize:13, color:'var(--text-secondary)', lineHeight:1.4 }}>"{c.comentario}"</div>
-              <div style={{ fontSize:11, color:'var(--text-muted)', marginTop:6 }}>
-                {c.programa || 'Sin programa'} · {c.fecha ? new Date(c.fecha).toLocaleDateString('es-PE') : ''}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
-
 export default function EfectividadDiariaOrientacion() {
-  const { stats, filasPorAsesora, indicadoresOrientador: io, loading, cargar, fecha, setFecha } = useEfectividadDiariaOrientacion()
+  const { stats, filasPorAsesora, indicadoresOrientador: io, loading, cargar, fecha, setFecha, comentariosDelDia, encuestaGeneral } = useEfectividadDiariaOrientacion()
 
   if (loading) return (
     <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'100%', gap:10, color:'var(--text-muted)' }}>
@@ -57,6 +37,7 @@ export default function EfectividadDiariaOrientacion() {
         <button className="crm-btn crm-btn-sm" onClick={cargar}><RefreshCw size={13} /> Actualizar</button>
       </div>
 
+      {/* ── Efectividad diaria (hoy) ── */}
       <div style={{ display:'grid', gridTemplateColumns:'repeat(5,1fr)', gap:10, marginBottom:20 }}>
         <KPICard label="Sesiones hoy"      value={stats.total} sub="Agendadas para hoy" />
         <KPICard label="Concretadas"       value={stats.concretadas}   color="#2dd4a0" />
@@ -65,7 +46,7 @@ export default function EfectividadDiariaOrientacion() {
         <KPICard label="Agendando hoy"     value={stats.agendadasHoy} sub="Nuevas sesiones creadas hoy" />
       </div>
 
-      <div className="crm-card" style={{ overflowX:'auto' }}>
+      <div className="crm-card" style={{ overflowX:'auto', marginBottom:32 }}>
         <table className="crm-table">
           <thead>
             <tr>
@@ -87,12 +68,9 @@ export default function EfectividadDiariaOrientacion() {
           </tbody>
         </table>
       </div>
-      <div style={{ fontSize:11, color:'var(--text-muted)', marginTop:10, marginBottom:24 }}>
-        "Sesiones de hoy que agendó" y "Concretadas" cuentan sesiones programadas para el día de hoy. "Agendando hoy" cuenta sesiones nuevas que esa asesora creó hoy (para cualquier fecha). El NPS/SAT de la sesión es del orientador, no de la asesora que agendó — se muestra más abajo, junto a sus demás indicadores.
-      </div>
 
       {/* ── Indicadores del orientador (navegable por día) ── */}
-      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:10, marginBottom:16, marginTop:28, paddingBottom:10, borderBottom:'1px solid var(--border-default)' }}>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:10, marginBottom:16, paddingBottom:10, borderBottom:'1px solid var(--border-default)' }}>
         <h2 style={{ fontFamily:'Syne,sans-serif', fontWeight:700, color:'var(--text-primary)', fontSize:16 }}>Indicadores del orientador</h2>
         <div style={{ display:'flex', alignItems:'center', gap:8 }}>
           <button className="crm-btn crm-btn-sm" onClick={() => setFecha(format(subDays(new Date(fecha + 'T00:00:00'), 1), 'yyyy-MM-dd'))}>
@@ -109,16 +87,14 @@ export default function EfectividadDiariaOrientacion() {
         </div>
       </div>
 
-      <div style={{ display:'grid', gridTemplateColumns:'repeat(6,1fr)', gap:10, marginBottom:16 }}>
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:10, marginBottom:16 }}>
         <KPICard label="Sesiones del día"  value={io.totalSesionesDia} />
         <KPICard label="Concretadas"       value={io.concretadasDia} color="#2dd4a0" />
         <KPICard label="Efectividad"       value={`${io.efectividad}%`} sub="No volvieron a agendar" color="var(--accent)" />
         <KPICard label="Alumnos atendidos" value={io.alumnosUnicosDia} />
-        <KPICard label="NPS"               value={io.nps != null ? `${io.nps}%` : '—'} sub={io.totalEncuestas > 0 ? `${io.totalEncuestas} respuestas` : 'Sin datos'} />
-        <KPICard label="SAT"               value={io.csat != null ? `${io.csat}%` : '—'} sub={io.totalEncuestas > 0 ? `${io.totalEncuestas} respuestas` : 'Sin datos'} color="#2dd4a0" />
       </div>
 
-      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16, marginBottom:16 }}>
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16, marginBottom:32 }}>
         <div className="crm-card" style={{ padding:18 }}>
           <div style={{ fontSize:12, fontWeight:700, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:14 }}>Motivos frecuentes</div>
           {io.motivosFrecuentes.length === 0 ? <div style={{ color:'var(--text-muted)', fontSize:13 }}>Sin datos</div>
@@ -148,7 +124,17 @@ export default function EfectividadDiariaOrientacion() {
         </div>
       </div>
 
-      <ComentariosCard comentarios={io.comentarios} />
+      <div style={{ marginBottom:16 }}>
+        <ComentariosPorDia fecha={fecha} setFecha={setFecha} comentarios={comentariosDelDia} titulo="Comentarios de la encuesta" />
+      </div>
+
+      {/* ── Encuesta de Satisfacción — Orientación Técnica (general) ── */}
+      <EncuestaResumen
+        titulo="Encuesta de Satisfacción — Orientación Técnica"
+        resumen={encuestaGeneral}
+        labelR3="Consulta resuelta"
+        labelR4="Explicaciones claras"
+      />
     </div>
   )
 }

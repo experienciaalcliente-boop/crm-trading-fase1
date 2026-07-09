@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { fetchSesionesFecha, fetchSesionesAgendadasFecha,
-  fetchEncuestasSatisfaccion, calcularNPS, calcularCSAT } from '../lib/api'
+  fetchEncuestasSatisfaccion, calcularNPS, calcularCSAT, distribucionEscala, distribucionCategorica } from '../lib/api'
 
 // Mismas asesoras que agendan sesiones en el panel de Orientación Técnica
 // (el orientador no agenda — lo hacen ellas en su nombre).
@@ -9,10 +9,12 @@ const hoyStr = () => new Date().toISOString().split('T')[0]
 
 // Monitoreo diario del supervisor para Orientación Técnica: cómo va el
 // orientador HOY (sesiones, concretadas, etc. — siempre hoy, fijo) y cuánto
-// agendó cada asesora hacia él hoy. Los "Indicadores del orientador" son un
-// bloque aparte que sí se puede navegar día a día con `fecha` (por defecto
-// hoy) — es el único filtro que el supervisor pidió, y solo afecta a ese
-// bloque, no al monitoreo de arriba.
+// agendó cada asesora hacia él hoy. "Indicadores del orientador" (sesiones,
+// efectividad, motivos, herramientas) sí se navega día a día con `fecha`
+// (por defecto hoy) — igual que los comentarios de la encuesta, que
+// comparten ese mismo día. La encuesta de satisfacción en sí (NPS/SAT) es
+// "general" (todo el histórico, como el resumen nativo de Google Forms),
+// aparte de ese filtro.
 export function useEfectividadDiariaOrientacion() {
   const [sesionesHoy,  setSesionesHoy]  = useState([])
   const [agendadasHoy, setAgendadasHoy] = useState([])
@@ -63,7 +65,7 @@ export function useEfectividadDiariaOrientacion() {
     }
   })
 
-  // ── Indicadores propios del orientador (día seleccionado) ──
+  // ── Indicadores operativos del orientador (día seleccionado) ──
   // Misma definición de Efectividad ya usada en el Dashboard: % de alumnos
   // que NO volvieron a agendar tras una sesión Concretada, sobre el total
   // de sesiones Concretadas de ese día.
@@ -87,15 +89,6 @@ export function useEfectividadDiariaOrientacion() {
     'MT5 Sync':    concretadasDia.filter(s => s.tiene_ingreso_trade).length,
   }
 
-  // El NPS/SAT de esta encuesta es del orientador (solo hay uno) — no tiene
-  // sentido desglosarlo por asesora, porque la asesora solo agenda la
-  // sesión, no la da ella.
-  const encuestasDia = encuestas.filter(e => e.tipo === 'orientacion' && e.fecha_respuesta?.slice(0, 10) === fecha)
-  const comentarios = encuestasDia
-    .filter(e => e.comentario && e.comentario.trim())
-    .map(e => ({ comentario: e.comentario.trim(), programa: e.programa, fecha: e.fecha_respuesta }))
-    .sort((a, b) => (b.fecha || '').localeCompare(a.fecha || ''))
-
   const indicadoresOrientador = {
     totalSesionesDia: sesionesDia.length,
     concretadasDia: concretadasDia.length,
@@ -103,11 +96,31 @@ export function useEfectividadDiariaOrientacion() {
     efectividad,
     motivosFrecuentes,
     herramientas,
-    nps: calcularNPS(encuestasDia.map(e => e.nps_score)),
-    csat: calcularCSAT(encuestasDia.map(e => e.csat_label)),
-    totalEncuestas: encuestasDia.length,
-    comentarios,
   }
 
-  return { stats, filasPorAsesora, indicadoresOrientador, loading, cargar, fecha, setFecha }
+  // ── Encuesta de satisfacción — resultados generales (todo el histórico) ──
+  // El NPS/SAT de esta encuesta es del orientador (solo hay uno) — no tiene
+  // sentido desglosarlo por asesora, porque la asesora solo agenda la
+  // sesión, no la da ella.
+  const encuestasOrientacion = encuestas.filter(e => e.tipo === 'orientacion')
+  const encuestaGeneral = {
+    total: encuestasOrientacion.length,
+    nps: calcularNPS(encuestasOrientacion.map(e => e.nps_score)),
+    csat: calcularCSAT(encuestasOrientacion.map(e => e.csat_label)),
+    npsDist: distribucionEscala(encuestasOrientacion, 'nps_score', 0, 10),
+    csatDist: distribucionCategorica(encuestasOrientacion, 'csat_label'),
+    r3Dist: distribucionCategorica(encuestasOrientacion, 'respuesta_3'),
+    r4Dist: distribucionCategorica(encuestasOrientacion, 'respuesta_4'),
+  }
+
+  // ── Comentarios del día seleccionado (mismo `fecha` de arriba) ──
+  const comentariosDelDia = encuestasOrientacion
+    .filter(e => e.fecha_respuesta?.slice(0, 10) === fecha)
+    .filter(e => e.comentario && e.comentario.trim())
+    .map(e => ({ comentario: e.comentario.trim(), programa: e.programa }))
+
+  return {
+    stats, filasPorAsesora, indicadoresOrientador, loading, cargar,
+    fecha, setFecha, comentariosDelDia, encuestaGeneral,
+  }
 }

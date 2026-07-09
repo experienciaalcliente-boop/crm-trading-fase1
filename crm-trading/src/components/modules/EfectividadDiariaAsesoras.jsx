@@ -1,5 +1,7 @@
 import { Loader2, RefreshCw } from 'lucide-react'
 import { useEfectividadDiaria } from '../../hooks/useEfectividadDiaria'
+import EncuestaResumen from '../shared/EncuestaResumen'
+import ComentariosPorDia from '../shared/ComentariosPorDia'
 
 function KPICard({ label, value, sub }) {
   return (
@@ -11,30 +13,8 @@ function KPICard({ label, value, sub }) {
   )
 }
 
-function ComentariosCard({ comentarios }) {
-  return (
-    <div className="crm-card" style={{ padding:18, marginTop:16 }}>
-      <div style={{ fontSize:12, fontWeight:700, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:14 }}>Comentarios de la encuesta (mes actual)</div>
-      {comentarios.length === 0 ? (
-        <div style={{ fontSize:13, color:'var(--text-muted)', padding:'10px 0' }}>Sin comentarios este mes</div>
-      ) : (
-        <div style={{ display:'flex', flexDirection:'column', gap:10, maxHeight:280, overflowY:'auto' }}>
-          {comentarios.map((c, i) => (
-            <div key={i} style={{ padding:'10px 12px', background:'rgba(255,255,255,0.03)', borderRadius:8, borderLeft:'3px solid #f5b93a' }}>
-              <div style={{ fontSize:13, color:'var(--text-secondary)', lineHeight:1.4 }}>"{c.comentario}"</div>
-              <div style={{ fontSize:11, color:'var(--text-muted)', marginTop:6 }}>
-                {c.asesora} · {c.programa || 'Sin programa'} · {c.fecha ? new Date(c.fecha).toLocaleDateString('es-PE') : ''}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
-
 export default function EfectividadDiariaAsesoras() {
-  const { filas, totales, comentarios, loading, cargar } = useEfectividadDiaria()
+  const { filas, totales, encuestaPorAsesora, encuestaGeneral, fecha, setFecha, comentariosDelDia, loading, cargar } = useEfectividadDiaria()
 
   if (loading) return (
     <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'100%', gap:10, color:'var(--text-muted)' }}>
@@ -54,6 +34,7 @@ export default function EfectividadDiariaAsesoras() {
         <button className="crm-btn crm-btn-sm" onClick={cargar}><RefreshCw size={13} /> Actualizar</button>
       </div>
 
+      {/* ── Efectividad diaria (hoy) ── */}
       <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:10, marginBottom:20 }}>
         <KPICard label="Llamadas hoy" value={totales.llamadasHoy} sub="Todas las asesoras" />
         <KPICard label="Respondieron hoy"
@@ -62,7 +43,7 @@ export default function EfectividadDiariaAsesoras() {
         <KPICard label="Agendando hoy" value={totales.agendadasHoy} sub="Llamadas programadas hoy" />
       </div>
 
-      <div className="crm-card" style={{ overflowX:'auto' }}>
+      <div className="crm-card" style={{ overflowX:'auto', marginBottom:32 }}>
         <table className="crm-table">
           <thead>
             <tr>
@@ -72,14 +53,11 @@ export default function EfectividadDiariaAsesoras() {
               <th>Contactabilidad hoy</th>
               <th>Agendando hoy</th>
               <th>Sin responder (acum.)</th>
-              <th>Respuestas encuesta</th>
-              <th>NPS</th>
-              <th>SAT</th>
             </tr>
           </thead>
           <tbody>
             {filas.length === 0 ? (
-              <tr><td colSpan={9} style={{ textAlign:'center', color:'var(--text-muted)', padding:'20px 0' }}>Sin asesoras registradas</td></tr>
+              <tr><td colSpan={6} style={{ textAlign:'center', color:'var(--text-muted)', padding:'20px 0' }}>Sin asesoras registradas</td></tr>
             ) : filas.map(f => (
               <tr key={f.id}>
                 <td style={{ fontWeight:600, color:'var(--text-primary)' }}>{f.nombre}</td>
@@ -99,19 +77,50 @@ export default function EfectividadDiariaAsesoras() {
                     ? <span style={{ color:'#fb923c', fontWeight:700 }}>{f.sinResponderAcumulado}</span>
                     : <span style={{ color:'var(--text-muted)' }}>—</span>}
                 </td>
-                <td style={{ textAlign:'center', color:'var(--text-muted)' }}>{f.totalEncuestas}</td>
-                <td style={{ textAlign:'center', color: f.nps != null ? 'var(--text-primary)' : 'var(--text-muted)' }}>{f.nps != null ? `${f.nps}%` : '—'}</td>
-                <td style={{ textAlign:'center', color: f.csat != null ? '#2dd4a0' : 'var(--text-muted)' }}>{f.csat != null ? `${f.csat}%` : '—'}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
-      <div style={{ fontSize:11, color:'var(--text-muted)', marginTop:10 }}>
-        NPS y SAT del mes actual, cruzados por el programa que responde cada alumno en la encuesta.
+
+      {/* ── Encuesta de Satisfacción — Asesoría Académica (general) ── */}
+      <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:16, paddingBottom:10, borderBottom:'1px solid var(--border-default)' }}>
+        <h2 style={{ fontFamily:'Syne,sans-serif', fontWeight:700, color:'var(--text-primary)', fontSize:16 }}>Encuesta de Satisfacción — Asesoría Académica</h2>
       </div>
 
-      <ComentariosCard comentarios={comentarios} />
+      <div className="crm-card" style={{ overflowX:'auto', marginBottom:16 }}>
+        <table className="crm-table">
+          <thead>
+            <tr><th>Asesora</th><th>Respuestas</th><th>NPS</th><th>SAT</th></tr>
+          </thead>
+          <tbody>
+            {encuestaPorAsesora.length === 0 ? (
+              <tr><td colSpan={4} style={{ textAlign:'center', color:'var(--text-muted)', padding:'20px 0' }}>Sin asesoras registradas</td></tr>
+            ) : encuestaPorAsesora.map(a => (
+              <tr key={a.asesoraId}>
+                <td style={{ fontWeight:600, color:'var(--text-primary)' }}>{a.nombre}</td>
+                <td style={{ textAlign:'center' }}>{a.total}</td>
+                <td style={{ textAlign:'center', color: a.nps != null ? 'var(--text-primary)' : 'var(--text-muted)' }}>{a.nps != null ? `${a.nps}%` : '—'}</td>
+                <td style={{ textAlign:'center', color: a.csat != null ? '#2dd4a0' : 'var(--text-muted)' }}>{a.csat != null ? `${a.csat}%` : '—'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <div style={{ fontSize:11, color:'var(--text-muted)', padding:'10px 18px' }}>
+          Desglosado por el programa que responde cada alumno, cruzado con la asesora asignada a ese programa.
+        </div>
+      </div>
+
+      <div style={{ marginBottom:16 }}>
+        <EncuestaResumen
+          titulo="Resultados generales"
+          resumen={encuestaGeneral}
+          labelR3="Atención al pedir ayuda"
+          labelR4="Ayuda a avanzar en el programa"
+        />
+      </div>
+
+      <ComentariosPorDia fecha={fecha} setFecha={setFecha} comentarios={comentariosDelDia} titulo="Comentarios de alumnos" />
     </div>
   )
 }
