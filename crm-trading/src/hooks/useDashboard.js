@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
-import { programaActivo, fetchEncuestasSatisfaccion, calcularNPS, calcularCSAT, mapaProgramaAsesora } from '../lib/api'
+import { programaActivo, fetchEncuestasSatisfaccion, calcularNPS, calcularCSAT } from '../lib/api'
 import toast from 'react-hot-toast'
 
 // Safe calcularRiesgo — no crashes
@@ -286,44 +286,19 @@ export function useDashboard() {
   }).sort((a,b) => b.contactabilidad - a.contactabilidad)
 
   // ── Encuestas de satisfacción (NPS / CSAT) ────────────────
-  // Se escopean al mes seleccionado, igual que el resto de indicadores del
-  // Dashboard. La encuesta de asesoría solo trae el programa del alumno, no
-  // la asesora — se cruza programa→asesora (mapaProgramaAsesora) para poder
-  // desglosar por persona.
+  // Solo el resumen combinado (asesoría + orientación) para el KPI
+  // ejecutivo del supervisor — el detalle por asesora/orientador con
+  // comentarios vive en sus pestañas correspondientes (Seguimiento y
+  // Orientación Técnica), no acá.
   const encuestasMes = (raw.encuestas || []).filter(e => {
     const fecha = e.fecha_respuesta?.slice(0, 10)
     return fecha && fecha >= inicioMes && fecha <= finMes
   })
-  const encuestasAsesoriaMes = encuestasMes.filter(e => e.tipo === 'asesoria')
-  const encuestasOrientacionMes = encuestasMes.filter(e => e.tipo === 'orientacion')
-
-  const programaAsesoraMap = mapaProgramaAsesora(alumnosActivos)
-  const encuestasAsesoriaConId = encuestasAsesoriaMes.map(e => ({ ...e, asesora_id: programaAsesoraMap[e.programa] || null }))
-
-  const resumenEncuesta = rows => ({
-    nps: calcularNPS(rows.map(e => e.nps_score)),
-    csat: calcularCSAT(rows.map(e => e.csat_label)),
-    total: rows.length,
-  })
-
-  // Comentarios abiertos, más recientes primero — mismo criterio de "mes
-  // seleccionado" que el resto de indicadores de encuesta.
-  const comentariosDe = rows => rows
-    .filter(e => e.comentario && e.comentario.trim())
-    .map(e => ({ comentario: e.comentario.trim(), programa: e.programa, fecha: e.fecha_respuesta }))
-    .sort((a, b) => (b.fecha || '').localeCompare(a.fecha || ''))
-
-  const encuestaAsesoriaGeneral = resumenEncuesta(encuestasAsesoriaMes)
-  const encuestaOrientacionGeneral = resumenEncuesta(encuestasOrientacionMes)
-  const encuestaGeneralCombinada = resumenEncuesta(encuestasMes)
-  const misEncuestasAsesoria = esAsesora ? encuestasAsesoriaConId.filter(e => e.asesora_id === user.asesora_id) : []
-  const encuestaAsesoriaPropia = resumenEncuesta(misEncuestasAsesoria)
-  const comentariosAsesoriaPropia = comentariosDe(misEncuestasAsesoria)
-  const comentariosOrientacion = comentariosDe(encuestasOrientacionMes)
-  const encuestaPorAsesora = Object.entries(nombrePorAsesoraId).map(([asesoraId, nombre]) => {
-    const rows = encuestasAsesoriaConId.filter(e => e.asesora_id === asesoraId)
-    return { asesoraId, nombre, ...resumenEncuesta(rows), comentarios: comentariosDe(rows) }
-  })
+  const encuestaGeneralCombinada = {
+    nps: calcularNPS(encuestasMes.map(e => e.nps_score)),
+    csat: calcularCSAT(encuestasMes.map(e => e.csat_label)),
+    total: encuestasMes.length,
+  }
 
   // ── Tipos de cuenta del mes ───────────────────────────────
   const ultimoRegMesPorAlumno = {}
@@ -460,9 +435,7 @@ export function useDashboard() {
     hoy, programas, alumnosConRiesgo, riesgoAlto,
     evolucionHeatmap,
     desempenoPorAsesora,
-    encuestaAsesoriaGeneral, encuestaOrientacionGeneral, encuestaGeneralCombinada,
-    encuestaAsesoriaPropia, encuestaPorAsesora,
-    comentariosAsesoriaPropia, comentariosOrientacion,
+    encuestaGeneralCombinada,
     totalAlumnosActivos, totalLlamadas:llamadasMes.length,
     alumnosQueRespondieronMes, respondieron:alumnosQueRespondieronMes.size,
     contactabilidad, contactabilidadPorPrograma,

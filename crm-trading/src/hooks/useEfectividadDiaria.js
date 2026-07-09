@@ -61,6 +61,7 @@ export function useEfectividadDiaria() {
       contactabilidadHoy: misRegs.length > 0 ? Math.round((respondieron / misRegs.length) * 100) : 0,
       agendadasHoy: misAgendadas,
       sinResponderAcumulado: misSinResponder,
+      totalEncuestas: misEncuestas.length,
       nps: calcularNPS(misEncuestas.map(e => e.nps_score)),
       csat: calcularCSAT(misEncuestas.map(e => e.csat_label)),
     }
@@ -72,5 +73,18 @@ export function useEfectividadDiaria() {
     agendadasHoy: agendadasHoy.length,
   }
 
-  return { filas, totales, loading, cargar }
+  // Comentarios abiertos de la encuesta de asesoría (mes actual), más
+  // recientes primero, con la asesora correspondiente ya resuelta.
+  const nombrePorId = Object.fromEntries(asesoras.map(a => [a.id, a.nombre]))
+  const comentarios = encuestasConAsesora
+    .filter(e => e.comentario && e.comentario.trim())
+    .map(e => ({
+      comentario: e.comentario.trim(),
+      programa: e.programa,
+      asesora: nombrePorId[e.asesora_id] || 'Sin asignar',
+      fecha: e.fecha_respuesta,
+    }))
+    .sort((a, b) => (b.fecha || '').localeCompare(a.fecha || ''))
+
+  return { filas, totales, comentarios, loading, cargar }
 }

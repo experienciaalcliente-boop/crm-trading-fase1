@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
-import { fetchAlumnos, fetchSesionesFecha, fetchHistorialSesiones, insertSesion, updateSesion, crearReunionZoom, deleteSesion, fetchOrientadorId } from '../lib/api'
+import { fetchAlumnos, fetchSesionesFecha, fetchHistorialSesiones, insertSesion, updateSesion, crearReunionZoom, deleteSesion, fetchOrientadorId,
+  fetchEncuestasSatisfaccion, calcularNPS, calcularCSAT } from '../lib/api'
 import { useAuth } from '../context/AuthContext'
 import toast from 'react-hot-toast'
 import { format } from 'date-fns'
@@ -53,10 +54,20 @@ export function useOrientacion() {
   const [historial,     setHistorial]     = useState([])
   const [loadingHistorial, setLoadingHistorial] = useState(false)
   const [mesHistorial,  setMesHistorial]  = useState(() => new Date().toISOString().slice(0, 7))
+  const [encuestas,     setEncuestas]     = useState([])
 
   useEffect(() => {
     fetchOrientadorId().then(setOrientadorId).catch(console.error)
   }, [])
+
+  // Encuesta de satisfacción — solo hace falta para el propio orientador (su
+  // detalle vive en esta misma pestaña; el supervisor la ve en su propio
+  // panel de monitoreo, y la asesora no participa de esta encuesta).
+  useEffect(() => {
+    if (user?.rol === 'orientador') {
+      fetchEncuestasSatisfaccion().then(setEncuestas).catch(console.error)
+    }
+  }, [user?.rol])
 
   // El orientador ve solo su propio historial; supervisor/asesora ven todo
   // (igual que ya podían ver todas las sesiones del día). Se limita al mes
@@ -227,6 +238,19 @@ export function useOrientacion() {
     noConectaron: sesiones.filter(s => s.estado === 'No se conectó').length,
   }
 
+  // ── Encuesta de satisfacción propia (solo orientador) ──────
+  const mesActual = new Date().toISOString().slice(0, 7)
+  const encuestasMes = encuestas.filter(e => e.tipo === 'orientacion' && e.fecha_respuesta?.slice(0, 7) === mesActual)
+  const encuestaPropia = {
+    nps: calcularNPS(encuestasMes.map(e => e.nps_score)),
+    csat: calcularCSAT(encuestasMes.map(e => e.csat_label)),
+    total: encuestasMes.length,
+  }
+  const comentariosPropios = encuestasMes
+    .filter(e => e.comentario && e.comentario.trim())
+    .map(e => ({ comentario: e.comentario.trim(), programa: e.programa, fecha: e.fecha_respuesta }))
+    .sort((a, b) => (b.fecha || '').localeCompare(a.fecha || ''))
+
   return {
     alumnos, alumnosOpts, sesiones, loading, saving,
     form, setField, agendarSesion,
@@ -236,6 +260,7 @@ export function useOrientacion() {
     stats, MOTIVOS, cargarSesiones, eliminarSesion,
     vista, setVista, historial, loadingHistorial, cargarHistorial,
     mesHistorial, setMesHistorial,
+    encuestaPropia, comentariosPropios,
   }
 }
 

@@ -19,6 +19,54 @@ export default function LlamadasPage() {
   }
 }
 
+// Encuesta de satisfacción de la asesora (mes actual, solo sus programas) —
+// vive acá porque es el detalle de "asesoría académica"; el resumen
+// ejecutivo combinado sigue en el Dashboard.
+function EncuestaPropia({ encuesta, comentarios }) {
+  return (
+    <div style={{ marginTop:20, marginBottom:20 }}>
+      <div style={{ fontSize:12, fontWeight:700, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:10 }}>Encuesta de satisfacción (mes actual)</div>
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16, marginBottom:16 }}>
+        <div className="crm-card" style={{ padding:18, textAlign:'center' }}>
+          <div style={{ fontSize:11, fontWeight:700, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:10 }}>NPS</div>
+          {encuesta.total > 0 ? (
+            <>
+              <div style={{ fontSize:28, fontWeight:700, color:'var(--text-primary)', fontFamily:'Syne,sans-serif' }}>{encuesta.nps}%</div>
+              <div style={{ fontSize:11, color:'var(--text-muted)', marginTop:6 }}>{encuesta.total} respuestas</div>
+            </>
+          ) : <div style={{ fontSize:13, color:'var(--text-muted)', padding:'12px 0' }}>Sin datos aún este mes</div>}
+        </div>
+        <div className="crm-card" style={{ padding:18, textAlign:'center' }}>
+          <div style={{ fontSize:11, fontWeight:700, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:10 }}>SAT</div>
+          {encuesta.total > 0 ? (
+            <>
+              <div style={{ fontSize:28, fontWeight:700, color:'#2dd4a0', fontFamily:'Syne,sans-serif' }}>{encuesta.csat}%</div>
+              <div style={{ fontSize:11, color:'var(--text-muted)', marginTop:6 }}>{encuesta.total} respuestas</div>
+            </>
+          ) : <div style={{ fontSize:13, color:'var(--text-muted)', padding:'12px 0' }}>Sin datos aún este mes</div>}
+        </div>
+      </div>
+      <div className="crm-card" style={{ padding:18 }}>
+        <div style={{ fontSize:12, fontWeight:700, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:14 }}>Comentarios de tus alumnos</div>
+        {comentarios.length === 0 ? (
+          <div style={{ fontSize:13, color:'var(--text-muted)', padding:'10px 0' }}>Sin comentarios este mes</div>
+        ) : (
+          <div style={{ display:'flex', flexDirection:'column', gap:10, maxHeight:240, overflowY:'auto' }}>
+            {comentarios.map((c, i) => (
+              <div key={i} style={{ padding:'10px 12px', background:'rgba(255,255,255,0.03)', borderRadius:8, borderLeft:'3px solid #f5b93a' }}>
+                <div style={{ fontSize:13, color:'var(--text-secondary)', lineHeight:1.4 }}>"{c.comentario}"</div>
+                <div style={{ fontSize:11, color:'var(--text-muted)', marginTop:6 }}>
+                  {c.programa || 'Sin programa'} · {c.fecha ? new Date(c.fecha).toLocaleDateString('es-PE') : ''}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 function LlamadasPageInner() {
   const { user } = useAuth()
   // El supervisor no registra llamadas — necesita monitoreo diario de sus
@@ -61,6 +109,7 @@ function RegistroLlamadasAsesora() {
           </p>
         </div>
         <FormLlamada state={state} onAgendarLlamada={() => abrirModalAgendar()} />
+        <EncuestaPropia encuesta={state.encuestaPropia} comentarios={state.comentariosPropios} />
         <HistorialAlumno
           historial={state.historial}
           alumno={state.form.alumno}

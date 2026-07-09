@@ -1,6 +1,6 @@
 import { useDashboard } from '../hooks/useDashboard'
 import { useAuth } from '../context/AuthContext'
-import { Loader2, RefreshCw, Phone, CreditCard, MonitorSmartphone, TrendingUp, Smile } from 'lucide-react'
+import { Loader2, RefreshCw, Phone, CreditCard, MonitorSmartphone, TrendingUp } from 'lucide-react'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts'
@@ -57,28 +57,6 @@ function KPICard({ label, value, sub, color='#e4f5f2', accent, badge }) {
       <div style={{ fontSize:26, fontWeight:700, color, fontFamily:'Syne,sans-serif', lineHeight:1 }}>{value}</div>
       {sub && <div style={{ fontSize:11, color:'var(--text-muted)', marginTop:4 }}>{sub}</div>}
       {badge}
-    </div>
-  )
-}
-
-function ComentariosCard({ comentarios, titulo='Comentarios de alumnos', vacio='Sin comentarios este mes' }) {
-  return (
-    <div className="crm-card" style={{ padding:18 }}>
-      <div style={{ fontSize:12, fontWeight:700, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:14 }}>{titulo}</div>
-      {comentarios.length === 0 ? (
-        <div style={{ fontSize:13, color:'var(--text-muted)', padding:'10px 0' }}>{vacio}</div>
-      ) : (
-        <div style={{ display:'flex', flexDirection:'column', gap:10, maxHeight:260, overflowY:'auto' }}>
-          {comentarios.map((c, i) => (
-            <div key={i} style={{ padding:'10px 12px', background:'rgba(255,255,255,0.03)', borderRadius:8, borderLeft:'3px solid #f5b93a' }}>
-              <div style={{ fontSize:13, color:'var(--text-secondary)', lineHeight:1.4 }}>"{c.comentario}"</div>
-              <div style={{ fontSize:11, color:'var(--text-muted)', marginTop:6 }}>
-                {c.programa || 'Sin programa'} · {c.fecha ? new Date(c.fecha).toLocaleDateString('es-PE') : ''}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
     </div>
   )
 }
@@ -157,44 +135,11 @@ export default function DashboardPage() {
           <KPICard label="Alumnos activos"    value={d.totalAlumnosActivos}  sub="En curso + seguimiento"    color="var(--accent)"  accent="var(--accent)" />
           <KPICard label="Contactabilidad"    value={`${d.contactabilidad}%`} sub={`${d.respondieron} respondieron`} color="#2dd4a0" accent="#2dd4a0" />
           <KPICard label="SAT general"        value={d.encuestaGeneralCombinada.csat != null ? `${d.encuestaGeneralCombinada.csat}%` : '—'} sub={d.encuestaGeneralCombinada.total > 0 ? `${d.encuestaGeneralCombinada.total} respuestas` : 'Sin datos aún'} color="var(--accent)" accent="var(--accent)" />
-          <KPICard label="NPS general"        value={d.encuestaGeneralCombinada.nps != null ? d.encuestaGeneralCombinada.nps : '—'} sub={d.encuestaGeneralCombinada.total > 0 ? `${d.encuestaGeneralCombinada.total} respuestas` : 'Sin datos aún'} color="var(--accent)" accent="var(--accent)" />
+          <KPICard label="NPS general"        value={d.encuestaGeneralCombinada.nps != null ? `${d.encuestaGeneralCombinada.nps}%` : '—'} sub={d.encuestaGeneralCombinada.total > 0 ? `${d.encuestaGeneralCombinada.total} respuestas` : 'Sin datos aún'} color="var(--accent)" accent="var(--accent)" />
           <KPICard label="Recaudación total"  value={`${d.pctRecaudado}%`} sub={`S/ ${fmt(d.montoPagadoPEN)}`} color="#f5b93a" accent="#f5b93a" />
         </div>
       )}
 
-      {/* ══ NPS / SATISFACCIÓN (asesora y orientador) ══ */}
-      {(esAsesora || esOrientador) && (() => {
-        const enc = esAsesora ? d.encuestaAsesoriaPropia : d.encuestaOrientacionGeneral
-        const comentarios = esAsesora ? d.comentariosAsesoriaPropia : d.comentariosOrientacion
-        return (
-        <>
-          <SectionTitle icon={Smile} title="Encuesta de Satisfacción" color="#f5b93a" />
-          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16, marginBottom:16 }}>
-            <div className="crm-card" style={{ padding:18, textAlign:'center' }}>
-              <div style={{ fontSize:12, fontWeight:700, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:14 }}>NPS</div>
-              {enc.total > 0 ? (
-                <>
-                  <div style={{ fontSize:32, fontWeight:700, color:'var(--text-primary)', fontFamily:'Syne,sans-serif' }}>{enc.nps}</div>
-                  <div style={{ fontSize:11, color:'var(--text-muted)', marginTop:6 }}>{enc.total} respuestas este mes</div>
-                </>
-              ) : <div style={{ fontSize:13, color:'var(--text-muted)', padding:'20px 0' }}>Sin datos aún este mes</div>}
-            </div>
-            <div className="crm-card" style={{ padding:18, textAlign:'center' }}>
-              <div style={{ fontSize:12, fontWeight:700, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:14 }}>SAT (satisfacción)</div>
-              {enc.total > 0 ? (
-                <>
-                  <div style={{ fontSize:32, fontWeight:700, color:'#2dd4a0', fontFamily:'Syne,sans-serif' }}>{enc.csat}%</div>
-                  <div style={{ fontSize:11, color:'var(--text-muted)', marginTop:6 }}>{enc.total} respuestas este mes</div>
-                </>
-              ) : <div style={{ fontSize:13, color:'var(--text-muted)', padding:'20px 0' }}>Sin datos aún este mes</div>}
-            </div>
-          </div>
-          <div style={{ marginBottom:16 }}>
-            <ComentariosCard comentarios={comentarios} />
-          </div>
-        </>
-        )
-      })()}
 
       {/* Secciones de asesora/supervisor — no le competen al orientador */}
       {!esOrientador && (
@@ -349,46 +294,6 @@ export default function DashboardPage() {
       </div>
       </>
       )}
-
-      {/* ══ ENCUESTAS POR ASESORA (solo supervisor) ══ */}
-      {esSupervisor && (() => {
-        const comentariosTodos = d.encuestaPorAsesora
-          .flatMap(a => a.comentarios.map(c => ({ ...c, asesora: a.nombre })))
-          .sort((a, b) => (b.fecha || '').localeCompare(a.fecha || ''))
-        return (
-        <>
-          <SectionTitle icon={Smile} title="Encuestas — Asesoría Académica" color="#f5b93a" />
-          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16, marginBottom:16 }}>
-            <div className="crm-card" style={{ padding:18, overflowX:'auto' }}>
-              <div style={{ fontSize:12, fontWeight:700, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:14 }}>Respuestas por asesora (mes actual)</div>
-              <table className="crm-table">
-                <thead>
-                  <tr><th>Asesora</th><th>Respuestas</th><th>NPS</th><th>SAT</th></tr>
-                </thead>
-                <tbody>
-                  {d.encuestaPorAsesora.length === 0 ? (
-                    <tr><td colSpan={4} style={{ textAlign:'center', color:'var(--text-muted)', padding:'20px 0' }}>Sin asesoras registradas</td></tr>
-                  ) : d.encuestaPorAsesora.map(a => (
-                    <tr key={a.asesoraId}>
-                      <td style={{ fontWeight:600, color:'var(--text-primary)' }}>{a.nombre}</td>
-                      <td style={{ textAlign:'center' }}>{a.total}</td>
-                      <td style={{ textAlign:'center', color: a.nps != null ? 'var(--text-primary)' : 'var(--text-muted)' }}>{a.nps != null ? a.nps : '—'}</td>
-                      <td style={{ textAlign:'center', color: a.csat != null ? '#2dd4a0' : 'var(--text-muted)' }}>{a.csat != null ? `${a.csat}%` : '—'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              <div style={{ fontSize:11, color:'var(--text-muted)', marginTop:10 }}>
-                Se desglosa por el programa que responde cada alumno, cruzado con la asesora asignada a ese programa.
-              </div>
-            </div>
-            <ComentariosCard
-              comentarios={comentariosTodos.map(c => ({ ...c, programa: `${c.asesora} · ${c.programa || 'Sin programa'}` }))}
-            />
-          </div>
-        </>
-        )
-      })()}
 
       {/* ══ RECAUDACIÓN (solo supervisor) ══ */}
       {esSupervisor && (

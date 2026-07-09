@@ -1,6 +1,7 @@
 // v-2026-06-20 16:06:13
 import { useState, useEffect, useCallback } from 'react'
-import { fetchAlumnos, fetchAsesorasLlamadas, fetchAsesoras, fetchRegistrosHoy, fetchHistorialAlumno, fetchNextCodigo, insertRegistroLlamada, suscribirRegistrosHoy, fetchSinResponderAcumulado, calcularSemanaRegistro } from '../lib/api'
+import { fetchAlumnos, fetchAsesorasLlamadas, fetchAsesoras, fetchRegistrosHoy, fetchHistorialAlumno, fetchNextCodigo, insertRegistroLlamada, suscribirRegistrosHoy, fetchSinResponderAcumulado, calcularSemanaRegistro,
+  fetchEncuestasSatisfaccion, calcularNPS, calcularCSAT, mapaProgramaAsesora } from '../lib/api'
 import { useAuth } from '../context/AuthContext'
 import toast from 'react-hot-toast'
 import { format } from 'date-fns'
@@ -38,6 +39,7 @@ export function useLlamadas() {
   const [saving,          setSaving]          = useState(false)
   const [asesoraPanel,    setAsesoraPanel]    = useState(null)
   const [sinResponder,    setSinResponder]    = useState([])
+  const [encuestas,       setEncuestas]       = useState([])
 
   // ── Carga inicial ──
   useEffect(() => {
@@ -47,13 +49,15 @@ export function useLlamadas() {
       fetchAsesorasLlamadas(),
       fetchRegistrosHoy(),
       fetchSinResponderAcumulado(),
+      fetchEncuestasSatisfaccion(),
     ])
-      .then(([als, todasAsesoras, asesorasLlamadas, regs, sinResp]) => {
+      .then(([als, todasAsesoras, asesorasLlamadas, regs, sinResp, enc]) => {
         setAlumnos(als)
         setAsesoras(todasAsesoras)
         setAsesorasForm(asesorasLlamadas)
         setRegistrosHoy(regs)
         setSinResponder(sinResp)
+        setEncuestas(enc)
       })
       .catch(err => {
         console.error(err)
@@ -254,12 +258,32 @@ export function useLlamadas() {
       : 0,
   }
 
+  // ── Encuesta de satisfacción propia (solo asesora) ─────────
+  // Cruza programa→asesora sobre sus propios alumnos (ya vienen filtrados a
+  // asesoraIdPropia) para saber qué respuestas de la encuesta le corresponden.
+  const mesActual = new Date().toISOString().slice(0, 7)
+  const encuestasMes = encuestas.filter(e => e.tipo === 'asesoria' && e.fecha_respuesta?.slice(0, 7) === mesActual)
+  const programaAsesoraMap = mapaProgramaAsesora(alumnos)
+  const misEncuestas = asesoraIdPropia
+    ? encuestasMes.filter(e => programaAsesoraMap[e.programa] === asesoraIdPropia)
+    : []
+  const encuestaPropia = {
+    nps: calcularNPS(misEncuestas.map(e => e.nps_score)),
+    csat: calcularCSAT(misEncuestas.map(e => e.csat_label)),
+    total: misEncuestas.length,
+  }
+  const comentariosPropios = misEncuestas
+    .filter(e => e.comentario && e.comentario.trim())
+    .map(e => ({ comentario: e.comentario.trim(), programa: e.programa, fecha: e.fecha_respuesta }))
+    .sort((a, b) => (b.fecha || '').localeCompare(a.fecha || ''))
+
   return {
     alumnos, asesoras, asesorasForm, registrosHoy, historial,
     form, setField, onAlumnoChange, onProgramaChange,
     programasOpts, alumnosOpts, asesorasOpts,
     guardar, limpiar, recargarHistorial, seleccionarDesdePanelDerecho,
     loading, saving,
+    encuestaPropia, comentariosPropios,
     asesoraPanel, setAsesoraPanel, stats, sinResponder,
     asesorasPanelOpts,
   }
