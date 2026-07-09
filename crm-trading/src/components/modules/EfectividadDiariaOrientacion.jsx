@@ -11,8 +11,11 @@ function KPICard({ label, value, sub, color }) {
   )
 }
 
+const hoyStr = () => new Date().toISOString().split('T')[0]
+
 export default function EfectividadDiariaOrientacion() {
-  const { stats, filasPorAsesora, indicadoresOrientador: io, loading, cargar } = useEfectividadDiariaOrientacion()
+  const { stats, filasPorAsesora, indicadoresOrientador: io, loading, cargar, fecha, setFecha } = useEfectividadDiariaOrientacion()
+  const esHoy = fecha === hoyStr()
 
   if (loading) return (
     <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'100%', gap:10, color:'var(--text-muted)' }}>
@@ -26,18 +29,22 @@ export default function EfectividadDiariaOrientacion() {
         <div>
           <h1 style={{ fontFamily:'Syne,sans-serif', fontWeight:700, color:'var(--text-primary)', fontSize:20 }}>Efectividad diaria — Orientación Técnica</h1>
           <p style={{ fontSize:13, color:'var(--text-muted)', textTransform:'capitalize', marginTop:3 }}>
-            {new Date().toLocaleDateString('es-PE', { weekday:'long', day:'numeric', month:'long', year:'numeric' })}
+            {new Date(fecha + 'T00:00:00').toLocaleDateString('es-PE', { weekday:'long', day:'numeric', month:'long', year:'numeric' })}
           </p>
         </div>
-        <button className="crm-btn crm-btn-sm" onClick={cargar}><RefreshCw size={13} /> Actualizar</button>
+        <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+          <input type="date" value={fecha} max={hoyStr()} onChange={e => setFecha(e.target.value)}
+            style={{ padding:'6px 10px', background:'var(--bg-input)', border:'1.5px solid var(--border-input)', borderRadius:8, color:'var(--text-primary)', fontSize:13 }} />
+          <button className="crm-btn crm-btn-sm" onClick={cargar}><RefreshCw size={13} /> Actualizar</button>
+        </div>
       </div>
 
       <div style={{ display:'grid', gridTemplateColumns:'repeat(5,1fr)', gap:10, marginBottom:20 }}>
-        <KPICard label="Sesiones hoy"      value={stats.total} sub="Agendadas para hoy" />
+        <KPICard label="Sesiones"          value={stats.total} sub={esHoy ? 'Agendadas para hoy' : 'Agendadas ese día'} />
         <KPICard label="Concretadas"       value={stats.concretadas}   color="#2dd4a0" />
         <KPICard label="Reprogramadas"     value={stats.reprogramadas} color="#f5b93a" />
         <KPICard label="No conectaron"     value={stats.noConectaron}  color="#f07070" />
-        <KPICard label="Agendando hoy"     value={stats.agendadasHoy} sub="Nuevas sesiones creadas hoy" />
+        <KPICard label="Agendando"         value={stats.agendadasHoy} sub={esHoy ? 'Nuevas sesiones creadas hoy' : 'Nuevas sesiones creadas ese día'} />
       </div>
 
       <div className="crm-card" style={{ overflowX:'auto' }}>
@@ -45,9 +52,9 @@ export default function EfectividadDiariaOrientacion() {
           <thead>
             <tr>
               <th>Asesora</th>
-              <th>Sesiones de hoy que agendó</th>
+              <th>Sesiones del día que agendó</th>
               <th>Concretadas</th>
-              <th>Agendando hoy</th>
+              <th>Agendando ese día</th>
             </tr>
           </thead>
           <tbody>
@@ -63,7 +70,7 @@ export default function EfectividadDiariaOrientacion() {
         </table>
       </div>
       <div style={{ fontSize:11, color:'var(--text-muted)', marginTop:10, marginBottom:24 }}>
-        "Sesiones de hoy que agendó" y "Concretadas" cuentan sesiones programadas para el día de hoy. "Agendando hoy" cuenta sesiones nuevas que esa asesora creó hoy (para cualquier fecha). El NPS/SAT de la sesión es del orientador, no de la asesora que agendó — se muestra más abajo, junto a sus demás indicadores.
+        "Sesiones del día que agendó" y "Concretadas" cuentan sesiones programadas para la fecha elegida arriba. "Agendando ese día" cuenta sesiones nuevas que esa asesora creó ese día (para cualquier fecha de sesión). El NPS/SAT de la sesión es del orientador, no de la asesora que agendó — se muestra más abajo, junto a sus demás indicadores.
       </div>
 
       {/* ── Indicadores del orientador (mes actual) ── */}

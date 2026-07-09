@@ -2,7 +2,6 @@ import { useVentasComplementos } from '../hooks/useVentasComplementos'
 import { useAuth } from '../context/AuthContext'
 import { Loader2, ShoppingBag, CheckCircle2 } from 'lucide-react'
 import { format } from 'date-fns'
-import { es } from 'date-fns/locale'
 import Select from 'react-select'
 import ResumenVentasEquipo from '../components/modules/ResumenVentasEquipo'
 
@@ -52,7 +51,9 @@ export default function VentaComplementosPage() {
         </div>
 
         <Field label="Fecha de registro">
-          <input className="crm-input" disabled value={format(new Date(), "d 'de' MMMM, yyyy", { locale: es })} />
+          <input type="date" className="crm-input" value={v.form.fecha_registro}
+            max={format(new Date(), 'yyyy-MM-dd')}
+            onChange={e => v.setField('fecha_registro', e.target.value)} />
         </Field>
 
         <Field label="Filtrar por programa (opcional — incluye programas ya culminados)">

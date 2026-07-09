@@ -379,27 +379,15 @@ export async function crearReunionZoom({ titulo, fecha, hora, duracion = 45, alu
 // SESIONES DE ORIENTACIÓN
 // ─────────────────────────────────────────
 
-export async function fetchSesionesHoy() {
-  const hoy = new Date().toISOString().split('T')[0]
-  const { data, error } = await supabase
-    .from('sesiones_orientacion')
-    .select('*, alumno:alumnos(nombre, programa)')
-    .eq('fecha', hoy)
-    .order('hora_inicio')
-  if (error) throw error
-  return data || []
-}
-
-// Sesiones que se AGENDARON hoy (por created_at), sin importar para qué
-// fecha quedaron programadas — mide la actividad de agenda del día de cada
+// Sesiones que se AGENDARON en una fecha dada (por created_at), sin importar
+// para qué fecha quedaron programadas — mide la actividad de agenda de cada
 // asesora hacia el orientador, para el monitoreo diario del supervisor.
-export async function fetchSesionesAgendadasHoy() {
-  const hoy = new Date().toISOString().split('T')[0]
+export async function fetchSesionesAgendadasFecha(fecha) {
   const { data, error } = await supabase
     .from('sesiones_orientacion')
     .select('id, agendado_por, estado, created_at')
-    .gte('created_at', `${hoy}T00:00:00`)
-    .lte('created_at', `${hoy}T23:59:59`)
+    .gte('created_at', `${fecha}T00:00:00`)
+    .lte('created_at', `${fecha}T23:59:59`)
   if (error) throw error
   return data || []
 }
@@ -928,7 +916,7 @@ export async function fetchEncuestasSatisfaccion() {
   }
   const { data, error } = await supabase
     .from('encuestas_satisfaccion')
-    .select('id, tipo, programa, nps_score, csat_label, fecha_respuesta')
+    .select('id, tipo, programa, nps_score, csat_label, respuesta_3, respuesta_4, comentario, fecha_respuesta')
   if (error) throw error
   return data || []
 }

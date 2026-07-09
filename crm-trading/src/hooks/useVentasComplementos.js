@@ -3,14 +3,17 @@ import { fetchAlumnos, fetchVentasComplementos, insertVentaComplemento, CATALOGO
 import { useAuth } from '../context/AuthContext'
 import toast from 'react-hot-toast'
 
-const FORM_INICIAL = {
+const hoyStr = () => new Date().toISOString().split('T')[0]
+
+const crearFormInicial = () => ({
   alumno_id: '',
   complemento: '',
   nro_operacion: '',
+  fecha_registro: hoyStr(),
   fecha_inicio: '',
   fecha_fin: '',
   estado_mentoria: '',
-}
+})
 
 export function useVentasComplementos() {
   const { user } = useAuth()
@@ -22,7 +25,7 @@ export function useVentasComplementos() {
   const [ventas,        setVentas]        = useState([])
   const [loading,       setLoading]       = useState(true)
   const [saving,        setSaving]        = useState(false)
-  const [form,          setForm]          = useState(FORM_INICIAL)
+  const [form,          setForm]          = useState(crearFormInicial)
   const [programaFiltro, setProgramaFiltro] = useState('')
 
   const cargar = useCallback(async () => {
@@ -59,8 +62,9 @@ export function useVentasComplementos() {
   const complementoSeleccionado = CATALOGO_COMPLEMENTOS.find(c => c.key === form.complemento) || null
 
   const guardar = async () => {
-    if (!form.alumno_id)     { toast.error('Selecciona un alumno'); return }
-    if (!form.complemento)   { toast.error('Selecciona el complemento vendido'); return }
+    if (!form.alumno_id)      { toast.error('Selecciona un alumno'); return }
+    if (!form.complemento)    { toast.error('Selecciona el complemento vendido'); return }
+    if (!form.fecha_registro) { toast.error('Indica la fecha de registro'); return }
     if (!form.nro_operacion) { toast.error('Ingresa el N° de operación del comprobante'); return }
     if (complementoSeleccionado.tipo === 'impulso' && (!form.fecha_inicio || !form.fecha_fin)) {
       toast.error('Indica fecha de inicio y fin del Impulso Burs'); return
@@ -78,12 +82,13 @@ export function useVentasComplementos() {
         valor_producto:  complementoSeleccionado.valorProducto,
         valor_comision:  complementoSeleccionado.valorComision,
         nro_operacion:   form.nro_operacion,
+        fecha_registro:  form.fecha_registro,
         fecha_inicio:    complementoSeleccionado.tipo === 'impulso' ? form.fecha_inicio : null,
         fecha_fin:       complementoSeleccionado.tipo === 'impulso' ? form.fecha_fin : null,
         estado_mentoria: complementoSeleccionado.tipo === 'mentoria' ? form.estado_mentoria : null,
       })
       toast.success('Venta registrada ✓')
-      setForm(FORM_INICIAL)
+      setForm(crearFormInicial())
       cargar()
     } catch (err) {
       toast.error('Error al registrar: ' + err.message)

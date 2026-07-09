@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { fetchAlumnos, fetchSesionesHoy, fetchSesionesFecha, fetchHistorialSesiones, insertSesion, updateSesion, crearReunionZoom, deleteSesion, fetchOrientadorId } from '../lib/api'
+import { fetchAlumnos, fetchSesionesFecha, fetchHistorialSesiones, insertSesion, updateSesion, crearReunionZoom, deleteSesion, fetchOrientadorId } from '../lib/api'
 import { useAuth } from '../context/AuthContext'
 import toast from 'react-hot-toast'
 import { format } from 'date-fns'

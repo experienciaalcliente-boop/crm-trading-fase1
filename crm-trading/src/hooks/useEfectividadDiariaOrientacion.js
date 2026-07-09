@@ -1,19 +1,23 @@
 import { useState, useEffect, useCallback } from 'react'
-import { fetchSesionesHoy, fetchSesionesAgendadasHoy, fetchOrientadorId, fetchHistorialSesiones,
+import { fetchSesionesFecha, fetchSesionesAgendadasFecha, fetchOrientadorId, fetchHistorialSesiones,
   fetchEncuestasSatisfaccion, calcularNPS, calcularCSAT } from '../lib/api'
 
 // Mismas asesoras que agendan sesiones en el panel de Orientación Técnica
 // (el orientador no agenda — lo hacen ellas en su nombre).
 const ASESORAS = ['Fabiola M.', 'Katerin F.', 'Anael S.']
+const hoyStr = () => new Date().toISOString().split('T')[0]
 
 // Monitoreo diario del supervisor para Orientación Técnica: cómo va el
-// orientador HOY (sesiones, concretadas, etc.), cuánto está agendando cada
-// asesora hacia él hoy, y los indicadores propios del orientador (mismos
-// que ya existen en el Dashboard: Efectividad, motivos, herramientas) — acá
-// también para no obligar al supervisor a saltar de pestaña.
+// orientador en la fecha seleccionada (sesiones, concretadas, etc. — por
+// defecto hoy, pero el supervisor puede elegir otro día), cuánto agendó
+// cada asesora hacia él ese día, y los indicadores propios del orientador
+// (mismos que ya existen en el Dashboard: Efectividad, motivos,
+// herramientas) — acá también para no obligar al supervisor a saltar de
+// pestaña.
 export function useEfectividadDiariaOrientacion() {
-  const [sesionesHoy,  setSesionesHoy]  = useState([])
-  const [agendadasHoy, setAgendadasHoy] = useState([])
+  const [fecha,        setFecha]        = useState(hoyStr())
+  const [sesionesDia,  setSesionesDia]  = useState([])
+  const [agendadasDia, setAgendadasDia] = useState([])
   const [sesionesMes,  setSesionesMes]  = useState([])
   const [encuestas,    setEncuestas]    = useState([])
   const [loading,      setLoading]      = useState(true)
@@ -23,14 +27,14 @@ export function useEfectividadDiariaOrientacion() {
     try {
       const orientadorId = await fetchOrientadorId()
       const mesActual = new Date().toISOString().slice(0, 7)
-      const [sh, ah, sm, enc] = await Promise.all([
-        fetchSesionesHoy(),
-        fetchSesionesAgendadasHoy(),
+      const [sd, ad, sm, enc] = await Promise.all([
+        fetchSesionesFecha(fecha),
+        fetchSesionesAgendadasFecha(fecha),
         fetchHistorialSesiones(orientadorId, mesActual),
         fetchEncuestasSatisfaccion(),
       ])
-      setSesionesHoy(sh)
-      setAgendadasHoy(ah)
+      setSesionesDia(sd)
+      setAgendadasDia(ad)
       setSesionesMes(sm)
       setEncuestas(enc)
     } catch (err) {
@@ -38,26 +42,26 @@ export function useEfectividadDiariaOrientacion() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [fecha])
 
   useEffect(() => { cargar() }, [cargar])
 
   const stats = {
-    total:          sesionesHoy.length,
-    concretadas:    sesionesHoy.filter(s => s.estado === 'Concretada').length,
-    reprogramadas:  sesionesHoy.filter(s => s.estado === 'Reprogramada').length,
-    noConectaron:   sesionesHoy.filter(s => s.estado === 'No se conectó').length,
-    agendadasHoy:   agendadasHoy.length,
+    total:          sesionesDia.length,
+    concretadas:    sesionesDia.filter(s => s.estado === 'Concretada').length,
+    reprogramadas:  sesionesDia.filter(s => s.estado === 'Reprogramada').length,
+    noConectaron:   sesionesDia.filter(s => s.estado === 'No se conectó').length,
+    agendadasHoy:   agendadasDia.length,
   }
 
   const filasPorAsesora = ASESORAS.map(nombre => {
-    const misSesionesHoy = sesionesHoy.filter(s => s.agendado_por === nombre)
-    const misAgendadasHoy = agendadasHoy.filter(s => s.agendado_por === nombre).length
+    const misSesionesDia = sesionesDia.filter(s => s.agendado_por === nombre)
+    const misAgendadasDia = agendadasDia.filter(s => s.agendado_por === nombre).length
     return {
       nombre,
-      sesionesHoy: misSesionesHoy.length,
-      concretadas: misSesionesHoy.filter(s => s.estado === 'Concretada').length,
-      agendadasHoy: misAgendadasHoy,
+      sesionesHoy: misSesionesDia.length,
+      concretadas: misSesionesDia.filter(s => s.estado === 'Concretada').length,
+      agendadasHoy: misAgendadasDia,
     }
   })
 
@@ -103,5 +107,5 @@ export function useEfectividadDiariaOrientacion() {
     totalEncuestas: encuestasMes.length,
   }
 
-  return { stats, filasPorAsesora, indicadoresOrientador, loading, cargar }
+  return { stats, filasPorAsesora, indicadoresOrientador, loading, cargar, fecha, setFecha }
 }

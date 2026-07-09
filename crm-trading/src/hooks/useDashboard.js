@@ -136,11 +136,6 @@ export function useDashboard() {
   const sesionesMes = sesiones.filter(s => s.fecha >= inicioMes && s.fecha <= finMes)
 
   const TC_DEFAULT = 3.6
-  const tcPorAlumno = {}
-  cuotas.forEach(c => {
-    if (c.tipo_cambio && parseFloat(c.tipo_cambio) > 1 && c.alumno?.nombre)
-      tcPorAlumno[c.alumno.nombre] = parseFloat(c.tipo_cambio)
-  })
 
   const programas = [...new Set(alumnosActivos.map(a => a.programa).filter(Boolean))]
   const totalAlumnosActivos = alumnosActivos.length
@@ -311,14 +306,24 @@ export function useDashboard() {
     total: rows.length,
   })
 
+  // Comentarios abiertos, más recientes primero — mismo criterio de "mes
+  // seleccionado" que el resto de indicadores de encuesta.
+  const comentariosDe = rows => rows
+    .filter(e => e.comentario && e.comentario.trim())
+    .map(e => ({ comentario: e.comentario.trim(), programa: e.programa, fecha: e.fecha_respuesta }))
+    .sort((a, b) => (b.fecha || '').localeCompare(a.fecha || ''))
+
   const encuestaAsesoriaGeneral = resumenEncuesta(encuestasAsesoriaMes)
   const encuestaOrientacionGeneral = resumenEncuesta(encuestasOrientacionMes)
   const encuestaGeneralCombinada = resumenEncuesta(encuestasMes)
   const misEncuestasAsesoria = esAsesora ? encuestasAsesoriaConId.filter(e => e.asesora_id === user.asesora_id) : []
   const encuestaAsesoriaPropia = resumenEncuesta(misEncuestasAsesoria)
-  const encuestaPorAsesora = Object.entries(nombrePorAsesoraId).map(([asesoraId, nombre]) => ({
-    asesoraId, nombre, ...resumenEncuesta(encuestasAsesoriaConId.filter(e => e.asesora_id === asesoraId)),
-  }))
+  const comentariosAsesoriaPropia = comentariosDe(misEncuestasAsesoria)
+  const comentariosOrientacion = comentariosDe(encuestasOrientacionMes)
+  const encuestaPorAsesora = Object.entries(nombrePorAsesoraId).map(([asesoraId, nombre]) => {
+    const rows = encuestasAsesoriaConId.filter(e => e.asesora_id === asesoraId)
+    return { asesoraId, nombre, ...resumenEncuesta(rows), comentarios: comentariosDe(rows) }
+  })
 
   // ── Tipos de cuenta del mes ───────────────────────────────
   const ultimoRegMesPorAlumno = {}
@@ -373,11 +378,6 @@ export function useDashboard() {
 
   const retiros = llamadasMes.filter(r => r.retiro === 'Sí' && r.monto_retiro > 0)
 
-  const beneficioTotal = llamadasMes.filter(r => r.beneficio > 0).reduce((s, r) => {
-    const tc = tcPorAlumno[r.alumno?.nombre] || TC_DEFAULT
-    return s + (parseFloat(r.beneficio || 0) * tc)
-  }, 0)
-
   // ── Recaudación ───────────────────────────────────────────
   const totalCuotas      = cuotasMes.length
   const cuotasPagadas    = cuotasMes.filter(c => c.estado === 'Pagada').length
@@ -403,6 +403,7 @@ export function useDashboard() {
     return s + parseFloat(c.monto_pagado||0) * (c.moneda === 'USD' ? tc : 1)
   }, 0)
   const saldoPendientePEN = montoTotalPEN - montoPagadoPEN
+  const pctRecaudado = montoTotalPEN > 0 ? Math.round((montoPagadoPEN / montoTotalPEN) * 100) : 0
   const montoTotalUSD    = cuotasMes.filter(c => c.moneda === 'USD').reduce((s,c) => s + parseFloat(c.monto||0), 0)
   const montoPagadoUSD   = cuotasMes.filter(c => c.moneda === 'USD').reduce((s,c) => s + parseFloat(c.monto_pagado||0), 0)
   const saldoPendienteUSD = montoTotalUSD - montoPagadoUSD
@@ -461,16 +462,17 @@ export function useDashboard() {
     desempenoPorAsesora,
     encuestaAsesoriaGeneral, encuestaOrientacionGeneral, encuestaGeneralCombinada,
     encuestaAsesoriaPropia, encuestaPorAsesora,
+    comentariosAsesoriaPropia, comentariosOrientacion,
     totalAlumnosActivos, totalLlamadas:llamadasMes.length,
     alumnosQueRespondieronMes, respondieron:alumnosQueRespondieronMes.size,
     contactabilidad, contactabilidadPorPrograma,
     tiposCuenta, totalCuentas, cuentasPorPrograma,
     rangosCapital, cuentasReales, totalCuentasReales, fasesFondeo,
-    retiros, beneficioTotal,
+    retiros,
     totalCuotas, cuotasPagadas, cuotasParciales, cuotasPendientes,
     cuotasProrrogas, cuotasReservas, cuotasRetirados,
     montoTotalPEN, montoTotalUSD, montoPagadoPEN, montoPagadoUSD,
-    saldoPendientePEN, saldoPendienteUSD, recaudacionPorPrograma,
+    saldoPendientePEN, saldoPendienteUSD, pctRecaudado, recaudacionPorPrograma,
     proximas7, proximas15, montoProximas7, montoProximas15,
     totalSesiones, sesionesConcretadas, sesionesReprogram, sesionesNoConecto,
     alumnosUnicos, motivosFrecuentes, herramientas, sesionesPorPrograma,
