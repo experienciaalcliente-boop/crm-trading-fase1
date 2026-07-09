@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react'
 import { supabase } from '../lib/supabase'
+import { hoyLima } from '../lib/api'
 import toast from 'react-hot-toast'
 
 // Contexto único (no un hook independiente) porque tanto el popup global
@@ -14,7 +15,7 @@ export function LlamadasProgramadasProvider({ children }) {
   const [recordatorio, setRecordatorio] = useState(null) // llamada activa para popup
   const [loading,    setLoading]    = useState(false)
 
-  const hoy = new Date().toISOString().split('T')[0]
+  const hoy = hoyLima()
   // Llamadas recién cerradas/gestionadas: se ignoran un rato para que no
   // vuelva a aparecer el mismo popup de inmediato (ver check() más abajo).
   const ignorarHastaRef = useRef({}) // { [id]: timestamp }

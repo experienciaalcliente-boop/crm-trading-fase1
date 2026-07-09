@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
-import { upsertOnboardingPasos, updateOnboardingPaso } from '../lib/api'
+import { upsertOnboardingPasos, updateOnboardingPaso, hoyLima } from '../lib/api'
 import { useAuth } from '../context/AuthContext'
 import toast from 'react-hot-toast'
 
@@ -23,7 +23,7 @@ export function useOnboarding() {
   const [alumnoSel, setAlumnoSel] = useState(null) // alumno abierto en panel
   const [filtro,    setFiltro]    = useState('todos') // todos | pendiente | en_proceso | detenido | listo
 
-  const hoy = new Date().toISOString().split('T')[0]
+  const hoy = hoyLima()
 
   const cargar = useCallback(async () => {
     setLoading(true)

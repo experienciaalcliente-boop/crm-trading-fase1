@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from 'react'
-import { fetchAlumnos, fetchVentasComplementos, insertVentaComplemento, CATALOGO_COMPLEMENTOS, MINIMO_COMPLEMENTOS_COMISION } from '../lib/api'
+import { fetchAlumnos, fetchVentasComplementos, insertVentaComplemento, CATALOGO_COMPLEMENTOS, MINIMO_COMPLEMENTOS_COMISION, hoyLima } from '../lib/api'
 import { useAuth } from '../context/AuthContext'
 import toast from 'react-hot-toast'
 
-const hoyStr = () => new Date().toISOString().split('T')[0]
+const hoyStr = hoyLima
 
 const crearFormInicial = () => ({
   alumno_id: '',

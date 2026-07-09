@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { X, Loader2 } from 'lucide-react'
 import Select from 'react-select'
+import { hoyLima } from '../../lib/api'
 
 const rsStyles = {
   control: (base, state) => ({ ...base, background: 'var(--bg-input)', border: `1.5px solid ${state.isFocused ? 'var(--accent)' : 'var(--border-input)'}`, borderRadius: 8, minHeight: 38, boxShadow: state.isFocused ? '0 0 0 3px rgba(101,167,166,0.15)' : 'none' }),
@@ -15,7 +16,7 @@ const rsStyles = {
   noOptionsMessage: (base) => ({ ...base, color: 'var(--text-muted)', background: 'var(--bg-input)' }),
 }
 
-const FORM_INICIAL = { alumno_id: '', fecha: new Date().toISOString().split('T')[0], hora: '', motivo: '' }
+const FORM_INICIAL = { alumno_id: '', fecha: hoyLima(), hora: '', motivo: '' }
 
 export default function AgendarLlamadaModal({ onGuardar, onCerrar, alumnos = [], asesoraId, preAlumnoId, llamadaExistente }) {
   const editando = !!llamadaExistente
@@ -81,7 +82,7 @@ export default function AgendarLlamadaModal({ onGuardar, onCerrar, alumnos = [],
           <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
             <Field label="Fecha">
               <input type="date" className="crm-input" value={form.fecha}
-                min={new Date().toISOString().split('T')[0]}
+                min={hoyLima()}
                 onChange={e => setField('fecha', e.target.value)} />
             </Field>
             <Field label="Hora">

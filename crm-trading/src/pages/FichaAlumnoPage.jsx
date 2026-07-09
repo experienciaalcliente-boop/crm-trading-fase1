@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { fetchAlumnoCompleto, upsertValidacion, updateCompromiso, insertTimeline } from '../lib/api'
+import { fetchAlumnoCompleto, upsertValidacion, updateCompromiso, insertTimeline, hoyLima } from '../lib/api'
 import { calcularRiesgo } from '../lib/api'
 import { RiesgoBadge, UltimoContactoBadge, CicloVidaBadge } from '../components/shared/Badges'
 import { ArrowLeft, Phone, CreditCard, MonitorSmartphone, CheckCircle, Clock, AlertTriangle, Loader2 } from 'lucide-react'
@@ -311,7 +311,7 @@ export default function FichaAlumnoPage() {
                 {cuotas.length === 0 ? (
                   <tr><td colSpan={6} style={{ textAlign:'center', color:'var(--text-muted)', padding:30 }}>Sin cuotas</td></tr>
                 ) : cuotas.map(c => {
-                  const vencida = c.fecha_vence < new Date().toISOString().split('T')[0] && c.estado !== 'Pagada'
+                  const vencida = c.fecha_vence < hoyLima() && c.estado !== 'Pagada'
                   return (
                     <tr key={c.id}>
                       <td style={{ textAlign:'center' }}>#{c.numero_cuota}</td>
@@ -362,7 +362,7 @@ export default function FichaAlumnoPage() {
                 <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:6 }}>
                   <div style={{ fontSize:13, fontWeight:600, color:'var(--text-primary)', flex:1 }}>{c.descripcion}</div>
                   <span style={{ fontSize:11, fontWeight:600, marginLeft:8,
-                    color: c.estado==='Cumplido'?'#2dd4a0':c.estado==='Incumplido'?'#f07070':c.fecha_limite < new Date().toISOString().split('T')[0]?'#f07070':'#f5b93a',
+                    color: c.estado==='Cumplido'?'#2dd4a0':c.estado==='Incumplido'?'#f07070':c.fecha_limite < hoyLima()?'#f07070':'#f5b93a',
                     background: 'rgba(255,255,255,0.05)', padding:'2px 8px', borderRadius:20 }}>
                     {c.estado}
                   </span>

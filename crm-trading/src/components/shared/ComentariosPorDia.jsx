@@ -1,7 +1,8 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { format, addDays, subDays } from 'date-fns'
+import { hoyLima } from '../../lib/api'
 
-const hoyStr = () => new Date().toISOString().split('T')[0]
+const hoyStr = hoyLima
 
 // Visor de comentarios de encuesta filtrado a un día específico, navegable
 // con flechas prev/next (más rápido que solo el calendario) — mismo patrón

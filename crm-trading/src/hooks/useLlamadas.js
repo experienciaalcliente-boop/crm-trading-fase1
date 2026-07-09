@@ -1,7 +1,7 @@
 // v-2026-06-20 16:06:13
 import { useState, useEffect, useCallback } from 'react'
 import { fetchAlumnos, fetchAsesorasLlamadas, fetchAsesoras, fetchRegistrosHoy, fetchHistorialAlumno, fetchNextCodigo, insertRegistroLlamada, suscribirRegistrosHoy, fetchSinResponderAcumulado, calcularSemanaRegistro,
-  fetchEncuestasSatisfaccion, calcularNPS, calcularCSAT, mapaProgramaAsesora, distribucionEscala, distribucionCategorica } from '../lib/api'
+  fetchEncuestasSatisfaccion, calcularNPS, calcularCSAT, mapaProgramaAsesora, distribucionEscala, distribucionCategorica, hoyLima } from '../lib/api'
 import { useAuth } from '../context/AuthContext'
 import toast from 'react-hot-toast'
 import { format } from 'date-fns'
@@ -9,7 +9,7 @@ import { format } from 'date-fns'
 // Función para obtener siempre la fecha actual del día
 const formInicial = () => ({
   codigo: '',
-  fecha: new Date().toISOString().split('T')[0], // siempre fecha de HOY
+  fecha: hoyLima(), // siempre fecha de HOY (hora Lima)
   programa: null,
   alumno: null,
   semana: '',
@@ -26,7 +26,7 @@ const formInicial = () => ({
   observaciones: '',
 })
 
-const hoyStr = () => new Date().toISOString().split('T')[0]
+const hoyStr = hoyLima
 
 export function useLlamadas() {
   const { user } = useAuth()

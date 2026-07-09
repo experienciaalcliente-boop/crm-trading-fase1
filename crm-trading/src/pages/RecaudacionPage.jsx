@@ -4,6 +4,7 @@ import ModalPago from '../components/modules/ModalPago'
 import { Loader2, RefreshCw } from 'lucide-react'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
+import { hoyLima } from '../lib/api'
 
 const ESTADOS = ['Todos','No iniciada','Pago parcial','Prórroga','Reserva académica','Pagada','Retirado']
 const DIAS_PAGO = ['Todos los días', 'Día 5', 'Día 15']
@@ -27,7 +28,7 @@ function EstadoBadge({ estado }) {
 }
 
 function isVencida(fecha) {
-  return fecha < new Date().toISOString().split('T')[0]
+  return fecha < hoyLima()
 }
 
 export default function RecaudacionPage() {

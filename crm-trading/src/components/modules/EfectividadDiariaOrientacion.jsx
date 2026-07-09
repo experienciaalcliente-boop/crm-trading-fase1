@@ -3,8 +3,9 @@ import { format, addDays, subDays } from 'date-fns'
 import { useEfectividadDiariaOrientacion } from '../../hooks/useEfectividadDiariaOrientacion'
 import EncuestaResumen from '../shared/EncuestaResumen'
 import ComentariosPorDia from '../shared/ComentariosPorDia'
+import { hoyLima } from '../../lib/api'
 
-const hoyStr = () => new Date().toISOString().split('T')[0]
+const hoyStr = hoyLima
 
 function KPICard({ label, value, sub, color }) {
   return (

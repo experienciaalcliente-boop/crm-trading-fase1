@@ -1,9 +1,10 @@
 import { PhoneCall, Plus, Pencil, Trash2 } from 'lucide-react'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
+import { hoyLima } from '../../lib/api'
 
 export default function LlamadasProgramadasPanel({ llamadas, vencidas, onNuevo, onEditar, onEliminar, loading }) {
-  const hoy = new Date().toISOString().split('T')[0]
+  const hoy = hoyLima()
 
   return (
     <div style={{ display:'flex', flexDirection:'column', height:'100%' }}>

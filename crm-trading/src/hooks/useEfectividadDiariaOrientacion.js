@@ -1,11 +1,11 @@
 import { useState, useEffect, useCallback } from 'react'
 import { fetchSesionesFecha, fetchSesionesAgendadasFecha,
-  fetchEncuestasSatisfaccion, calcularNPS, calcularCSAT, distribucionEscala, distribucionCategorica } from '../lib/api'
+  fetchEncuestasSatisfaccion, calcularNPS, calcularCSAT, distribucionEscala, distribucionCategorica, hoyLima } from '../lib/api'
 
 // Mismas asesoras que agendan sesiones en el panel de Orientación Técnica
 // (el orientador no agenda — lo hacen ellas en su nombre).
 const ASESORAS = ['Fabiola M.', 'Katerin F.', 'Anael S.']
-const hoyStr = () => new Date().toISOString().split('T')[0]
+const hoyStr = hoyLima
 
 // Monitoreo diario del supervisor para Orientación Técnica: cómo va el
 // orientador HOY (sesiones, concretadas, etc. — siempre hoy, fijo) y cuánto

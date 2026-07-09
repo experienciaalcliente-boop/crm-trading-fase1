@@ -2,6 +2,29 @@
 import { supabase } from '../lib/supabase'
 
 // ─────────────────────────────────────────
+// FECHA "HOY" EN HORA DE LIMA
+// ─────────────────────────────────────────
+// `new Date().toISOString()` siempre da la fecha en UTC. Lima es UTC-5 sin
+// horario de verano, así que entre las 7pm y la medianoche (hora Lima) el
+// reloj UTC ya cambió de día — cualquier "hoy" calculado así queda un día
+// adelantado justo en esa ventana, y deja de encontrar los registros que sí
+// se guardaron correctamente con la fecha de Lima. Esta función usa
+// aritmética de epoch (independiente de la zona horaria del navegador o
+// servidor donde corra) para devolver siempre la fecha real en Lima.
+const OFFSET_LIMA_MS = 5 * 60 * 60 * 1000
+export function hoyLima() {
+  return new Date(Date.now() - OFFSET_LIMA_MS).toISOString().slice(0, 10)
+}
+
+// Rango [00:00, 23:59:59] de un día en Lima, expresado con su offset
+// explícito (-05:00) para comparar contra columnas timestamptz — sin el
+// offset, Postgres interpreta el string en UTC (zona por defecto de la
+// sesión) y el rango queda corrido 5 horas respecto al día real en Lima.
+export function rangoDiaLima(fecha) {
+  return { inicio: `${fecha}T00:00:00-05:00`, fin: `${fecha}T23:59:59-05:00` }
+}
+
+// ─────────────────────────────────────────
 // ALUMNOS
 // ─────────────────────────────────────────
 const DURACION_PROGRAMA_DIAS = 24 * 7 // 24 semanas
@@ -41,7 +64,7 @@ export async function fetchAlumnos(asesoraId, { soloActivos = true } = {}) {
 // programa por iniciar (fecha_inicio en el futuro). Se usa tanto para
 // decidir si mostrar la pestaña en el menú como para bloquear la ruta.
 export async function tieneProximaPromocion(asesoraId) {
-  const hoy = new Date().toISOString().split('T')[0]
+  const hoy = hoyLima()
   let query = supabase.from('alumnos').select('id', { count: 'exact', head: true }).gt('fecha_inicio', hoy)
   if (asesoraId) query = query.eq('asesora_id', asesoraId)
   const { count, error } = await query
@@ -129,7 +152,7 @@ export async function fetchAsesorasLlamadas() {
 // REGISTROS DE LLAMADAS
 // ─────────────────────────────────────────
 export async function fetchRegistrosHoy() {
-  const hoy = new Date().toISOString().split('T')[0]
+  const hoy = hoyLima()
   const { data, error } = await supabase
     .from('registros_llamadas')
     .select(`
@@ -147,12 +170,12 @@ export async function fetchRegistrosHoy() {
 // agendó hoy, sin importar la fecha futura) — mide su actividad de agenda
 // del día, para el monitoreo diario del supervisor.
 export async function fetchAgendadasHoy() {
-  const hoy = new Date().toISOString().split('T')[0]
+  const { inicio, fin } = rangoDiaLima(hoyLima())
   const { data, error } = await supabase
     .from('llamadas_programadas')
     .select('id, asesora_id, created_at')
-    .gte('created_at', `${hoy}T00:00:00`)
-    .lte('created_at', `${hoy}T23:59:59`)
+    .gte('created_at', inicio)
+    .lte('created_at', fin)
   if (error) throw error
   return data || []
 }
@@ -236,7 +259,7 @@ export async function importarHistorialLlamadas(rows) {
 // REAL TIME
 // ─────────────────────────────────────────
 export function suscribirRegistrosHoy(callback) {
-  const hoy = new Date().toISOString().split('T')[0]
+  const hoy = hoyLima()
   const channel = supabase
     .channel('registros-hoy')
     .on('postgres_changes',
@@ -279,7 +302,7 @@ export async function fetchCuotas({ estado, programa, ordenVencidas, mes } = {})
     result = result.filter(c => c.alumno?.programa === programa)
   }
   if (ordenVencidas) {
-    const hoy = new Date().toISOString().split('T')[0]
+    const hoy = hoyLima()
     const vencidas  = result.filter(c => c.fecha_vence < hoy && c.estado !== 'Pagada')
     const resto     = result.filter(c => c.fecha_vence >= hoy || c.estado === 'Pagada')
     result = [...vencidas, ...resto]
@@ -383,11 +406,12 @@ export async function crearReunionZoom({ titulo, fecha, hora, duracion = 45, alu
 // para qué fecha quedaron programadas — mide la actividad de agenda de cada
 // asesora hacia el orientador, para el monitoreo diario del supervisor.
 export async function fetchSesionesAgendadasFecha(fecha) {
+  const { inicio, fin } = rangoDiaLima(fecha)
   const { data, error } = await supabase
     .from('sesiones_orientacion')
     .select('id, agendado_por, estado, created_at')
-    .gte('created_at', `${fecha}T00:00:00`)
-    .lte('created_at', `${fecha}T23:59:59`)
+    .gte('created_at', inicio)
+    .lte('created_at', fin)
   if (error) throw error
   return data || []
 }
@@ -406,7 +430,7 @@ export async function fetchSesionesFecha(fecha) {
 // día). Si se pasa orientadorId, se limita a las sesiones de ese orientador.
 // mes en formato 'YYYY-MM'; por defecto el mes actual.
 export async function fetchHistorialSesiones(orientadorId, mes) {
-  const m = mes || new Date().toISOString().slice(0, 7)
+  const m = mes || hoyLima().slice(0, 7)
   const [anio, mesNum] = m.split('-').map(Number)
   const inicio = `${m}-01`
   // OJO: no usar new Date(inicio) para sacar el último día — al parsear un
@@ -559,7 +583,7 @@ export async function updateBeneficio(registroId, beneficio) {
 
 // Actualiza ultimo_contacto_at en el alumno
 export async function actualizarUltimoContacto(alumnoId, tipo) {
-  const hoy = new Date().toISOString().split('T')[0]
+  const hoy = hoyLima()
   const { error } = await supabase
     .from('alumnos')
     .update({ ultimo_contacto_at: hoy, ultimo_contacto_tipo: tipo })
@@ -590,7 +614,7 @@ export async function fetchCompromisosAlumno(alumnoId) {
 }
 
 export async function fetchCompromisosHoy() {
-  const hoy = new Date().toISOString().split('T')[0]
+  const hoy = hoyLima()
   const en3dias = new Date(Date.now() + 3 * 86400000).toISOString().split('T')[0]
   const { data, error } = await supabase
     .from('compromisos')
@@ -861,7 +885,7 @@ export const MINIMO_COMPLEMENTOS_COMISION = 6
 
 export async function fetchVentasComplementos(asesoraId, mes) {
   // mes en formato 'YYYY-MM'; por defecto el mes actual
-  const m = mes || new Date().toISOString().slice(0, 7)
+  const m = mes || hoyLima().slice(0, 7)
   const [anio, mesNum] = m.split('-').map(Number)
   const inicio = `${m}-01`
   // Mismo cuidado que en fetchHistorialSesiones: evitar new Date(inicio)

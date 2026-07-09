@@ -2,10 +2,11 @@ import { TrendingUp, PhoneMissed, Phone } from 'lucide-react'
 import { UltimoContactoBadge } from '../shared/Badges'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
+import { hoyLima } from '../../lib/api'
 
 export default function PanelDerecho({ asesoras, asesorasPanelOpts, registrosHoy, stats, asesoraPanel, setAsesoraPanel, onSeleccionarAlumno }) {
   const sinRespuesta = stats.sinRespuesta || []
-  const hoy = new Date().toISOString().split('T')[0]
+  const hoy = hoyLima()
 
   return (
     <aside style={{ width:280, flexShrink:0, borderLeft:'1px solid var(--border-default)', background:'var(--bg-surface)', display:'flex', flexDirection:'column', overflowY:'auto' }}>

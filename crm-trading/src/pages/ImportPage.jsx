@@ -2,7 +2,7 @@ import { useState, useRef } from 'react'
 import * as XLSX from 'xlsx'
 import toast from 'react-hot-toast'
 import { Upload, FileSpreadsheet, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react'
-import { upsertAlumnos, importarHistorialLlamadas, upsertCuotas } from '../lib/api'
+import { upsertAlumnos, importarHistorialLlamadas, upsertCuotas, hoyLima } from '../lib/api'
 import { supabase } from '../lib/supabase'
 
 // ── Convierte número serial de Excel a formato Mes-AA ──────────
@@ -207,7 +207,7 @@ export default function ImportPage() {
         const alumno_id = alumnoMap[nombre.toLowerCase()] || null
         return {
           codigo:       col(r, 'codigo', 'code') || `IMP-${String(i+1).padStart(6,'0')}`,
-          fecha:        excelSerialToFecha(col(r, 'fecha', 'date')) || new Date().toISOString().split('T')[0],
+          fecha:        excelSerialToFecha(col(r, 'fecha', 'date')) || hoyLima(),
           alumno_id,
           semana:       col(r, 'semana'),
           respondio:    col(r, 'respondio', 'respondió'),
@@ -330,7 +330,7 @@ export default function ImportPage() {
       const nroVal          = vals[1]
 
       // Fecha
-      const fecha_vence = excelSerialToFecha(fechaVal) || new Date().toISOString().split('T')[0]
+      const fecha_vence = excelSerialToFecha(fechaVal) || hoyLima()
 
       // Moneda — 'Dólares' tiene tilde en la o, hay que normalizar antes de comparar
       const monedaValRaw = r['Moneda acordada'] || r['Moneda Acordada'] || vals[11] || ''

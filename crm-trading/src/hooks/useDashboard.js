@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
-import { programaActivo, fetchEncuestasSatisfaccion, calcularNPS, calcularCSAT } from '../lib/api'
+import { programaActivo, fetchEncuestasSatisfaccion, calcularNPS, calcularCSAT, hoyLima } from '../lib/api'
 import toast from 'react-hot-toast'
 
 // Safe calcularRiesgo — no crashes
@@ -10,7 +10,7 @@ function calcularRiesgoLocal(alumno, cuotas, llamadas) {
   if (!alumno) return { score: 0, nivel: 'Bajo' }
   let score = 0
   const hoy = new Date()
-  const hoyStr = hoy.toISOString().split('T')[0]
+  const hoyStr = hoyLima()
 
   if (alumno.ultimo_contacto_at) {
     const dias = Math.floor((hoy - new Date(alumno.ultimo_contacto_at + 'T00:00:00')) / 86400000)
@@ -125,7 +125,7 @@ export function useDashboard() {
     : esOrientador
     ? (raw.sesiones || []).filter(s => s.orientador_id === user.asesora_id)
     : (raw.sesiones || [])
-  const hoy = new Date().toISOString().split('T')[0]
+  const hoy = hoyLima()
 
   // Rango del mes
   const [anio, mes] = mesFiltro.split('-').map(Number)
@@ -220,7 +220,7 @@ export function useDashboard() {
     if (al.fecha_inicio < gruposEvolucion[al.programa].fechaOrden) gruposEvolucion[al.programa].fechaOrden = al.fecha_inicio
   })
 
-  const mesActualStr = new Date().toISOString().slice(0, 7)
+  const mesActualStr = hoyLima().slice(0, 7)
 
   const filasHeatmap = Object.values(gruposEvolucion)
     .map(({ programa, fechaOrden, alumnos: als }) => {
@@ -383,8 +383,8 @@ export function useDashboard() {
   const montoPagadoUSD   = cuotasMes.filter(c => c.moneda === 'USD').reduce((s,c) => s + parseFloat(c.monto_pagado||0), 0)
   const saldoPendienteUSD = montoTotalUSD - montoPagadoUSD
 
-  const en7d  = new Date(Date.now() + 7  * 86400000).toISOString().split('T')[0]
-  const en15d = new Date(Date.now() + 15 * 86400000).toISOString().split('T')[0]
+  const en7d  = new Date(Date.now() - 5 * 3600000 + 7  * 86400000).toISOString().slice(0, 10)
+  const en15d = new Date(Date.now() - 5 * 3600000 + 15 * 86400000).toISOString().slice(0, 10)
   const proximas7  = cuotas.filter(c => c.fecha_vence >= hoy && c.fecha_vence <= en7d  && c.estado !== 'Pagada')
   const proximas15 = cuotas.filter(c => c.fecha_vence >= hoy && c.fecha_vence <= en15d && c.estado !== 'Pagada')
   const montoProximas7  = proximas7.reduce((s,c) => s + calcMontoPEN(c), 0)

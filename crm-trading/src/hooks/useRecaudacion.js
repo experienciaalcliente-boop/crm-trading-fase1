@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { fetchCuotas, fetchCuotasAlumno, registrarPago } from '../lib/api'
+import { fetchCuotas, fetchCuotasAlumno, registrarPago, hoyLima } from '../lib/api'
 import toast from 'react-hot-toast'
 
 export function useRecaudacion() {
@@ -89,7 +89,7 @@ export function useRecaudacion() {
   }, [modalData, cargar, cerrarModal])
 
   // Stats rápidas
-  const hoy = new Date().toISOString().split('T')[0]
+  const hoy = hoyLima()
   const stats = {
     total:      cuotas.length,
     pagadas:    cuotas.filter(c => c.estado === 'Pagada').length,
@@ -117,7 +117,7 @@ function formInicial(cuota) {
     tipo:        null,
     monto:       '',
     moneda:      cuota.moneda || 'USD',
-    fecha_pago:  new Date().toISOString().split('T')[0],
+    fecha_pago:  hoyLima(),
     nueva_fecha: '',
     motivo:      '',
     observaciones: '',

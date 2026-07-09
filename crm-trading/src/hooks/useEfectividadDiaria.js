@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from 'react'
 import { fetchAsesorasLlamadas, fetchRegistrosHoy, fetchSinResponderAcumulado, fetchAgendadasHoy,
   fetchAlumnos, fetchEncuestasSatisfaccion, calcularNPS, calcularCSAT, mapaProgramaAsesora,
-  distribucionEscala, distribucionCategorica } from '../lib/api'
+  distribucionEscala, distribucionCategorica, hoyLima } from '../lib/api'
 
-const hoyStr = () => new Date().toISOString().split('T')[0]
+const hoyStr = hoyLima
 
 // Monitoreo diario del supervisor: qué está haciendo cada asesora HOY, sin
 // esperar al corte de mes. La encuesta de satisfacción es una sección
