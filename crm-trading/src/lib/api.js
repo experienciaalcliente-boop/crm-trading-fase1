@@ -28,7 +28,7 @@ export function programaActivo(alumno) {
 export async function fetchAlumnos(asesoraId, { soloActivos = true } = {}) {
   let query = supabase
     .from('alumnos')
-    .select('id, nombre, programa, semana_actual, asesora, estado, fecha_inicio')
+    .select('id, nombre, programa, semana_actual, asesora, asesora_id, estado, fecha_inicio')
     .eq('activo', true)
     .order('nombre')
   if (asesoraId) query = query.eq('asesora_id', asesoraId)
