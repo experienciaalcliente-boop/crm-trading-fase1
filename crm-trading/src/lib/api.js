@@ -1065,6 +1065,7 @@ export const ENFOQUES_TESTIMONIO = [
   'Satisfacción por mentoría',
   'Satisfacción por atención',
   'Satisfacción por seguimiento',
+  'Resultados (retiro o pasó prueba de fondeo)',
 ]
 
 // asesoraId omitido = todos (supervisor). Trae el histórico completo — el
