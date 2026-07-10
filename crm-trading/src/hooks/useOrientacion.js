@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { fetchAlumnos, fetchSesionesFecha, fetchHistorialSesiones, insertSesion, updateSesion, crearReunionZoom, deleteSesion, fetchOrientadorId,
-  fetchEncuestasSatisfaccion, calcularNPS, calcularCSAT, distribucionEscala, distribucionCategorica } from '../lib/api'
+import { fetchAlumnos, fetchSesionesFecha, fetchHistorialSesiones, insertSesion, updateSesion, crearReunionZoom, deleteSesion, fetchOrientadorId } from '../lib/api'
 import { useAuth } from '../context/AuthContext'
 import toast from 'react-hot-toast'
 import { format } from 'date-fns'
@@ -54,21 +53,10 @@ export function useOrientacion() {
   const [historial,     setHistorial]     = useState([])
   const [loadingHistorial, setLoadingHistorial] = useState(false)
   const [mesHistorial,  setMesHistorial]  = useState(() => new Date().toISOString().slice(0, 7))
-  const [encuestas,     setEncuestas]     = useState([])
-  const [fechaComentarios, setFechaComentarios] = useState(format(new Date(), 'yyyy-MM-dd'))
 
   useEffect(() => {
     fetchOrientadorId().then(setOrientadorId).catch(console.error)
   }, [])
-
-  // Encuesta de satisfacción — solo hace falta para el propio orientador (su
-  // detalle vive en esta misma pestaña; el supervisor la ve en su propio
-  // panel de monitoreo, y la asesora no participa de esta encuesta).
-  useEffect(() => {
-    if (user?.rol === 'orientador') {
-      fetchEncuestasSatisfaccion().then(setEncuestas).catch(console.error)
-    }
-  }, [user?.rol])
 
   // El orientador ve solo su propio historial; supervisor/asesora ven todo
   // (igual que ya podían ver todas las sesiones del día). Se limita al mes
@@ -239,24 +227,6 @@ export function useOrientacion() {
     noConectaron: sesiones.filter(s => s.estado === 'No se conectó').length,
   }
 
-  // ── Encuesta de satisfacción propia (solo orientador) ──────
-  // Resultados generales (todo el histórico, como el resumen nativo de
-  // Google Forms) — los comentarios sí se navegan día a día.
-  const encuestasOrientacion = encuestas.filter(e => e.tipo === 'orientacion')
-  const encuestaPropia = {
-    total: encuestasOrientacion.length,
-    nps: calcularNPS(encuestasOrientacion.map(e => e.nps_score)),
-    csat: calcularCSAT(encuestasOrientacion.map(e => e.csat_label)),
-    npsDist: distribucionEscala(encuestasOrientacion, 'nps_score', 0, 10),
-    csatDist: distribucionCategorica(encuestasOrientacion, 'csat_label'),
-    r3Dist: distribucionCategorica(encuestasOrientacion, 'respuesta_3'),
-    r4Dist: distribucionCategorica(encuestasOrientacion, 'respuesta_4'),
-  }
-  const comentariosDelDia = encuestasOrientacion
-    .filter(e => e.fecha_respuesta?.slice(0, 10) === fechaComentarios)
-    .filter(e => e.comentario && e.comentario.trim())
-    .map(e => ({ comentario: e.comentario.trim(), programa: e.programa }))
-
   return {
     alumnos, alumnosOpts, sesiones, loading, saving,
     form, setField, agendarSesion,
@@ -266,7 +236,6 @@ export function useOrientacion() {
     stats, MOTIVOS, cargarSesiones, eliminarSesion,
     vista, setVista, historial, loadingHistorial, cargarHistorial,
     mesHistorial, setMesHistorial,
-    encuestaPropia, fechaComentarios, setFechaComentarios, comentariosDelDia,
   }
 }
 

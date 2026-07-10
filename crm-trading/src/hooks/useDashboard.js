@@ -83,6 +83,7 @@ export function useDashboard() {
   const [loading, setLoading] = useState(true)
   const [lastUpdate, setLastUpdate] = useState(new Date())
   const [fechaComentarios, setFechaComentarios] = useState(hoyLima())
+  const [fechaComentariosOrientacion, setFechaComentariosOrientacion] = useState(hoyLima())
 
   const cargar = useCallback(async () => {
     setLoading(true)
@@ -324,6 +325,24 @@ export function useDashboard() {
     .filter(e => e.comentario && e.comentario.trim())
     .map(e => ({ comentario: e.comentario.trim(), programa: e.programa }))
 
+  // El orientador ve el mismo tipo de detalle acá en su Dashboard (no en la
+  // pestaña de Orientación Técnica, que es donde lo ve el supervisor).
+  const encuestasOrientacionTodas = (raw.encuestas || []).filter(e => e.tipo === 'orientacion')
+  const misEncuestasOrientacion = esOrientador ? encuestasOrientacionTodas : []
+  const encuestaOrientacionPropia = {
+    total: misEncuestasOrientacion.length,
+    nps: calcularNPS(misEncuestasOrientacion.map(e => e.nps_score)),
+    csat: calcularCSAT(misEncuestasOrientacion.map(e => e.csat_label)),
+    npsDist: distribucionEscala(misEncuestasOrientacion, 'nps_score', 0, 10),
+    csatDist: distribucionCategorica(misEncuestasOrientacion, 'csat_label'),
+    r3Dist: distribucionCategorica(misEncuestasOrientacion, 'respuesta_3'),
+    r4Dist: distribucionCategorica(misEncuestasOrientacion, 'respuesta_4'),
+  }
+  const comentariosDelDiaOrientacion = misEncuestasOrientacion
+    .filter(e => e.fecha_respuesta?.slice(0, 10) === fechaComentariosOrientacion)
+    .filter(e => e.comentario && e.comentario.trim())
+    .map(e => ({ comentario: e.comentario.trim(), programa: e.programa }))
+
   // ── Tipos de cuenta del mes ───────────────────────────────
   const ultimoRegMesPorAlumno = {}
   llamadasMes.forEach(r => {
@@ -461,6 +480,7 @@ export function useDashboard() {
     desempenoPorAsesora,
     encuestaGeneralCombinada,
     encuestaAsesoriaPropia, fechaComentarios, setFechaComentarios, comentariosDelDia,
+    encuestaOrientacionPropia, fechaComentariosOrientacion, setFechaComentariosOrientacion, comentariosDelDiaOrientacion,
     totalAlumnosActivos, totalLlamadas:llamadasMes.length,
     alumnosQueRespondieronMes, respondieron:alumnosQueRespondieronMes.size,
     contactabilidad, contactabilidadPorPrograma,

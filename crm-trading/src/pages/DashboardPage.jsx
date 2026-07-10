@@ -167,6 +167,29 @@ export default function DashboardPage() {
       </>
       )}
 
+      {/* ══ ENCUESTA DE SATISFACCIÓN (solo orientador) ══ */}
+      {esOrientador && (
+      <>
+      <SectionTitle icon={Smile} title="Encuesta de Satisfacción" color="#f5b93a" />
+      <div style={{ marginBottom:16 }}>
+        <EncuestaResumen
+          titulo="Resultados generales"
+          resumen={d.encuestaOrientacionPropia}
+          labelR3="Consulta resuelta"
+          labelR4="Explicaciones claras"
+        />
+      </div>
+      <div style={{ marginBottom:16 }}>
+        <ComentariosPorDia
+          fecha={d.fechaComentariosOrientacion}
+          setFecha={d.setFechaComentariosOrientacion}
+          comentarios={d.comentariosDelDiaOrientacion}
+          titulo="Comentarios de tus alumnos"
+        />
+      </div>
+      </>
+      )}
+
       {/* Secciones de asesora/supervisor — no le competen al orientador */}
       {!esOrientador && (
       <>

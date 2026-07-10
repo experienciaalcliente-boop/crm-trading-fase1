@@ -5,8 +5,6 @@ import { useAuth } from '../context/AuthContext'
 import { updateSesionZoomUrl } from '../lib/api'
 import ModalTipificacion from '../components/modules/ModalTipificacion'
 import EfectividadDiariaOrientacion from '../components/modules/EfectividadDiariaOrientacion'
-import EncuestaResumen from '../components/shared/EncuestaResumen'
-import ComentariosPorDia from '../components/shared/ComentariosPorDia'
 import Select from 'react-select'
 import { Loader2, RefreshCw, Video, Clock, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react'
 import { format, addDays, subDays } from 'date-fns'
@@ -365,15 +363,6 @@ function AgendaOrientacionTecnica() {
             )}
           </div>
         )}
-
-        {esOrientador && (
-          <EncuestaOrientador
-            encuesta={o.encuestaPropia}
-            fecha={o.fechaComentarios}
-            setFecha={o.setFechaComentarios}
-            comentarios={o.comentariosDelDia}
-          />
-        )}
       </div>
 
       {/* ── PANEL DERECHO: Agendar (el orientador no agenda, solo atiende) ── */}
@@ -513,23 +502,3 @@ function Field({ label, children }) {
   )
 }
 
-// Encuesta de satisfacción del orientador (resultados generales de todo el
-// histórico) — vive acá porque es el detalle de "orientación técnica"; el
-// resumen ejecutivo combinado sigue en el Dashboard, y el supervisor ve su
-// propia versión en su panel de monitoreo (pestaña Orientación Técnica →
-// vista supervisor). Los comentarios sí se navegan día a día.
-function EncuestaOrientador({ encuesta, fecha, setFecha, comentarios }) {
-  return (
-    <div style={{ marginTop: 24 }}>
-      <EncuestaResumen
-        titulo="Encuesta de satisfacción"
-        resumen={encuesta}
-        labelR3="Consulta resuelta"
-        labelR4="Explicaciones claras"
-      />
-      <div style={{ marginTop: 16 }}>
-        <ComentariosPorDia fecha={fecha} setFecha={setFecha} comentarios={comentarios} titulo="Comentarios de tus alumnos" />
-      </div>
-    </div>
-  )
-}

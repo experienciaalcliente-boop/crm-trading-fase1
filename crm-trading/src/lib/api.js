@@ -582,6 +582,10 @@ export async function fetchAlumnosEnCursoOSeguimiento(asesoraId) {
     .select('id, nombre, programa, fecha_inicio, asesora_id')
     .in('estado', ['En Curso', 'En Seguimiento', 'en curso', 'en seguimiento'])
     .order('nombre')
+    // Sin esto, PostgREST corta la respuesta en su límite de filas por
+    // defecto — con más de 400 alumnos calificando, la vista del supervisor
+    // (sin filtro de asesora_id) lo superaba y se veía incompleta.
+    .range(0, 4999)
   if (asesoraId) query = query.eq('asesora_id', asesoraId)
   const { data, error } = await query
   if (error) throw error
@@ -598,6 +602,7 @@ export async function fetchLlamadasContactadasPorAlumnos(alumnoIds) {
     .select('alumno_id, fecha, semana_registro, respondio')
     .in('alumno_id', alumnoIds)
     .eq('respondio', 'Sí')
+    .range(0, 19999) // mismo motivo que fetchAlumnosEnCursoOSeguimiento — no cortar por el límite por defecto
   if (error) throw error
   return data || []
 }
