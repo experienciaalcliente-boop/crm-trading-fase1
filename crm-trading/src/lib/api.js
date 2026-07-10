@@ -565,6 +565,43 @@ export async function fetchAlumnosActivos() {
   return data || []
 }
 
+// ─────────────────────────────────────────
+// SEGUIMIENTO SEMANAL (contactabilidad por semana de programa)
+// ─────────────────────────────────────────
+
+// "Activos" para esta vista es más angosto que fetchAlumnosActivos(): solo
+// En Curso o En Seguimiento (no Activo genérico), tal como lo pidió el
+// supervisor para esta tabla específica. También se aplica programaActivo
+// (24 semanas desde fecha_inicio): se confirmó en la base que el 87% de los
+// alumnos con este estado en realidad ya pasaron sus 24 semanas — el campo
+// estado nunca se actualizó al cerrar su programa — y sin este filtro la
+// tabla quedaría llena de alumnos en "semana 100+", que no aporta nada.
+export async function fetchAlumnosEnCursoOSeguimiento(asesoraId) {
+  let query = supabase
+    .from('alumnos')
+    .select('id, nombre, programa, fecha_inicio, asesora_id')
+    .in('estado', ['En Curso', 'En Seguimiento', 'en curso', 'en seguimiento'])
+    .order('nombre')
+  if (asesoraId) query = query.eq('asesora_id', asesoraId)
+  const { data, error } = await query
+  if (error) throw error
+  return (data || []).filter(programaActivo)
+}
+
+// Llamadas con contacto exitoso de un set de alumnos — se trae el
+// histórico completo (no solo el mes) porque la tabla de seguimiento
+// semanal cubre las 24 semanas del programa de cada alumno.
+export async function fetchLlamadasContactadasPorAlumnos(alumnoIds) {
+  if (!alumnoIds.length) return []
+  const { data, error } = await supabase
+    .from('registros_llamadas')
+    .select('alumno_id, fecha, semana_registro, respondio')
+    .in('alumno_id', alumnoIds)
+    .eq('respondio', 'Sí')
+  if (error) throw error
+  return data || []
+}
+
 export async function updateBeneficio(registroId, beneficio) {
   const { data, error } = await supabase
     .from('registros_llamadas')

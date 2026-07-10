@@ -8,6 +8,7 @@ import { tieneProximaPromocion } from './lib/api'
 import { iniciarDeteccionDeActualizaciones } from './lib/updateChecker'
 import LoginPage         from './pages/LoginPage'
 import LlamadasPage      from './pages/LlamadasPage'
+import SeguimientoSemanalPage from './pages/SeguimientoSemanalPage'
 import RecaudacionPage   from './pages/RecaudacionPage'
 import OrientacionPage   from './pages/OrientacionPage'
 import DashboardPage     from './pages/DashboardPage'
@@ -73,6 +74,7 @@ function ProtectedApp() {
           <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="/dashboard"      element={<ErrorBoundary><DashboardPage /></ErrorBoundary>} />
           <Route path="/llamadas"       element={<RequireRole path="/llamadas"><ErrorBoundary><LlamadasPage /></ErrorBoundary></RequireRole>} />
+          <Route path="/seguimiento-semanal" element={<RequireRole path="/seguimiento-semanal"><ErrorBoundary><SeguimientoSemanalPage /></ErrorBoundary></RequireRole>} />
           <Route path="/recaudacion"    element={<RequireRole path="/recaudacion"><RecaudacionPage /></RequireRole>} />
           <Route path="/orientacion"    element={<OrientacionPage />} />
           <Route path="/onboarding"     element={<RequireRole path="/onboarding"><RequireProximaPromocion><OnboardingPage /></RequireProximaPromocion></RequireRole>} />
