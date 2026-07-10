@@ -1,6 +1,25 @@
 // v-20260622-1614
 import { supabase } from '../lib/supabase'
 
+// PostgREST tiene su propio límite de filas por página de respuesta (el
+// proyecto puede tenerlo configurado más bajo de lo esperado) — pedir un
+// .range() grande en una sola llamada no lo supera si el servidor igual
+// corta la respuesta a su tope real. Esta función pagina de verdad: sigue
+// pidiendo páginas hasta que una vuelve incompleta, así que siempre trae
+// todo sin depender de adivinar cuál es ese tope.
+async function fetchTodasLasPaginas(construirQuery, tamanoPagina = 1000) {
+  let desde = 0
+  let todas = []
+  while (true) {
+    const { data, error } = await construirQuery(desde, desde + tamanoPagina - 1)
+    if (error) throw error
+    todas = todas.concat(data || [])
+    if (!data || data.length < tamanoPagina) break
+    desde += tamanoPagina
+  }
+  return todas
+}
+
 // ─────────────────────────────────────────
 // FECHA "HOY" EN HORA DE LIMA
 // ─────────────────────────────────────────
@@ -49,20 +68,16 @@ export function programaActivo(alumno) {
 // complementos) necesitan también alumnos de programas ya culminados, por
 // eso se puede desactivar el corte de 24 semanas con soloActivos:false.
 export async function fetchAlumnos(asesoraId, { soloActivos = true } = {}) {
-  let query = supabase
-    .from('alumnos')
-    .select('id, nombre, programa, semana_actual, asesora, asesora_id, estado, fecha_inicio')
-    .eq('activo', true)
-    .order('nombre')
-    // Sin esto, PostgREST corta la respuesta en su límite de filas por
-    // defecto — hay miles de alumnos con activo=true, muy por encima de
-    // ese límite, así que cualquier llamada sin scope de asesora (o incluso
-    // el propio universo de una asesora con muchos alumnos) quedaba
-    // incompleta en silencio.
-    .range(0, 19999)
-  if (asesoraId) query = query.eq('asesora_id', asesoraId)
-  const { data, error } = await query
-  if (error) throw error
+  const data = await fetchTodasLasPaginas((desde, hasta) => {
+    let query = supabase
+      .from('alumnos')
+      .select('id, nombre, programa, semana_actual, asesora, asesora_id, estado, fecha_inicio')
+      .eq('activo', true)
+      .order('nombre')
+      .range(desde, hasta)
+    if (asesoraId) query = query.eq('asesora_id', asesoraId)
+    return query
+  })
   return soloActivos ? data.filter(programaActivo) : data
 }
 
@@ -583,19 +598,17 @@ export async function fetchAlumnosActivos() {
 // estado nunca se actualizó al cerrar su programa — y sin este filtro la
 // tabla quedaría llena de alumnos en "semana 100+", que no aporta nada.
 export async function fetchAlumnosEnCursoOSeguimiento(asesoraId) {
-  let query = supabase
-    .from('alumnos')
-    .select('id, nombre, programa, fecha_inicio, asesora_id')
-    .in('estado', ['En Curso', 'En Seguimiento', 'en curso', 'en seguimiento'])
-    .order('nombre')
-    // Sin esto, PostgREST corta la respuesta en su límite de filas por
-    // defecto — con más de 400 alumnos calificando, la vista del supervisor
-    // (sin filtro de asesora_id) lo superaba y se veía incompleta.
-    .range(0, 4999)
-  if (asesoraId) query = query.eq('asesora_id', asesoraId)
-  const { data, error } = await query
-  if (error) throw error
-  return (data || []).filter(programaActivo)
+  const data = await fetchTodasLasPaginas((desde, hasta) => {
+    let query = supabase
+      .from('alumnos')
+      .select('id, nombre, programa, fecha_inicio, asesora_id')
+      .in('estado', ['En Curso', 'En Seguimiento', 'en curso', 'en seguimiento'])
+      .order('nombre')
+      .range(desde, hasta)
+    if (asesoraId) query = query.eq('asesora_id', asesoraId)
+    return query
+  })
+  return data.filter(programaActivo)
 }
 
 // Llamadas con contacto exitoso de un set de alumnos — se trae el
@@ -603,14 +616,12 @@ export async function fetchAlumnosEnCursoOSeguimiento(asesoraId) {
 // semanal cubre las 24 semanas del programa de cada alumno.
 export async function fetchLlamadasContactadasPorAlumnos(alumnoIds) {
   if (!alumnoIds.length) return []
-  const { data, error } = await supabase
+  return fetchTodasLasPaginas((desde, hasta) => supabase
     .from('registros_llamadas')
     .select('alumno_id, fecha, semana_registro, respondio')
     .in('alumno_id', alumnoIds)
     .eq('respondio', 'Sí')
-    .range(0, 19999) // mismo motivo que fetchAlumnosEnCursoOSeguimiento — no cortar por el límite por defecto
-  if (error) throw error
-  return data || []
+    .range(desde, hasta))
 }
 
 export async function updateBeneficio(registroId, beneficio) {
