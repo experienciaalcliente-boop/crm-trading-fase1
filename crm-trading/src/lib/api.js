@@ -1054,3 +1054,47 @@ export function distribucionCategorica(rows, campo) {
     .sort((a, b) => b[1] - a[1])
     .map(([label, count]) => ({ label, count, pct: total > 0 ? Math.round((count / total) * 100) : 0 }))
 }
+
+// ─────────────────────────────────────────
+// TESTIMONIOS (para el Bono de Incentivos — solo asesoría académica)
+// ─────────────────────────────────────────
+export const ENFOQUES_TESTIMONIO = [
+  'Proceso formativo',
+  'Aula virtual',
+  'Satisfacción por clase',
+  'Satisfacción por mentoría',
+  'Satisfacción por atención',
+  'Satisfacción por seguimiento',
+]
+
+// asesoraId omitido = todos (supervisor). Trae el histórico completo — el
+// hook de comisiones filtra por mes.
+export async function fetchTestimonios(asesoraId) {
+  let query = supabase
+    .from('testimonios')
+    .select('id, asesora_id, alumno_id, enfoque, estado, motivo_rechazo, fecha_registro, created_at, alumno:alumnos(nombre, programa), asesora:asesoras(nombre)')
+    .order('created_at', { ascending: false })
+  if (asesoraId) query = query.eq('asesora_id', asesoraId)
+  const { data, error } = await query
+  if (error) throw error
+  return data || []
+}
+
+export async function insertTestimonio({ asesora_id, alumno_id, enfoque }) {
+  const { data, error } = await supabase
+    .from('testimonios')
+    .insert([{ asesora_id, alumno_id, enfoque }])
+    .select()
+  if (error) throw error
+  return data
+}
+
+export async function actualizarEstadoTestimonio(id, estado, motivo_rechazo) {
+  const { data, error } = await supabase
+    .from('testimonios')
+    .update({ estado, motivo_rechazo: motivo_rechazo || null })
+    .eq('id', id)
+    .select()
+  if (error) throw error
+  return data
+}
