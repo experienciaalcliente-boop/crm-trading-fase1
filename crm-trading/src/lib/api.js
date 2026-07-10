@@ -54,6 +54,12 @@ export async function fetchAlumnos(asesoraId, { soloActivos = true } = {}) {
     .select('id, nombre, programa, semana_actual, asesora, asesora_id, estado, fecha_inicio')
     .eq('activo', true)
     .order('nombre')
+    // Sin esto, PostgREST corta la respuesta en su límite de filas por
+    // defecto — hay miles de alumnos con activo=true, muy por encima de
+    // ese límite, así que cualquier llamada sin scope de asesora (o incluso
+    // el propio universo de una asesora con muchos alumnos) quedaba
+    // incompleta en silencio.
+    .range(0, 19999)
   if (asesoraId) query = query.eq('asesora_id', asesoraId)
   const { data, error } = await query
   if (error) throw error

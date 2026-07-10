@@ -17,8 +17,11 @@ const crearFormInicial = () => ({
 
 export function useVentasComplementos() {
   const { user } = useAuth()
-  // Supervisor ve todo; una asesora solo lo suyo (alumnos propios y sus
-  // propias ventas), igual que en Seguimiento/Orientación/Onboarding.
+  // A diferencia de Seguimiento/Orientación/Onboarding, acá SÍ debe verse
+  // la base completa de alumnos y programas para todos los roles (asesora,
+  // orientador y supervisor): cualquiera puede vender un complemento a
+  // cualquier alumno, no solo a los propios. Solo el historial de "mis
+  // ventas" queda scopeado por asesora.
   const asesoraIdPropia = user?.rol === 'asesora' ? user.asesora_id : undefined
 
   const [alumnos,       setAlumnos]       = useState([])
@@ -34,7 +37,7 @@ export function useVentasComplementos() {
       // Las ventas de complementos pueden ser de programas ya culminados
       // (alumnos antiguos), no solo de los activos — por eso soloActivos:false.
       const [als, vts] = await Promise.all([
-        fetchAlumnos(asesoraIdPropia, { soloActivos: false }),
+        fetchAlumnos(undefined, { soloActivos: false }),
         fetchVentasComplementos(asesoraIdPropia),
       ])
       setAlumnos(als)
