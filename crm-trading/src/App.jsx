@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
+import toast from 'react-hot-toast'
 import { useAuth } from './context/AuthContext'
 import ErrorBoundary from './components/shared/ErrorBoundary'
 import AppShell, { NAV } from './components/shared/AppShell'
 import { tieneProximaPromocion } from './lib/api'
+import { iniciarDeteccionDeActualizaciones } from './lib/updateChecker'
 import LoginPage         from './pages/LoginPage'
 import LlamadasPage      from './pages/LlamadasPage'
 import RecaudacionPage   from './pages/RecaudacionPage'
@@ -89,6 +91,37 @@ function ProtectedApp() {
 
 export default function App() {
   const { user } = useAuth()
+
+  // Al ser una SPA, una pestaña abierta todo el día se queda con el código
+  // viejo aunque se despliegue algo nuevo — el navegador no vuelve a pedir
+  // el HTML/JS hasta que alguien recarga. Esto avisa activamente cuando hay
+  // una versión nueva, en vez de depender de que cada asesora borre su
+  // caché manualmente para ver los cambios.
+  useEffect(() => {
+    const detener = iniciarDeteccionDeActualizaciones(() => {
+      toast.custom(() => (
+        <div style={{
+          background:'var(--bg-input)', color:'var(--text-primary)',
+          border:'1px solid var(--accent)', borderRadius:8, padding:'12px 16px',
+          display:'flex', alignItems:'center', gap:14, fontSize:13,
+          boxShadow:'0 8px 24px rgba(0,0,0,0.35)', maxWidth:360,
+        }}>
+          <span>Hay una nueva versión del sistema disponible.</span>
+          <button
+            onClick={() => window.location.reload()}
+            style={{
+              background:'var(--accent)', color:'#fff', border:'none', borderRadius:6,
+              padding:'6px 14px', fontWeight:600, cursor:'pointer', fontSize:12, whiteSpace:'nowrap',
+            }}
+          >
+            Actualizar ahora
+          </button>
+        </div>
+      ), { duration: Infinity, id:'nueva-version' })
+    })
+    return detener
+  }, [])
+
   return (
     <Routes>
       <Route path="/setup"  element={<SetupPage />} />
