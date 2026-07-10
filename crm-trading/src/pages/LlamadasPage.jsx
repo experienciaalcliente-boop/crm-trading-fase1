@@ -9,8 +9,6 @@ import PanelDerecho from '../components/modules/PanelDerecho'
 import LlamadasProgramadasPanel from '../components/modules/LlamadasProgramadasPanel'
 import AgendarLlamadaModal from '../components/modules/AgendarLlamadaModal'
 import EfectividadDiariaAsesoras from '../components/modules/EfectividadDiariaAsesoras'
-import EncuestaResumen from '../components/shared/EncuestaResumen'
-import ComentariosPorDia from '../components/shared/ComentariosPorDia'
 
 export default function LlamadasPage() {
   try {
@@ -19,26 +17,6 @@ export default function LlamadasPage() {
     console.error('LlamadasPage crash:', e)
     return <div style={{padding:24, color:'#f07070'}}>Error: {e.message}</div>
   }
-}
-
-// Encuesta de satisfacción de la asesora (resultados generales de todo el
-// histórico, solo sus programas) — vive acá porque es el detalle de
-// "asesoría académica"; el resumen ejecutivo combinado sigue en el
-// Dashboard. Los comentarios sí se navegan día a día.
-function EncuestaPropia({ encuesta, fecha, setFecha, comentarios }) {
-  return (
-    <div style={{ marginTop:20, marginBottom:20 }}>
-      <EncuestaResumen
-        titulo="Encuesta de satisfacción"
-        resumen={encuesta}
-        labelR3="Atención al pedir ayuda"
-        labelR4="Ayuda a avanzar en el programa"
-      />
-      <div style={{ marginTop:16 }}>
-        <ComentariosPorDia fecha={fecha} setFecha={setFecha} comentarios={comentarios} titulo="Comentarios de tus alumnos" />
-      </div>
-    </div>
-  )
 }
 
 function LlamadasPageInner() {
@@ -83,7 +61,6 @@ function RegistroLlamadasAsesora() {
           </p>
         </div>
         <FormLlamada state={state} onAgendarLlamada={() => abrirModalAgendar()} />
-        <EncuestaPropia encuesta={state.encuestaPropia} fecha={state.fechaComentarios} setFecha={state.setFechaComentarios} comentarios={state.comentariosDelDia} />
         <HistorialAlumno
           historial={state.historial}
           alumno={state.form.alumno}

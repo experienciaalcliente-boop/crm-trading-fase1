@@ -1,9 +1,11 @@
 import { useDashboard } from '../hooks/useDashboard'
 import { useAuth } from '../context/AuthContext'
-import { Loader2, RefreshCw, Phone, CreditCard, MonitorSmartphone, TrendingUp } from 'lucide-react'
+import { Loader2, RefreshCw, Phone, CreditCard, MonitorSmartphone, TrendingUp, Smile } from 'lucide-react'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts'
+import EncuestaResumen from '../components/shared/EncuestaResumen'
+import ComentariosPorDia from '../components/shared/ComentariosPorDia'
 
 const COLORS = ['#65a7a6','#2dd4a0','#f5b93a','#f07070','#b89eff','#6f9c9a']
 
@@ -125,10 +127,12 @@ export default function DashboardPage() {
           <KPICard label="Alumnos atendidos" value={d.alumnosUnicos}      sub="Este mes"               color="var(--accent)" accent="var(--accent)" />
         </div>
       ) : esAsesora ? (
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:10, marginBottom:4 }}>
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(5,1fr)', gap:10, marginBottom:4 }}>
           <KPICard label="Alumnos activos"    value={d.totalAlumnosActivos}  sub="En curso + seguimiento"    color="var(--accent)"  accent="var(--accent)" />
           <KPICard label="Contactabilidad"    value={`${d.contactabilidad}%`} sub={`${d.respondieron} respondieron`} color="#2dd4a0" accent="#2dd4a0" />
           <KPICard label="Riesgo Alto"        value={d.riesgoAlto}           sub="Requieren intervención"   color="#f07070"  accent="#f07070" />
+          <KPICard label="NPS"                value={d.encuestaAsesoriaPropia.nps != null ? `${d.encuestaAsesoriaPropia.nps}%` : '—'} sub={d.encuestaAsesoriaPropia.total > 0 ? `${d.encuestaAsesoriaPropia.total} respuestas` : 'Sin datos aún'} color="var(--accent)" accent="var(--accent)" />
+          <KPICard label="SAT"                value={d.encuestaAsesoriaPropia.csat != null ? `${d.encuestaAsesoriaPropia.csat}%` : '—'} sub={d.encuestaAsesoriaPropia.total > 0 ? `${d.encuestaAsesoriaPropia.total} respuestas` : 'Sin datos aún'} color="#2dd4a0" accent="#2dd4a0" />
         </div>
       ) : (
         <div style={{ display:'grid', gridTemplateColumns:'repeat(5,1fr)', gap:10, marginBottom:4 }}>
@@ -140,6 +144,28 @@ export default function DashboardPage() {
         </div>
       )}
 
+      {/* ══ ENCUESTA DE SATISFACCIÓN (solo asesora) ══ */}
+      {esAsesora && (
+      <>
+      <SectionTitle icon={Smile} title="Encuesta de Satisfacción" color="#f5b93a" />
+      <div style={{ marginBottom:16 }}>
+        <EncuestaResumen
+          titulo="Resultados generales"
+          resumen={d.encuestaAsesoriaPropia}
+          labelR3="Atención al pedir ayuda"
+          labelR4="Ayuda a avanzar en el programa"
+        />
+      </div>
+      <div style={{ marginBottom:16 }}>
+        <ComentariosPorDia
+          fecha={d.fechaComentarios}
+          setFecha={d.setFechaComentarios}
+          comentarios={d.comentariosDelDia}
+          titulo="Comentarios de tus alumnos"
+        />
+      </div>
+      </>
+      )}
 
       {/* Secciones de asesora/supervisor — no le competen al orientador */}
       {!esOrientador && (

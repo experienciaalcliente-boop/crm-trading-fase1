@@ -2,7 +2,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
-import { programaActivo, fetchEncuestasSatisfaccion, calcularNPS, calcularCSAT, hoyLima } from '../lib/api'
+import { programaActivo, fetchEncuestasSatisfaccion, calcularNPS, calcularCSAT, hoyLima,
+  mapaProgramaAsesora, distribucionEscala, distribucionCategorica } from '../lib/api'
 import toast from 'react-hot-toast'
 
 // Safe calcularRiesgo — no crashes
@@ -81,6 +82,7 @@ export function useDashboard() {
   const [raw,     setRaw]     = useState({ llamadas:[], cuotas:[], sesiones:[], alumnosActivos:[], asesoras:[], alumnosEvolucion:[], encuestas:[] })
   const [loading, setLoading] = useState(true)
   const [lastUpdate, setLastUpdate] = useState(new Date())
+  const [fechaComentarios, setFechaComentarios] = useState(hoyLima())
 
   const cargar = useCallback(async () => {
     setLoading(true)
@@ -300,6 +302,28 @@ export function useDashboard() {
     total: encuestasMes.length,
   }
 
+  // La asesora sí ve el detalle de su propia encuesta acá (resultados
+  // generales de todo el histórico, estilo Google Forms, más comentarios
+  // navegables por día) — es la única pestaña donde le corresponde verlo.
+  const encuestasAsesoria = (raw.encuestas || []).filter(e => e.tipo === 'asesoria')
+  const programaAsesoraMap = mapaProgramaAsesora(alumnosActivos)
+  const misEncuestas = esAsesora
+    ? encuestasAsesoria.filter(e => programaAsesoraMap[e.programa] === user.asesora_id)
+    : []
+  const encuestaAsesoriaPropia = {
+    total: misEncuestas.length,
+    nps: calcularNPS(misEncuestas.map(e => e.nps_score)),
+    csat: calcularCSAT(misEncuestas.map(e => e.csat_label)),
+    npsDist: distribucionEscala(misEncuestas, 'nps_score', 0, 10),
+    csatDist: distribucionCategorica(misEncuestas, 'csat_label'),
+    r3Dist: distribucionCategorica(misEncuestas, 'respuesta_3'),
+    r4Dist: distribucionCategorica(misEncuestas, 'respuesta_4'),
+  }
+  const comentariosDelDia = misEncuestas
+    .filter(e => e.fecha_respuesta?.slice(0, 10) === fechaComentarios)
+    .filter(e => e.comentario && e.comentario.trim())
+    .map(e => ({ comentario: e.comentario.trim(), programa: e.programa }))
+
   // ── Tipos de cuenta del mes ───────────────────────────────
   const ultimoRegMesPorAlumno = {}
   llamadasMes.forEach(r => {
@@ -436,6 +460,7 @@ export function useDashboard() {
     evolucionHeatmap,
     desempenoPorAsesora,
     encuestaGeneralCombinada,
+    encuestaAsesoriaPropia, fechaComentarios, setFechaComentarios, comentariosDelDia,
     totalAlumnosActivos, totalLlamadas:llamadasMes.length,
     alumnosQueRespondieronMes, respondieron:alumnosQueRespondieronMes.size,
     contactabilidad, contactabilidadPorPrograma,
