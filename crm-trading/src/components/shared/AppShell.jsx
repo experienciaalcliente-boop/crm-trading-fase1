@@ -1,7 +1,7 @@
 // v-20260622-1614
 import { useState, useEffect } from 'react'
-import { Outlet, NavLink } from 'react-router-dom'
-import { Phone, Upload, BarChart2, CreditCard, MonitorSmartphone, ChevronRight, GraduationCap, LogOut, UserCircle, Sun, Moon, ShoppingBag, CalendarCheck, Award, RotateCcw } from 'lucide-react'
+import { Outlet, NavLink, useLocation } from 'react-router-dom'
+import { Phone, Upload, BarChart2, CreditCard, MonitorSmartphone, ChevronRight, ChevronDown, GraduationCap, LogOut, UserCircle, Sun, Moon, ShoppingBag, CalendarCheck, Award, RotateCcw, HeartHandshake, Wallet } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
@@ -34,11 +34,61 @@ const ROL_COLORS = {
   orientador: '#b89eff',
 }
 
+const GROUP_ICONS = {
+  'Gestión de Experiencia': HeartHandshake,
+  'Ventas y Comisiones':    Wallet,
+  'Plan Reactivate':        RotateCcw,
+}
+
+// Convierte la lista plana de NAV (ya filtrada por rol) en entradas para
+// renderizar: los ítems sin group van sueltos, y los que comparten group
+// consecutivo se agrupan bajo una sola "pestaña" plegable.
+function agruparNav(navFiltrado) {
+  const entradas = []
+  let grupoActual = null
+  for (const item of navFiltrado) {
+    if (!item.group) {
+      entradas.push({ tipo: 'item', item })
+      grupoActual = null
+      continue
+    }
+    if (grupoActual && grupoActual.nombre === item.group) {
+      grupoActual.items.push(item)
+    } else {
+      grupoActual = { tipo: 'grupo', nombre: item.group, items: [item] }
+      entradas.push(grupoActual)
+    }
+  }
+  return entradas
+}
+
+function ItemNav({ to, Icon, label, sub }) {
+  return (
+    <NavLink to={to} style={({ isActive }) => ({
+      display:'flex', alignItems:'center', gap:10, padding:'8px 10px',
+      borderRadius:10, marginBottom:2, textDecoration:'none', transition:'all 0.15s',
+      background: isActive ? 'var(--accent-light)' : 'transparent',
+      border:`1px solid ${isActive ? 'rgba(78,143,255,0.4)' : 'transparent'}`,
+      color: isActive ? 'var(--accent)' : 'var(--text-muted)',
+    })}>
+      {({ isActive }) => (<>
+        <Icon size={14} style={{ flexShrink:0 }} />
+        <div style={{ flex:1, minWidth:0 }}>
+          <div style={{ fontSize:13, fontWeight:600, lineHeight:1 }}>{label}</div>
+          <div style={{ fontSize:10, marginTop:2, color: isActive ? 'rgba(101,167,166,0.6)' : 'var(--text-faint)' }}>{sub}</div>
+        </div>
+        {isActive && <ChevronRight size={12} style={{ opacity:0.5 }} />}
+      </>)}
+    </NavLink>
+  )
+}
+
 export default function AppShell() {
   const hoy = format(new Date(), "EEEE d 'de' MMMM", { locale: es })
   const { user, logout } = useAuth()
   const { theme, toggle } = useTheme()
   const navigate = useNavigate()
+  const location = useLocation()
   const rol = user?.rol || 'supervisor'
 
   // Onboarding solo se muestra a la asesora si tiene un alumno propio con
@@ -55,6 +105,15 @@ export default function AppShell() {
   const navFiltrado = NAV
     .filter(n => n.roles.includes(rol))
     .filter(n => n.to !== '/onboarding' || tieneProximaPromo)
+
+  const navAgrupado = agruparNav(navFiltrado)
+
+  // La pestaña que contiene la ruta activa arranca abierta (por ejemplo, al
+  // recargar la página estando en /recaudacion, "Gestión de Experiencia" ya
+  // aparece desplegada en vez de tener que abrirla a mano).
+  const grupoDeRutaActiva = navFiltrado.find(n => location.pathname.startsWith(n.to))?.group ?? null
+  const [grupoAbierto, setGrupoAbierto] = useState(grupoDeRutaActiva)
+  useEffect(() => { setGrupoAbierto(grupoDeRutaActiva) }, [grupoDeRutaActiva])
 
   return (
     <div style={{ display:'flex', height:'100vh', overflow:'hidden', background:'var(--bg-base)' }}>
@@ -74,32 +133,37 @@ export default function AppShell() {
 
         {/* Nav */}
         <nav style={{ flex:1, padding:10, overflowY:'auto' }}>
-          {navFiltrado.map(({ to, icon:Icon, label, sub, group }, i) => {
-            const grupoAnterior = i > 0 ? navFiltrado[i - 1].group : null
-            const mostrarEncabezado = group && group !== grupoAnterior
+          {navAgrupado.map((entrada) => {
+            if (entrada.tipo === 'item') {
+              const { to, icon:Icon, label, sub } = entrada.item
+              return <ItemNav key={to} to={to} Icon={Icon} label={label} sub={sub} />
+            }
+
+            const { nombre, items } = entrada
+            const abierto = grupoAbierto === nombre
+            const GroupIcon = GROUP_ICONS[nombre] ?? ChevronRight
             return (
-              <div key={to}>
-                {mostrarEncabezado && (
-                  <div style={{ fontSize:10, fontWeight:700, color:'var(--text-faint)', textTransform:'uppercase', letterSpacing:'0.08em', padding: i === 0 ? '2px 10px 6px' : '16px 10px 6px' }}>
-                    {group}
+              <div key={nombre} style={{ marginBottom: 2 }}>
+                <button
+                  onClick={() => setGrupoAbierto(abierto ? null : nombre)}
+                  style={{
+                    width:'100%', display:'flex', alignItems:'center', gap:10, padding:'8px 10px',
+                    borderRadius:10, border:'1px solid transparent', background:'transparent', cursor:'pointer',
+                    color:'var(--text-muted)', textAlign:'left', font:'inherit',
+                  }}>
+                  <GroupIcon size={14} style={{ flexShrink:0 }} />
+                  <div style={{ flex:1, minWidth:0, fontSize:12, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em' }}>
+                    {nombre}
+                  </div>
+                  {abierto ? <ChevronDown size={13} style={{ opacity:0.6 }} /> : <ChevronRight size={13} style={{ opacity:0.6 }} />}
+                </button>
+                {abierto && (
+                  <div style={{ paddingLeft:10, marginTop:2, display:'flex', flexDirection:'column', gap:2 }}>
+                    {items.map(({ to, icon:Icon, label, sub }) => (
+                      <ItemNav key={to} to={to} Icon={Icon} label={label} sub={sub} />
+                    ))}
                   </div>
                 )}
-                <NavLink to={to} style={({ isActive }) => ({
-                  display:'flex', alignItems:'center', gap:10, padding:'8px 10px',
-                  borderRadius:10, marginBottom:2, textDecoration:'none', transition:'all 0.15s',
-                  background: isActive ? 'var(--accent-light)' : 'transparent',
-                  border:`1px solid ${isActive ? 'rgba(78,143,255,0.4)' : 'transparent'}`,
-                  color: isActive ? 'var(--accent)' : 'var(--text-muted)',
-                })}>
-                  {({ isActive }) => (<>
-                    <Icon size={14} style={{ flexShrink:0 }} />
-                    <div style={{ flex:1, minWidth:0 }}>
-                      <div style={{ fontSize:13, fontWeight:600, lineHeight:1 }}>{label}</div>
-                      <div style={{ fontSize:10, marginTop:2, color: isActive ? 'rgba(101,167,166,0.6)' : 'var(--text-faint)' }}>{sub}</div>
-                    </div>
-                    {isActive && <ChevronRight size={12} style={{ opacity:0.5 }} />}
-                  </>)}
-                </NavLink>
               </div>
             )
           })}
