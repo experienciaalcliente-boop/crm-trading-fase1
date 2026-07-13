@@ -83,7 +83,7 @@ function baseShell({ preheader, bodyHtml }) {
           </tr>
           <tr>
             <td style="padding:18px 32px; background:${CREAM}; font-family:Arial,Helvetica,sans-serif; font-size:11px; color:#8896b4; text-align:center;">
-              Programa Segunda Oportunidad BURS · Equipo BURS Advisory
+              Reactivate Burs · Equipo BURS Advisory
             </td>
           </tr>
         </table>
@@ -117,7 +117,7 @@ const CORREOS = [
       <p>Las razones pueden haber sido muchas: trabajo, tiempo, prioridades o situaciones personales.</p>
       <p>Lo importante es que hoy queremos decirte algo.</p>
       <p>Todavía existe una oportunidad para terminar aquello que un día decidiste comenzar.</p>
-      <p>En BURS hemos creado el <strong>Programa Segunda Oportunidad</strong>, una modalidad especialmente diseñada para algunos exalumnos que desean retomar su formación.</p>
+      <p>En BURS hemos creado <strong>Reactivate Burs</strong>, una modalidad especialmente diseñada para algunos exalumnos que desean retomar su formación.</p>
       <p>Queremos contarte de qué se trata y resolver todas tus dudas personalmente.</p>
       <p>Haz clic en el siguiente botón y uno de nuestros asesores te brindará toda la información.</p>`,
     cierre: () => `<p>Esperamos volver a verte formando parte de esta comunidad.</p><p>Equipo BURS</p>`,
@@ -145,7 +145,7 @@ const CORREOS = [
     asunto: 'Así podrás retomar tu formación',
     cuerpo: (nombre) => `
       <p>Hola, ${nombre}.</p>
-      <p>Queremos mostrarte exactamente en qué consiste el Programa Segunda Oportunidad BURS.</p>
+      <p>Queremos mostrarte exactamente en qué consiste Reactivate Burs.</p>
       <p>Una vez regularizado el saldo pendiente de tu formación podrás acceder nuevamente a:</p>
       <p style="margin:4px 0;">✔ Todo el contenido grabado del programa que adquiriste.</p>
       <p style="margin:4px 0;">✔ Todas las clases grabadas.</p>
@@ -195,7 +195,7 @@ const CORREOS = [
       <p>Hola, ${nombre}.</p>
       <p>Durante los últimos días hemos querido contarte sobre una oportunidad especial que hemos preparado para algunos exalumnos de BURS.</p>
       <p>Sabemos que quizá no era el momento adecuado o simplemente no habías tenido tiempo para revisar nuestros correos.</p>
-      <p>Antes de finalizar esta etapa del Programa Segunda Oportunidad, queríamos darte una última oportunidad para conocer la propuesta.</p>
+      <p>Antes de finalizar esta etapa de Reactivate Burs, queríamos darte una última oportunidad para conocer la propuesta.</p>
       <p>Si aún deseas terminar la formación que un día comenzaste, estaremos encantados de conversar contigo.</p>
       <p>Haz clic aquí.</p>`,
     cierre: () => `<p>Será un gusto ayudarte.</p><p>Esperamos volver a encontrarnos.</p><p>Equipo BURS</p>`,
