@@ -1,7 +1,7 @@
 // v-20260622-1614
 import { useState, useEffect } from 'react'
 import { Outlet, NavLink } from 'react-router-dom'
-import { Phone, Upload, BarChart2, CreditCard, MonitorSmartphone, ChevronRight, GraduationCap, LogOut, UserCircle, Sun, Moon, ShoppingBag, CalendarCheck, Award } from 'lucide-react'
+import { Phone, Upload, BarChart2, CreditCard, MonitorSmartphone, ChevronRight, GraduationCap, LogOut, UserCircle, Sun, Moon, ShoppingBag, CalendarCheck, Award, RotateCcw } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
@@ -21,6 +21,7 @@ export const NAV = [
   { to:'/complementos',icon:ShoppingBag,       label:'Complementos',    sub:'Venta de complementos', roles:['supervisor','asesora','orientador'] },
   { to:'/comisiones',  icon:Award,             label:'Comisiones',      sub:'Bono de incentivos',   roles:['supervisor','asesora','orientador'] },
   { to:'/importar',    icon:Upload,            label:'Importar',        sub:'CSV / Excel',          roles:['supervisor'] },
+  { to:'/reactivate',  icon:RotateCcw,         label:'Reactivate Burs', sub:'Exalumnos retirados',  roles:['supervisor'] },
 ]
 
 const ROL_COLORS = {
