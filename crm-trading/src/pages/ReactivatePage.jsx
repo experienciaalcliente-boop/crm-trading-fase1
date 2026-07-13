@@ -69,12 +69,16 @@ export default function ReactivatePage() {
           {r.config && (
             <button
               onClick={r.toggleCampana}
+              disabled={r.activando}
               style={{
                 display: 'flex', alignItems: 'center', gap: 6, padding: '7px 16px', borderRadius: 8,
-                fontSize: 12, fontWeight: 700, cursor: 'pointer', border: 'none',
-                background: r.config.campana_activa ? '#f07070' : '#25D366', color: '#fff',
+                fontSize: 12, fontWeight: 700, cursor: r.activando ? 'default' : 'pointer', border: 'none',
+                background: r.activando ? 'var(--text-faint)' : r.config.campana_activa ? '#f07070' : '#25D366', color: '#fff',
+                opacity: r.activando ? 0.7 : 1,
               }}>
-              {r.config.campana_activa ? <><Pause size={13} /> Pausar campaña</> : <><Play size={13} /> Activar campaña</>}
+              {r.activando
+                ? <><Loader2 size={13} className="animate-spin" /> Enviando Correo 0…</>
+                : r.config.campana_activa ? <><Pause size={13} /> Pausar campaña</> : <><Play size={13} /> Activar campaña</>}
             </button>
           )}
         </div>

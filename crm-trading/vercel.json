@@ -19,5 +19,9 @@
   "crons": [
     { "path": "/api/sync-programas-encuestas", "schedule": "0 5 1 * *" },
     { "path": "/api/reactivate-cron", "schedule": "0 14 * * *" }
-  ]
+  ],
+  "functions": {
+    "api/reactivate-cron.js": { "maxDuration": 60 },
+    "api/reactivate-activar.js": { "maxDuration": 60 }
+  }
 }

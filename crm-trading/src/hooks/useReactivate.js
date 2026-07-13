@@ -42,14 +42,38 @@ export function useReactivate() {
 
   useEffect(() => { cargar() }, [cargar])
 
+  const [activando, setActivando] = useState(false)
+
   const toggleCampana = useCallback(async () => {
     if (!config) return
     const nuevoValor = !config.campana_activa
-    const { error } = await supabase.from('reactivate_config').update({ campana_activa: nuevoValor, updated_at: new Date().toISOString() }).eq('id', 'default')
-    if (error) { toast.error('No se pudo actualizar'); return }
-    setConfig((prev) => ({ ...prev, campana_activa: nuevoValor }))
-    toast.success(nuevoValor ? 'Campaña activada — los correos empezarán a enviarse automáticamente' : 'Campaña pausada')
-  }, [config])
+
+    // Pausar: solo apaga la bandera, no dispara ningún envío.
+    if (!nuevoValor) {
+      const { error } = await supabase.from('reactivate_config').update({ campana_activa: false, updated_at: new Date().toISOString() }).eq('id', 'default')
+      if (error) { toast.error('No se pudo pausar la campaña'); return }
+      setConfig((prev) => ({ ...prev, campana_activa: false }))
+      toast.success('Campaña pausada')
+      return
+    }
+
+    // Activar: además de encender la bandera, manda el Correo 0 de inmediato
+    // a todos los que aún no iniciaron su secuencia (los correos 1-6 de cada
+    // quien siguen el cronograma normal del cron diario de las 9am).
+    setActivando(true)
+    try {
+      const res = await fetch('/api/reactivate-activar', { method: 'POST' })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Error al activar')
+      setConfig((prev) => ({ ...prev, campana_activa: true }))
+      toast.success(`Campaña activada — Correo 0 enviado a ${data.enviados} de ${data.total} alumnos`)
+      await cargar()
+    } catch (err) {
+      toast.error(err.message)
+    } finally {
+      setActivando(false)
+    }
+  }, [config, cargar])
 
   const abrirDetalle = useCallback(async (alumno) => {
     setDetalle({ alumno, envios: [], seguimiento: [], loadingDetalle: true })
@@ -105,6 +129,6 @@ export function useReactivate() {
   return {
     alumnos: alumnosFiltrados, totalSinFiltrar: alumnos.length, loading, config,
     filtroEstado, setFiltroEstado, buscar, setBuscar, stats,
-    toggleCampana, detalle, abrirDetalle, cerrarDetalle, registrarAvance, cargar,
+    toggleCampana, activando, detalle, abrirDetalle, cerrarDetalle, registrarAvance, cargar,
   }
 }
