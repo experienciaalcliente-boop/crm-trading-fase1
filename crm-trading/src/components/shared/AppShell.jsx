@@ -12,16 +12,20 @@ import BuscadorGlobal from './BuscadorGlobal'
 import BrandMark from './BrandMark'
 
 export const NAV = [
-  { to:'/dashboard',   icon:BarChart2,        label:'Dashboard',       sub:'Vista ejecutiva',      roles:['supervisor','asesora','orientador'] },
-  { to:'/llamadas',    icon:Phone,             label:'Seguimiento',     sub:'Registro de llamadas', roles:['supervisor','asesora'] },
-  { to:'/seguimiento-semanal', icon:CalendarCheck, label:'Seg. Semanal', sub:'Contacto por semana',  roles:['supervisor','asesora'] },
-  { to:'/recaudacion', icon:CreditCard,        label:'Recaudación',     sub:'Cuotas y pagos',       roles:['supervisor'] },
-  { to:'/orientacion', icon:MonitorSmartphone, label:'Orient. Técnica', sub:'Agenda y sesiones',    roles:['supervisor','asesora','orientador'] },
-  { to:'/onboarding',  icon:GraduationCap,     label:'Onboarding',      sub:'Próximas promociones', roles:['supervisor','asesora'] },
-  { to:'/complementos',icon:ShoppingBag,       label:'Complementos',    sub:'Venta de complementos', roles:['supervisor','asesora','orientador'] },
-  { to:'/comisiones',  icon:Award,             label:'Comisiones',      sub:'Bono de incentivos',   roles:['supervisor','asesora','orientador'] },
-  { to:'/importar',    icon:Upload,            label:'Importar',        sub:'CSV / Excel',          roles:['supervisor'] },
-  { to:'/reactivate',  icon:RotateCcw,         label:'Reactivate Burs', sub:'Exalumnos retirados',  roles:['supervisor'] },
+  { to:'/dashboard',   icon:BarChart2,        label:'Dashboard',       sub:'Vista ejecutiva',      roles:['supervisor','asesora','orientador'], group:null },
+
+  { to:'/llamadas',    icon:Phone,             label:'Seguimiento',     sub:'Registro de llamadas', roles:['supervisor','asesora'], group:'Gestión de Experiencia' },
+  { to:'/seguimiento-semanal', icon:CalendarCheck, label:'Seg. Semanal', sub:'Contacto por semana',  roles:['supervisor','asesora'], group:'Gestión de Experiencia' },
+  { to:'/orientacion', icon:MonitorSmartphone, label:'Orient. Técnica', sub:'Agenda y sesiones',    roles:['supervisor','asesora','orientador'], group:'Gestión de Experiencia' },
+  { to:'/onboarding',  icon:GraduationCap,     label:'Onboarding',      sub:'Próximas promociones', roles:['supervisor','asesora'], group:'Gestión de Experiencia' },
+  { to:'/recaudacion', icon:CreditCard,        label:'Recaudación',     sub:'Cuotas y pagos',       roles:['supervisor'], group:'Gestión de Experiencia' },
+
+  { to:'/complementos',icon:ShoppingBag,       label:'Complementos',    sub:'Venta de complementos', roles:['supervisor','asesora','orientador'], group:'Ventas y Comisiones' },
+  { to:'/comisiones',  icon:Award,             label:'Comisiones',      sub:'Bono de incentivos',   roles:['supervisor','asesora','orientador'], group:'Ventas y Comisiones' },
+
+  { to:'/reactivate',  icon:RotateCcw,         label:'Reactivate Burs', sub:'Exalumnos retirados',  roles:['supervisor'], group:'Plan Reactivate' },
+
+  { to:'/importar',    icon:Upload,            label:'Importar',        sub:'CSV / Excel',          roles:['supervisor'], group:null },
 ]
 
 const ROL_COLORS = {
@@ -70,24 +74,35 @@ export default function AppShell() {
 
         {/* Nav */}
         <nav style={{ flex:1, padding:10, overflowY:'auto' }}>
-          {navFiltrado.map(({ to, icon:Icon, label, sub }) => (
-            <NavLink key={to} to={to} style={({ isActive }) => ({
-              display:'flex', alignItems:'center', gap:10, padding:'8px 10px',
-              borderRadius:10, marginBottom:2, textDecoration:'none', transition:'all 0.15s',
-              background: isActive ? 'var(--accent-light)' : 'transparent',
-              border:`1px solid ${isActive ? 'rgba(78,143,255,0.4)' : 'transparent'}`,
-              color: isActive ? 'var(--accent)' : 'var(--text-muted)',
-            })}>
-              {({ isActive }) => (<>
-                <Icon size={14} style={{ flexShrink:0 }} />
-                <div style={{ flex:1, minWidth:0 }}>
-                  <div style={{ fontSize:13, fontWeight:600, lineHeight:1 }}>{label}</div>
-                  <div style={{ fontSize:10, marginTop:2, color: isActive ? 'rgba(101,167,166,0.6)' : 'var(--text-faint)' }}>{sub}</div>
-                </div>
-                {isActive && <ChevronRight size={12} style={{ opacity:0.5 }} />}
-              </>)}
-            </NavLink>
-          ))}
+          {navFiltrado.map(({ to, icon:Icon, label, sub, group }, i) => {
+            const grupoAnterior = i > 0 ? navFiltrado[i - 1].group : null
+            const mostrarEncabezado = group && group !== grupoAnterior
+            return (
+              <div key={to}>
+                {mostrarEncabezado && (
+                  <div style={{ fontSize:10, fontWeight:700, color:'var(--text-faint)', textTransform:'uppercase', letterSpacing:'0.08em', padding: i === 0 ? '2px 10px 6px' : '16px 10px 6px' }}>
+                    {group}
+                  </div>
+                )}
+                <NavLink to={to} style={({ isActive }) => ({
+                  display:'flex', alignItems:'center', gap:10, padding:'8px 10px',
+                  borderRadius:10, marginBottom:2, textDecoration:'none', transition:'all 0.15s',
+                  background: isActive ? 'var(--accent-light)' : 'transparent',
+                  border:`1px solid ${isActive ? 'rgba(78,143,255,0.4)' : 'transparent'}`,
+                  color: isActive ? 'var(--accent)' : 'var(--text-muted)',
+                })}>
+                  {({ isActive }) => (<>
+                    <Icon size={14} style={{ flexShrink:0 }} />
+                    <div style={{ flex:1, minWidth:0 }}>
+                      <div style={{ fontSize:13, fontWeight:600, lineHeight:1 }}>{label}</div>
+                      <div style={{ fontSize:10, marginTop:2, color: isActive ? 'rgba(101,167,166,0.6)' : 'var(--text-faint)' }}>{sub}</div>
+                    </div>
+                    {isActive && <ChevronRight size={12} style={{ opacity:0.5 }} />}
+                  </>)}
+                </NavLink>
+              </div>
+            )
+          })}
         </nav>
 
         {/* User footer */}
