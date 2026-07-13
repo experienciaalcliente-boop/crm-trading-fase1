@@ -1,8 +1,10 @@
+import { useState } from 'react'
 import { useReactivate, ESTADOS_REACTIVATE } from '../hooks/useReactivate'
 import ModalReactivate from '../components/modules/ModalReactivate'
-import { Loader2, RefreshCw, Play, Pause, MousePointerClick } from 'lucide-react'
+import { Loader2, RefreshCw, Play, Pause, MousePointerClick, Send } from 'lucide-react'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
+import toast from 'react-hot-toast'
 
 const ESTADO_STYLE = {
   'Pendiente':           { bg: 'rgba(255,255,255,0.06)', color: 'var(--text-muted)',  border: 'rgba(255,255,255,0.1)' },
@@ -28,8 +30,29 @@ function EstadoBadge({ estado }) {
 
 export default function ReactivatePage() {
   const r = useReactivate()
+  const [emailPrueba, setEmailPrueba] = useState('')
+  const [enviandoPrueba, setEnviandoPrueba] = useState(false)
 
   const tasaApertura = r.stats.correosEnviados > 0 ? Math.round((r.stats.conClic / r.stats.correosEnviados) * 100) : 0
+
+  const enviarPrueba = async () => {
+    if (!emailPrueba.trim()) { toast.error('Ingresa un correo de destino'); return }
+    setEnviandoPrueba(true)
+    try {
+      const res = await fetch('/api/reactivate-test-send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ destinatario: emailPrueba.trim() }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Error al enviar')
+      toast.success(data.mensaje)
+    } catch (err) {
+      toast.error(err.message)
+    } finally {
+      setEnviandoPrueba(false)
+    }
+  }
 
   return (
     <div style={{ padding: 24 }}>
@@ -62,6 +85,22 @@ export default function ReactivatePage() {
           La campaña está en pausa — no se enviará ningún correo automático hasta que la actives.
         </div>
       )}
+
+      <div className="crm-card" style={{ padding: '14px 16px', marginBottom: 20, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+        <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+          Enviar correo de prueba (Correo 1, no cuenta como envío de campaña):
+        </div>
+        <input
+          type="email"
+          placeholder="tu-correo@ejemplo.com"
+          value={emailPrueba}
+          onChange={(e) => setEmailPrueba(e.target.value)}
+          style={{ padding: '6px 12px', background: 'var(--bg-input)', border: '1.5px solid var(--border-input)', borderRadius: 8, color: 'var(--text-primary)', fontSize: 13, minWidth: 220 }}
+        />
+        <button className="crm-btn crm-btn-sm" disabled={enviandoPrueba} onClick={enviarPrueba}>
+          <Send size={13} /> {enviandoPrueba ? 'Enviando…' : 'Enviar prueba'}
+        </button>
+      </div>
 
       {/* KPIs */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 10, marginBottom: 20 }}>
