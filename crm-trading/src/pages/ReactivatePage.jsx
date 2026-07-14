@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useReactivate, ESTADOS_REACTIVATE } from '../hooks/useReactivate'
 import ModalReactivate from '../components/modules/ModalReactivate'
-import { Loader2, RefreshCw, Play, Pause, MousePointerClick, Send } from 'lucide-react'
+import { Loader2, RefreshCw, Play, Pause, MousePointerClick, Send, Zap } from 'lucide-react'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import toast from 'react-hot-toast'
@@ -32,8 +32,25 @@ export default function ReactivatePage() {
   const r = useReactivate()
   const [emailPrueba, setEmailPrueba] = useState('')
   const [enviandoPrueba, setEnviandoPrueba] = useState(false)
+  const [forzando, setForzando] = useState(false)
 
   const tasaApertura = r.stats.correosEnviados > 0 ? Math.round((r.stats.conClic / r.stats.correosEnviados) * 100) : 0
+
+  const forzarEnvioPendiente = async () => {
+    setForzando(true)
+    try {
+      const res = await fetch('/api/reactivate-forzar-envio', { method: 'POST' })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Error al forzar el envío')
+      if (data.saltado) { toast(data.saltado, { icon: '⏸️' }); return }
+      toast.success(`Envío al día: ${data.enviados} correos enviados${data.errores ? `, ${data.errores} con error` : ''}`)
+      await r.cargar()
+    } catch (err) {
+      toast.error(err.message)
+    } finally {
+      setForzando(false)
+    }
+  }
 
   const enviarPrueba = async () => {
     if (!emailPrueba.trim()) { toast.error('Ingresa un correo de destino'); return }
@@ -66,6 +83,15 @@ export default function ReactivatePage() {
           <button className="crm-btn crm-btn-sm" onClick={r.cargar}>
             <RefreshCw size={13} /> Actualizar
           </button>
+          {r.config?.campana_activa && (
+            <button
+              onClick={forzarEnvioPendiente}
+              disabled={forzando}
+              className="crm-btn crm-btn-sm"
+              title="Procesa ahora a quien le toque correo hoy, sin esperar a la corrida automática de las 9am">
+              {forzando ? <><Loader2 size={13} className="animate-spin" /> Enviando…</> : <><Zap size={13} /> Forzar envío pendiente</>}
+            </button>
+          )}
           {r.config && (
             <button
               onClick={r.toggleCampana}

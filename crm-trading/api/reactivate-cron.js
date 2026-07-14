@@ -1,26 +1,8 @@
-// Vercel Cron (diario) — motor del Plan Reactivate Burs. Por cada exalumno
-// activo en la campaña, decide si hoy le toca el siguiente correo de la
-// secuencia (Día 1, 2, 4, 6, 8, 11, 14) y lo envía desde el Gmail configurado.
-// Si `reactivate_config.campana_activa` está en false, no hace nada — así el
-// supervisor controla el arranque desde el panel sin tocar código.
+// Vercel Cron (diario) — dispara el ciclo del Plan Reactivate Burs. Ver la
+// lógica real en api/_lib/reactivateCronCore.js (compartida con el botón
+// "Forzar envío pendiente ahora" del panel).
 import { createClient } from '@supabase/supabase-js'
-import { totalCorreos } from './_lib/reactivateEmails.js'
-import { enviarCorreoAlumno, transporterGmailPool, procesarEnLotes } from './_lib/reactivateSend.js'
-
-// Días transcurridos desde fecha_inicio_campana (día 1 = 0 transcurridos) en
-// los que corresponde enviar el correo N según la sección 5 del plan.
-const DIAS_PARA_CORREO = [0, 1, 3, 5, 7, 10, 13]
-const DIAS_GRACIA_SIN_RESPUESTA = 3 // días de margen tras el Correo 6 antes de cerrar el ciclo
-const CONCURRENCIA_ENVIO = 8 // correos en paralelo — todos comparten pool de conexión SMTP
-
-function supabaseAdmin() {
-  return createClient(process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
-}
-
-function diasEntre(fechaISO, hoy) {
-  const inicio = new Date(fechaISO + 'T00:00:00')
-  return Math.floor((hoy - inicio) / (1000 * 60 * 60 * 24))
-}
+import { ejecutarCicloDiario } from './_lib/reactivateCronCore.js'
 
 export default async function handler(req, res) {
   const auth = req.headers.authorization
@@ -28,65 +10,15 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: 'No autorizado' })
   }
 
-  const supabase = supabaseAdmin()
+  const supabase = createClient(process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
   const baseUrl = process.env.PUBLIC_APP_URL
   if (!baseUrl) {
     return res.status(500).json({ error: 'Falta configurar PUBLIC_APP_URL en las variables de entorno' })
   }
 
   try {
-    const { data: config } = await supabase.from('reactivate_config').select('*').eq('id', 'default').maybeSingle()
-    if (!config?.campana_activa) {
-      return res.status(200).json({ ok: true, saltado: 'Campaña Reactivate Burs en pausa (campana_activa=false)' })
-    }
-
-    const hoy = new Date()
-    const hoyStr = hoy.toISOString().slice(0, 10)
-
-    // 1) Cierre de ciclo: quienes ya recibieron el Correo 6 hace más de N días
-    //    sin interactuar, pasan a "Sin respuesta" (fin del ciclo, sección 5 y 9).
-    await supabase
-      .from('reactivate_alumnos')
-      .update({ estado_campana: 'Sin respuesta', updated_at: new Date().toISOString() })
-      .eq('excluido', false)
-      .eq('estado_campana', 'Correo 6 enviado')
-      .lte('fecha_ultimo_envio', new Date(hoy.getTime() - DIAS_GRACIA_SIN_RESPUESTA * 86400000).toISOString())
-
-    // 2) Candidatos: siguen en la secuencia automática (no interesados,
-    //    contactados, negociación, reactivados, no interesados ni sin
-    //    respuesta — esos ya salieron del flujo de correos).
-    const ESTADOS_EN_SECUENCIA = ['Pendiente', ...Array.from({ length: totalCorreos() }, (_, i) => `Correo ${i} enviado`)]
-    const { data: candidatos, error: errCand } = await supabase
-      .from('reactivate_alumnos')
-      .select('id, nombre, email, estado_campana, fecha_inicio_campana, ultimo_correo_enviado')
-      .eq('excluido', false)
-      .in('estado_campana', ESTADOS_EN_SECUENCIA)
-
-    if (errCand) throw errCand
-
-    // Filtra primero quién realmente tiene un correo pendiente hoy — el
-    // envío en sí se hace después, en lotes concurrentes.
-    let omitidos = 0
-    const porEnviar = []
-    for (const alumno of candidatos) {
-      const esPrimerEnvio = !alumno.fecha_inicio_campana
-      const fechaInicio = esPrimerEnvio ? hoyStr : alumno.fecha_inicio_campana
-      const diasTranscurridos = esPrimerEnvio ? 0 : diasEntre(fechaInicio, hoy)
-      const siguienteCorreo = (alumno.ultimo_correo_enviado ?? -1) + 1
-
-      if (siguienteCorreo > 6) { omitidos++; continue }
-      if (diasTranscurridos < DIAS_PARA_CORREO[siguienteCorreo]) { omitidos++; continue }
-      porEnviar.push({ alumno, correoNumero: siguienteCorreo, fechaInicio })
-    }
-
-    const transporter = transporterGmailPool()
-    const testimonioUrls = { 1: config.testimonio_url_1, 2: config.testimonio_url_2 }
-    const { enviados, errores } = await procesarEnLotes(porEnviar, CONCURRENCIA_ENVIO, ({ alumno, correoNumero, fechaInicio }) =>
-      enviarCorreoAlumno({ supabase, transporter, baseUrl, gmailUser: process.env.GMAIL_USER, alumno, correoNumero, fechaInicio, testimonioUrls })
-    )
-    transporter.close()
-
-    return res.status(200).json({ ok: true, enviados, errores, omitidos })
+    const resultado = await ejecutarCicloDiario({ supabase, baseUrl })
+    return res.status(200).json(resultado)
   } catch (err) {
     console.error('reactivate-cron:', err)
     return res.status(500).json({ error: err.message || 'Error interno' })
