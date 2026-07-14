@@ -245,7 +245,7 @@ function AgendaOrientacionTecnica() {
                   <thead>
                     <tr>
                       <th>Hora</th><th>Alumno</th><th>Programa</th><th>Motivo</th>
-                      <th>Agendado por</th><th>Zoom</th><th>Estado</th><th>Acciones</th>
+                      <th>Agendado por</th><th>Zoom</th><th>Estado</th><th>Observaciones</th><th>Acciones</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -262,6 +262,9 @@ function AgendaOrientacionTecnica() {
                           <ZoomCell sesion={s} onUpdate={o.cargarSesiones} />
                         </td>
                         <td><EstadoBadge estado={s.estado} /></td>
+                        <td style={{ fontSize: 12, color: 'var(--text-secondary)', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={s.observaciones || ''}>
+                          {s.observaciones || '—'}
+                        </td>
                         <td>
                           <div style={{ display: 'flex', gap: 6 }}>
                             {s.estado === 'Pendiente' && (
@@ -320,7 +323,7 @@ function AgendaOrientacionTecnica() {
                   <thead>
                     <tr>
                       <th>Fecha</th><th>Hora</th><th>Alumno</th><th>Programa</th><th>Motivo</th>
-                      <th>Agendado por</th><th>Zoom</th><th>Estado</th><th>Acciones</th>
+                      <th>Agendado por</th><th>Zoom</th><th>Estado</th><th>Observaciones</th><th>Acciones</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -340,6 +343,9 @@ function AgendaOrientacionTecnica() {
                           <ZoomCell sesion={s} onUpdate={o.cargarHistorial} />
                         </td>
                         <td><EstadoBadge estado={s.estado} /></td>
+                        <td style={{ fontSize: 12, color: 'var(--text-secondary)', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={s.observaciones || ''}>
+                          {s.observaciones || '—'}
+                        </td>
                         <td>
                           <div style={{ display: 'flex', gap: 6 }}>
                             {s.estado === 'Pendiente' && (
