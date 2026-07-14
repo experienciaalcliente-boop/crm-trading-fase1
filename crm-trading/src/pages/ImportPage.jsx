@@ -5,6 +5,11 @@ import { Upload, FileSpreadsheet, CheckCircle2, AlertCircle, Loader2 } from 'luc
 import { upsertAlumnos, importarHistorialLlamadas, upsertCuotas, hoyLima } from '../lib/api'
 import { supabase } from '../lib/supabase'
 
+// Rango Unicode de marcas diacríticas combinantes (para quitar tildes al
+// normalizar encabezados de columnas en el mapeo flexible más abajo).
+const DIACRITICOS = /[̀-ͯ]/g
+const ESPACIOS = /\s/g
+
 // ── Convierte número serial de Excel a formato Mes-AA ──────────
 function excelSerialToMesAnio(val) {
   if (!val) return ''
@@ -141,6 +146,25 @@ export default function ImportPage() {
     return ''
   }
 
+  // Columna del asesor académico. Prioriza "Asesor asignado" (el nombre
+  // exacto en el reporte oficial); si no existe, cae a una columna simple
+  // "Asesora"/"Asesor" para plantillas manuales — pero SIN incluir nunca
+  // una columna que mencione "ventas", para no colar por error el nombre
+  // del asesor comercial (ej. "Asesor de ventas") cuando la de asignado
+  // viene vacía en esa fila.
+  function colAsesora(row) {
+    const normalizar = (s) => s.toLowerCase().normalize('NFD').replace(DIACRITICOS, '').replace(ESPACIOS, '')
+    const headers = Object.keys(row)
+    const asignado = headers.find(h => normalizar(h).includes('asesorasignado') || normalizar(h).includes('asesoraasignada'))
+    if (asignado !== undefined && row[asignado] !== '' && row[asignado] !== undefined) return String(row[asignado]).trim()
+    const generica = headers.find(h => {
+      const n = normalizar(h)
+      return (n.includes('asesora') || n.includes('asesor') || n.includes('advisor')) && !n.includes('venta')
+    })
+    if (generica !== undefined && row[generica] !== '' && row[generica] !== undefined) return String(row[generica]).trim()
+    return ''
+  }
+
   // ── Procesar alumnos ────────────────────────────────────────
   async function procesarAlumnos() {
     // El Excel trae "Asesor asignado" en formato "Apellido Apellido Nombre"
@@ -164,7 +188,7 @@ export default function ImportPage() {
         // así que se usa el primer día de ese mes como fallback.
         if (!fecha_inicio) fecha_inicio = mesAnioToFecha(programa)
         const codigoRaw = col(r, 'codalumno', 'codigo', 'cod', 'id', 'código')
-        const asesoraTexto = col(r, 'asesora', 'asesor', 'advisor')
+        const asesoraTexto = colAsesora(r)
         return {
           nombre:        col(r, 'nombre', 'name', 'alumno'),
           programa,
