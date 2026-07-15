@@ -159,7 +159,6 @@ function AgendaOrientacionTecnica() {
   const { user } = useAuth()
   const esOrientador = user?.rol === 'orientador'
   const fechaDisplay = format(new Date(o.fechaVista + 'T00:00:00'), "EEEE d 'de' MMMM, yyyy", { locale: es })
-  const horasOcupadas = o.sesiones.map(s => s.hora_inicio?.slice(0,5))
 
   return (
     <div style={{ display: 'flex', height: '100%' }}>
@@ -406,7 +405,7 @@ function AgendaOrientacionTecnica() {
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 8 }}>
               {(esFechaSabado(o.form.fecha) ? HORAS_SABADO : HORAS_MANANA).map(h => {
-                const ocupada  = horasOcupadas.includes(h) && o.fechaVista === o.form.fecha
+                const ocupada  = o.horasOcupadasForm.includes(h)
                 const pasada   = !horaDisponible(h, o.form.fecha)
                 const disabled = ocupada || pasada
                 return (
@@ -432,7 +431,7 @@ function AgendaOrientacionTecnica() {
               </div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
                 {HORAS_TARDE.map(h => {
-                  const ocupada  = horasOcupadas.includes(h) && o.fechaVista === o.form.fecha
+                  const ocupada  = o.horasOcupadasForm.includes(h)
                   const pasada   = !horaDisponible(h, o.form.fecha)
                   const disabled = ocupada || pasada
                   return (

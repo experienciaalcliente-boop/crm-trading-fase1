@@ -95,6 +95,24 @@ export function useOrientacion() {
 
   useEffect(() => { cargarSesiones() }, [cargarSesiones])
 
+  // Horas ocupadas para la fecha que se está AGENDANDO en el formulario —
+  // deliberadamente independiente de `fechaVista` (la fecha que se está
+  // viendo en la tabla principal). Antes se reusaba `sesiones` (atado a
+  // fechaVista) para pintar los botones de hora como ocupados, así que
+  // agendar para una fecha distinta a la que estaba en pantalla (lo más
+  // común al agendar con anticipación) no mostraba ningún choque —eso
+  // permitió que 4 asesoras distintas reservaran las 9:55 del mismo día
+  // sin que nadie viera la hora como ocupada.
+  const [horasOcupadasForm, setHorasOcupadasForm] = useState([])
+  useEffect(() => {
+    if (!form.fecha) { setHorasOcupadasForm([]); return }
+    let activo = true
+    fetchSesionesFecha(form.fecha)
+      .then(data => { if (activo) setHorasOcupadasForm(data.map(s => s.hora_inicio?.slice(0, 5))) })
+      .catch(console.error)
+    return () => { activo = false }
+  }, [form.fecha])
+
   const setField = useCallback((key, val) => {
     setForm(f => ({ ...f, [key]: val }))
   }, [])
@@ -111,6 +129,17 @@ export function useOrientacion() {
 
     setSaving(true)
     try {
+      // Re-chequeo justo antes de guardar (no solo confiar en el estado ya
+      // cargado en pantalla) — si alguien más tomó esta hora hace segundos,
+      // se avisa aquí en vez de crear una reunión Zoom que ya no hace falta.
+      const sesionesActuales = await fetchSesionesFecha(form.fecha)
+      if (sesionesActuales.some(s => s.hora_inicio?.slice(0, 5) === form.hora)) {
+        toast.error('Esa hora ya fue tomada por otra persona — elige otro horario')
+        setHorasOcupadasForm(sesionesActuales.map(s => s.hora_inicio?.slice(0, 5)))
+        setSaving(false)
+        return
+      }
+
       // 1. Crear reunión en Zoom
       let zoomData = {}
       try {
@@ -229,7 +258,7 @@ export function useOrientacion() {
 
   return {
     alumnos, alumnosOpts, sesiones, loading, saving,
-    form, setField, agendarSesion,
+    form, setField, agendarSesion, horasOcupadasForm,
     fechaVista, setFechaVista: (f) => { setFechaVista(f); cargarSesiones(f) },
     tipifModal, tipifForm, setTipifField,
     abrirTipificacion, cerrarTipificacion, guardarTipificacion,
