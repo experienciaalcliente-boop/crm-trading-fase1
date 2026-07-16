@@ -23,10 +23,14 @@ export function LlamadasProgramadasProvider({ children }) {
   const cargar = useCallback(async () => {
     setLoading(true)
     try {
+      // OJO: sin filtro de fecha mínima a propósito. Con `.gte('fecha', hoy)`
+      // cualquier llamada Pendiente cuya fecha ya pasó (nunca se marcó como
+      // Realizada) quedaba fuera de la consulta y desaparecía del panel sin
+      // avisar — ni siquiera se marcaba como "vencida", porque `vencidas` se
+      // calcula filtrando este mismo array, que ya las había excluido antes.
       const { data, error } = await supabase
         .from('llamadas_programadas')
         .select('*, alumno:alumnos(nombre, programa, semana_actual)')
-        .gte('fecha', hoy)
         .eq('estado', 'Pendiente')
         .order('fecha').order('hora')
       if (error) { console.warn('llamadas_programadas:', error.message); return }
@@ -36,7 +40,7 @@ export function LlamadasProgramadasProvider({ children }) {
     } finally {
       setLoading(false)
     }
-  }, [hoy])
+  }, [])
 
   useEffect(() => { cargar() }, [cargar])
 
