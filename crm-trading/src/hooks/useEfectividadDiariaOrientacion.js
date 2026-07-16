@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { fetchSesionesFecha, fetchSesionesAgendadasFecha,
+import { fetchSesionesFecha, fetchSesionesAgendadasFecha, fetchHistorialSesiones,
   fetchEncuestasSatisfaccion, calcularNPS, calcularCSAT, distribucionEscala, distribucionCategorica, hoyLima } from '../lib/api'
 
 // Mismas asesoras que agendan sesiones en el panel de Orientación Técnica
@@ -7,92 +7,95 @@ import { fetchSesionesFecha, fetchSesionesAgendadasFecha,
 const ASESORAS = ['Fabiola M.', 'Katerin F.', 'Anael S.']
 const hoyStr = hoyLima
 
-// Monitoreo diario del supervisor para Orientación Técnica: cómo va el
-// orientador HOY (sesiones, concretadas, etc. — siempre hoy, fijo) y cuánto
-// agendó cada asesora hacia él hoy. "Indicadores del orientador" (sesiones,
-// efectividad, motivos, herramientas) sí se navega día a día con `fecha`
-// (por defecto hoy) — igual que los comentarios de la encuesta, que
-// comparten ese mismo día. La encuesta de satisfacción en sí (NPS/SAT) es
-// "general" (todo el histórico, como el resumen nativo de Google Forms),
-// aparte de ese filtro.
+// Monitoreo del supervisor para Orientación Técnica: dos filtros de tiempo
+// independientes.
+// - "Gestión del día" (stats, filasPorAsesora): un día puntual, navegable con
+//   `fecha` (por defecto hoy) — cuánto agendó cada asesora y cómo le fue al
+//   orientador ESE día.
+// - "Indicadores del orientador" (motivos, herramientas, efectividad): todo
+//   el mes seleccionado con `mesIndicadores`, no solo un día — mismo criterio
+//   que el selector de mes del Historial completo del propio orientador.
+// La encuesta de satisfacción en sí (NPS/SAT) es "general" (todo el
+// histórico), aparte de ambos filtros.
 export function useEfectividadDiariaOrientacion() {
-  const [sesionesHoy,  setSesionesHoy]  = useState([])
-  const [agendadasHoy, setAgendadasHoy] = useState([])
-  const [fecha,        setFecha]        = useState(hoyStr())
   const [sesionesDia,  setSesionesDia]  = useState([])
+  const [agendadasDia, setAgendadasDia] = useState([])
+  const [fecha,        setFecha]        = useState(hoyStr())
+  const [sesionesMes,  setSesionesMes]  = useState([])
+  const [mesIndicadores, setMesIndicadores] = useState(() => hoyStr().slice(0, 7))
   const [encuestas,    setEncuestas]    = useState([])
   const [loading,      setLoading]      = useState(true)
 
   const cargar = useCallback(async () => {
     setLoading(true)
     try {
-      const hoy = hoyStr()
-      const [sh, ah, sd, enc] = await Promise.all([
-        fetchSesionesFecha(hoy),
-        fetchSesionesAgendadasFecha(hoy),
+      const [sd, ad, sm, enc] = await Promise.all([
         fetchSesionesFecha(fecha),
+        fetchSesionesAgendadasFecha(fecha),
+        fetchHistorialSesiones(undefined, mesIndicadores),
         fetchEncuestasSatisfaccion(),
       ])
-      setSesionesHoy(sh)
-      setAgendadasHoy(ah)
       setSesionesDia(sd)
+      setAgendadasDia(ad)
+      setSesionesMes(sm)
       setEncuestas(enc)
     } catch (err) {
       console.error(err)
     } finally {
       setLoading(false)
     }
-  }, [fecha])
+  }, [fecha, mesIndicadores])
 
   useEffect(() => { cargar() }, [cargar])
 
+  // ── Gestión del día (día seleccionado con `fecha`) ──
   const stats = {
-    total:          sesionesHoy.length,
-    concretadas:    sesionesHoy.filter(s => s.estado === 'Concretada').length,
-    reprogramadas:  sesionesHoy.filter(s => s.estado === 'Reprogramada').length,
-    noConectaron:   sesionesHoy.filter(s => s.estado === 'No se conectó').length,
-    agendadasHoy:   agendadasHoy.length,
+    total:          sesionesDia.length,
+    concretadas:    sesionesDia.filter(s => s.estado === 'Concretada').length,
+    reprogramadas:  sesionesDia.filter(s => s.estado === 'Reprogramada').length,
+    noConectaron:   sesionesDia.filter(s => s.estado === 'No se conectó').length,
+    agendadasHoy:   agendadasDia.length,
   }
 
   const filasPorAsesora = ASESORAS.map(nombre => {
-    const misSesionesHoy = sesionesHoy.filter(s => s.agendado_por === nombre)
-    const misAgendadasHoy = agendadasHoy.filter(s => s.agendado_por === nombre).length
+    const misSesionesDia = sesionesDia.filter(s => s.agendado_por === nombre)
+    const misAgendadasDia = agendadasDia.filter(s => s.agendado_por === nombre).length
     return {
       nombre,
-      sesionesHoy: misSesionesHoy.length,
-      concretadas: misSesionesHoy.filter(s => s.estado === 'Concretada').length,
-      agendadasHoy: misAgendadasHoy,
+      sesionesHoy: misSesionesDia.length,
+      concretadas: misSesionesDia.filter(s => s.estado === 'Concretada').length,
+      agendadasHoy: misAgendadasDia,
     }
   })
 
-  // ── Indicadores operativos del orientador (día seleccionado) ──
+  // ── Indicadores operativos del orientador (mes seleccionado) ──
   // Misma definición de Efectividad ya usada en el Dashboard: % de alumnos
   // que NO volvieron a agendar tras una sesión Concretada, sobre el total
-  // de sesiones Concretadas de ese día.
-  const concretadasDia = sesionesDia.filter(s => s.estado === 'Concretada')
+  // de sesiones Concretadas de ese mes.
+  const concretadasMes = sesionesMes.filter(s => s.estado === 'Concretada')
   const sesionesPorAlumno = {}
-  concretadasDia.forEach(s => {
+  concretadasMes.forEach(s => {
     if (!s.alumno_id) return
     sesionesPorAlumno[s.alumno_id] = (sesionesPorAlumno[s.alumno_id] || 0) + 1
   })
   const alumnosSinVolver = Object.values(sesionesPorAlumno).filter(n => n === 1).length
-  const efectividad = concretadasDia.length > 0 ? Math.round((alumnosSinVolver / concretadasDia.length) * 100) : 0
+  const efectividad = concretadasMes.length > 0 ? Math.round((alumnosSinVolver / concretadasMes.length) * 100) : 0
 
   const motivosCount = {}
-  sesionesDia.forEach(s => { if (s.motivo) motivosCount[s.motivo] = (motivosCount[s.motivo] || 0) + 1 })
+  sesionesMes.forEach(s => { if (s.motivo) motivosCount[s.motivo] = (motivosCount[s.motivo] || 0) + 1 })
   const motivosFrecuentes = Object.entries(motivosCount).sort((a, b) => b[1] - a[1]).slice(0, 5)
 
   const herramientas = {
-    'MT5':         concretadasDia.filter(s => s.tiene_mt5).length,
-    'TradingView': concretadasDia.filter(s => s.tiene_tradingview).length,
-    'Broker':      concretadasDia.filter(s => s.tiene_broker).length,
-    'MT5 Sync':    concretadasDia.filter(s => s.tiene_ingreso_trade).length,
+    'MT5':         concretadasMes.filter(s => s.tiene_mt5).length,
+    'TradingView': concretadasMes.filter(s => s.tiene_tradingview).length,
+    'Broker':      concretadasMes.filter(s => s.tiene_broker).length,
+    'MT5 Sync':    concretadasMes.filter(s => s.tiene_ingreso_trade).length,
   }
 
   const indicadoresOrientador = {
-    totalSesionesDia: sesionesDia.length,
-    concretadasDia: concretadasDia.length,
-    alumnosUnicosDia: new Set(sesionesDia.map(s => s.alumno_id).filter(Boolean)).size,
+    totalSesionesDia: sesionesMes.length,
+    concretadasDia: concretadasMes.length,
+    alumnosUnicosDia: new Set(sesionesMes.map(s => s.alumno_id).filter(Boolean)).size,
     efectividad,
     motivosFrecuentes,
     herramientas,
@@ -113,7 +116,7 @@ export function useEfectividadDiariaOrientacion() {
     r4Dist: distribucionCategorica(encuestasOrientacion, 'respuesta_4'),
   }
 
-  // ── Comentarios del día seleccionado (mismo `fecha` de arriba) ──
+  // ── Comentarios del día seleccionado (mismo `fecha` de Gestión del día) ──
   const comentariosDelDia = encuestasOrientacion
     .filter(e => e.fecha_respuesta?.slice(0, 10) === fecha)
     .filter(e => e.comentario && e.comentario.trim())
@@ -121,6 +124,7 @@ export function useEfectividadDiariaOrientacion() {
 
   return {
     stats, filasPorAsesora, indicadoresOrientador, loading, cargar,
-    fecha, setFecha, comentariosDelDia, encuestaGeneral,
+    fecha, setFecha, mesIndicadores, setMesIndicadores,
+    comentariosDelDia, encuestaGeneral,
   }
 }

@@ -18,7 +18,8 @@ function KPICard({ label, value, sub, color }) {
 }
 
 export default function EfectividadDiariaOrientacion() {
-  const { stats, filasPorAsesora, indicadoresOrientador: io, loading, cargar, fecha, setFecha, comentariosDelDia, encuestaGeneral } = useEfectividadDiariaOrientacion()
+  const { stats, filasPorAsesora, indicadoresOrientador: io, loading, cargar,
+    fecha, setFecha, mesIndicadores, setMesIndicadores, comentariosDelDia, encuestaGeneral } = useEfectividadDiariaOrientacion()
 
   if (loading) return (
     <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'100%', gap:10, color:'var(--text-muted)' }}>
@@ -38,26 +39,23 @@ export default function EfectividadDiariaOrientacion() {
         <button className="crm-btn crm-btn-sm" onClick={cargar}><RefreshCw size={13} /> Actualizar</button>
       </div>
 
-      {/* ── Datos generales del orientador (navegable por día) ── */}
+      {/* ── Datos generales del orientador (navegable por mes) ── */}
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:10, marginBottom:16, paddingBottom:10, borderBottom:'1px solid var(--border-default)' }}>
         <h2 style={{ fontFamily:'Syne,sans-serif', fontWeight:700, color:'var(--text-primary)', fontSize:16 }}>Indicadores del orientador</h2>
-        <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-          <button className="crm-btn crm-btn-sm" onClick={() => setFecha(format(subDays(new Date(fecha + 'T00:00:00'), 1), 'yyyy-MM-dd'))}>
-            <ChevronLeft size={14} />
-          </button>
-          <input type="date" className="crm-input" style={{ width:150 }} max={hoyStr()}
-            value={fecha} onChange={e => setFecha(e.target.value)} />
-          <button className="crm-btn crm-btn-sm" onClick={() => setFecha(format(addDays(new Date(fecha + 'T00:00:00'), 1), 'yyyy-MM-dd'))} disabled={fecha === hoyStr()}>
-            <ChevronRight size={14} />
-          </button>
-          {fecha !== hoyStr() && (
-            <button className="crm-btn crm-btn-sm" onClick={() => setFecha(hoyStr())}>Hoy</button>
-          )}
-        </div>
+        <select value={mesIndicadores} onChange={e => setMesIndicadores(e.target.value)}
+          style={{ padding:'5px 10px', background:'var(--bg-input)', border:'1.5px solid var(--border-input)', borderRadius:8, color:'var(--text-primary)', fontSize:12, cursor:'pointer' }}>
+          {/* Solo desde enero de este año — no hay datos de antes */}
+          {Array.from({ length: new Date().getMonth() + 1 }, (_, i) => {
+            const mesActual = new Date().getMonth()
+            const dt = new Date(new Date().getFullYear(), mesActual - i, 1)
+            const val = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}`
+            return <option key={val} value={val}>{dt.toLocaleDateString('es-PE', { month:'long', year:'numeric' })}</option>
+          })}
+        </select>
       </div>
 
       <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:10, marginBottom:16 }}>
-        <KPICard label="Sesiones del día"  value={io.totalSesionesDia} />
+        <KPICard label="Sesiones del mes"  value={io.totalSesionesDia} />
         <KPICard label="Concretadas"       value={io.concretadasDia} color="#2dd4a0" />
         <KPICard label="Efectividad"       value={`${io.efectividad}%`} sub="No volvieron a agendar" color="var(--accent)" />
         <KPICard label="Alumnos atendidos" value={io.alumnosUnicosDia} />
@@ -93,14 +91,29 @@ export default function EfectividadDiariaOrientacion() {
         </div>
       </div>
 
-      {/* ── Gestión del día (hoy) ── */}
-      <h2 style={{ fontFamily:'Syne,sans-serif', fontWeight:700, color:'var(--text-primary)', fontSize:16, marginBottom:16, paddingBottom:10, borderBottom:'1px solid var(--border-default)' }}>Gestión del día</h2>
+      {/* ── Gestión del día (navegable por día) ── */}
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:10, marginBottom:16, paddingBottom:10, borderBottom:'1px solid var(--border-default)' }}>
+        <h2 style={{ fontFamily:'Syne,sans-serif', fontWeight:700, color:'var(--text-primary)', fontSize:16 }}>Gestión del día</h2>
+        <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+          <button className="crm-btn crm-btn-sm" onClick={() => setFecha(format(subDays(new Date(fecha + 'T00:00:00'), 1), 'yyyy-MM-dd'))}>
+            <ChevronLeft size={14} />
+          </button>
+          <input type="date" className="crm-input" style={{ width:150 }} max={hoyStr()}
+            value={fecha} onChange={e => setFecha(e.target.value)} />
+          <button className="crm-btn crm-btn-sm" onClick={() => setFecha(format(addDays(new Date(fecha + 'T00:00:00'), 1), 'yyyy-MM-dd'))} disabled={fecha === hoyStr()}>
+            <ChevronRight size={14} />
+          </button>
+          {fecha !== hoyStr() && (
+            <button className="crm-btn crm-btn-sm" onClick={() => setFecha(hoyStr())}>Hoy</button>
+          )}
+        </div>
+      </div>
       <div style={{ display:'grid', gridTemplateColumns:'repeat(5,1fr)', gap:10, marginBottom:20 }}>
-        <KPICard label="Sesiones hoy"      value={stats.total} sub="Agendadas para hoy" />
+        <KPICard label="Sesiones del día"  value={stats.total} sub="Agendadas para ese día" />
         <KPICard label="Concretadas"       value={stats.concretadas}   color="#2dd4a0" />
         <KPICard label="Reprogramadas"     value={stats.reprogramadas} color="#f5b93a" />
         <KPICard label="No conectaron"     value={stats.noConectaron}  color="#f07070" />
-        <KPICard label="Agendando hoy"     value={stats.agendadasHoy} sub="Nuevas sesiones creadas hoy" />
+        <KPICard label="Agendadas ese día" value={stats.agendadasHoy} sub="Nuevas sesiones creadas ese día" />
       </div>
 
       <div className="crm-card" style={{ overflowX:'auto', marginBottom:32 }}>
@@ -108,9 +121,9 @@ export default function EfectividadDiariaOrientacion() {
           <thead>
             <tr>
               <th>Asesora</th>
-              <th>Sesiones de hoy que agendó</th>
+              <th>Sesiones que agendó ese día</th>
               <th>Concretadas</th>
-              <th>Agendando hoy</th>
+              <th>Agendadas ese día</th>
             </tr>
           </thead>
           <tbody>
