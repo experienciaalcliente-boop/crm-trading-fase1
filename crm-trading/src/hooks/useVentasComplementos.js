@@ -21,8 +21,10 @@ export function useVentasComplementos() {
   // la base completa de alumnos y programas para todos los roles (asesora,
   // orientador y supervisor): cualquiera puede vender un complemento a
   // cualquier alumno, no solo a los propios. Solo el historial de "mis
-  // ventas" queda scopeado por asesora.
-  const asesoraIdPropia = user?.rol === 'asesora' ? user.asesora_id : undefined
+  // ventas" queda scopeado por asesora — y esto también aplica al
+  // orientador (también vende complementos y solo debe ver los suyos; el
+  // supervisor sí ve el resumen de todo el equipo, vía ResumenVentasEquipo).
+  const asesoraIdPropia = (user?.rol === 'asesora' || user?.rol === 'orientador') ? user.asesora_id : undefined
 
   const [alumnos,       setAlumnos]       = useState([])
   const [ventas,        setVentas]        = useState([])
