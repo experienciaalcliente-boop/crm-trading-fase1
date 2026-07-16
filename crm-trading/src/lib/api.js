@@ -984,6 +984,19 @@ export async function insertVentaComplemento(payload) {
   return data
 }
 
+// Corrección de un dato mal colocado por la asesora al registrar la venta
+// (ej. asesora incorrecta, N° de operación con error de tipeo) — solo el
+// supervisor puede hacerlo (ver política RLS ventas_complementos_update).
+export async function updateVentaComplemento(id, payload) {
+  const { data, error } = await supabase
+    .from('ventas_complementos')
+    .update(payload)
+    .eq('id', id)
+    .select()
+  if (error) throw error
+  return data
+}
+
 // ─────────────────────────────────────────
 // ENCUESTAS DE SATISFACCIÓN (NPS / CSAT)
 // ─────────────────────────────────────────

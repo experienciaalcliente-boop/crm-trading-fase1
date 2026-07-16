@@ -1,7 +1,8 @@
-import { Loader2 } from 'lucide-react'
+import { Loader2, Pencil } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 import { format } from 'date-fns'
 import { useVentasEquipo } from '../../hooks/useVentasEquipo'
+import ModalEditarVenta from './ModalEditarVenta'
 
 const fmt = n => Number(n).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 const MESES_CORTOS = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']
@@ -122,27 +123,42 @@ export default function ResumenVentasEquipo() {
           <thead>
             <tr>
               <th>Fecha</th><th>Asesora</th><th>Alumno</th><th>Programa</th>
-              <th>Complemento</th><th>Valor</th><th>Comisión</th><th>N° Operación</th>
+              <th>Complemento</th><th>Valor</th><th>Comisión</th><th>N° Operación</th><th>Corregir</th>
             </tr>
           </thead>
           <tbody>
             {e.ventas.length === 0 ? (
-              <tr><td colSpan={8} style={{ textAlign:'center', color:'var(--text-muted)', padding:20 }}>Sin ventas registradas</td></tr>
+              <tr><td colSpan={9} style={{ textAlign:'center', color:'var(--text-muted)', padding:20 }}>Sin ventas registradas</td></tr>
             ) : e.ventas.map(ve => (
               <tr key={ve.id}>
                 <td>{format(new Date(ve.fecha_registro + 'T00:00:00'), 'dd/MM/yyyy')}</td>
-                <td style={{ fontSize:12 }}>{ve.asesora?.nombre || '—'}</td>
+                <td style={{ fontSize:12, color: ve.asesora?.nombre ? 'var(--text-secondary)' : '#f5b93a' }}>{ve.asesora?.nombre || 'Sin asignar'}</td>
                 <td style={{ fontWeight:500 }}>{ve.alumno?.nombre || '—'}</td>
                 <td>{ve.alumno?.programa || '—'}</td>
                 <td>{ve.complemento}</td>
                 <td>$ {ve.valor_producto}</td>
                 <td style={{ color:'#2dd4a0' }}>S/ {ve.valor_comision}</td>
                 <td style={{ fontSize:11, color:'var(--text-muted)' }}>{ve.nro_operacion}</td>
+                <td>
+                  <button className="crm-btn crm-btn-sm" style={{ fontSize:11 }} onClick={() => e.abrirEdicion(ve)}>
+                    <Pencil size={11} /> Editar
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+
+      <ModalEditarVenta
+        editando={e.editando}
+        alumnos={e.alumnos}
+        asesoras={e.asesoras}
+        onCampo={e.setCampoEdicion}
+        onGuardar={e.guardarEdicion}
+        onCerrar={e.cerrarEdicion}
+        guardando={e.guardando}
+      />
     </div>
   )
 }
