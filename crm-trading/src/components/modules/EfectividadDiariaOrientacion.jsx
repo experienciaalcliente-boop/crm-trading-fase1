@@ -38,39 +38,7 @@ export default function EfectividadDiariaOrientacion() {
         <button className="crm-btn crm-btn-sm" onClick={cargar}><RefreshCw size={13} /> Actualizar</button>
       </div>
 
-      {/* ── Efectividad diaria (hoy) ── */}
-      <div style={{ display:'grid', gridTemplateColumns:'repeat(5,1fr)', gap:10, marginBottom:20 }}>
-        <KPICard label="Sesiones hoy"      value={stats.total} sub="Agendadas para hoy" />
-        <KPICard label="Concretadas"       value={stats.concretadas}   color="#2dd4a0" />
-        <KPICard label="Reprogramadas"     value={stats.reprogramadas} color="#f5b93a" />
-        <KPICard label="No conectaron"     value={stats.noConectaron}  color="#f07070" />
-        <KPICard label="Agendando hoy"     value={stats.agendadasHoy} sub="Nuevas sesiones creadas hoy" />
-      </div>
-
-      <div className="crm-card" style={{ overflowX:'auto', marginBottom:32 }}>
-        <table className="crm-table">
-          <thead>
-            <tr>
-              <th>Asesora</th>
-              <th>Sesiones de hoy que agendó</th>
-              <th>Concretadas</th>
-              <th>Agendando hoy</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filasPorAsesora.map(f => (
-              <tr key={f.nombre}>
-                <td style={{ fontWeight:600, color:'var(--text-primary)' }}>{f.nombre}</td>
-                <td style={{ textAlign:'center' }}>{f.sesionesHoy}</td>
-                <td style={{ textAlign:'center' }}>{f.concretadas}</td>
-                <td style={{ textAlign:'center' }}>{f.agendadasHoy}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* ── Indicadores del orientador (navegable por día) ── */}
+      {/* ── Datos generales del orientador (navegable por día) ── */}
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:10, marginBottom:16, paddingBottom:10, borderBottom:'1px solid var(--border-default)' }}>
         <h2 style={{ fontFamily:'Syne,sans-serif', fontWeight:700, color:'var(--text-primary)', fontSize:16 }}>Indicadores del orientador</h2>
         <div style={{ display:'flex', alignItems:'center', gap:8 }}>
@@ -123,6 +91,39 @@ export default function EfectividadDiariaOrientacion() {
             Alumnos únicos atendidos: <span style={{ color:'#b89eff', fontWeight:700 }}>{io.alumnosUnicosDia}</span>
           </div>
         </div>
+      </div>
+
+      {/* ── Gestión del día (hoy) ── */}
+      <h2 style={{ fontFamily:'Syne,sans-serif', fontWeight:700, color:'var(--text-primary)', fontSize:16, marginBottom:16, paddingBottom:10, borderBottom:'1px solid var(--border-default)' }}>Gestión del día</h2>
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(5,1fr)', gap:10, marginBottom:20 }}>
+        <KPICard label="Sesiones hoy"      value={stats.total} sub="Agendadas para hoy" />
+        <KPICard label="Concretadas"       value={stats.concretadas}   color="#2dd4a0" />
+        <KPICard label="Reprogramadas"     value={stats.reprogramadas} color="#f5b93a" />
+        <KPICard label="No conectaron"     value={stats.noConectaron}  color="#f07070" />
+        <KPICard label="Agendando hoy"     value={stats.agendadasHoy} sub="Nuevas sesiones creadas hoy" />
+      </div>
+
+      <div className="crm-card" style={{ overflowX:'auto', marginBottom:32 }}>
+        <table className="crm-table">
+          <thead>
+            <tr>
+              <th>Asesora</th>
+              <th>Sesiones de hoy que agendó</th>
+              <th>Concretadas</th>
+              <th>Agendando hoy</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filasPorAsesora.map(f => (
+              <tr key={f.nombre}>
+                <td style={{ fontWeight:600, color:'var(--text-primary)' }}>{f.nombre}</td>
+                <td style={{ textAlign:'center' }}>{f.sesionesHoy}</td>
+                <td style={{ textAlign:'center' }}>{f.concretadas}</td>
+                <td style={{ textAlign:'center' }}>{f.agendadasHoy}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
 
       <div style={{ marginBottom:16 }}>

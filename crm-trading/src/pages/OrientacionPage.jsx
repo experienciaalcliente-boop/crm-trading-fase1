@@ -159,6 +159,11 @@ function AgendaOrientacionTecnica() {
   const { user } = useAuth()
   const esOrientador = user?.rol === 'orientador'
   const fechaDisplay = format(new Date(o.fechaVista + 'T00:00:00'), "EEEE d 'de' MMMM, yyyy", { locale: es })
+  const [busquedaAlumno, setBusquedaAlumno] = React.useState('')
+
+  const coincideBusqueda = (s) => !busquedaAlumno.trim() || (s.alumno?.nombre || '').toLowerCase().includes(busquedaAlumno.toLowerCase())
+  const sesionesFiltradas = o.sesiones.filter(coincideBusqueda)
+  const historialFiltrado = o.historial.filter(coincideBusqueda)
 
   return (
     <div style={{ display: 'flex', height: '100%' }}>
@@ -191,8 +196,8 @@ function AgendaOrientacionTecnica() {
           ))}
         </div>
 
-        {/* Toggle Día / Historial completo */}
-        <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
+        {/* Toggle Día / Historial completo + búsqueda por alumno */}
+        <div style={{ display: 'flex', gap: 6, marginBottom: 16, alignItems: 'center', flexWrap: 'wrap' }}>
           {[['dia', 'Día'], ['historial', 'Historial completo']].map(([key, label]) => (
             <button key={key} onClick={() => o.setVista(key)}
               style={{ padding: '7px 14px', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer',
@@ -202,6 +207,13 @@ function AgendaOrientacionTecnica() {
               {label}
             </button>
           ))}
+          <input
+            type="text"
+            placeholder="🔍 Buscar alumno..."
+            value={busquedaAlumno}
+            onChange={e => setBusquedaAlumno(e.target.value)}
+            style={{ marginLeft: 'auto', padding: '6px 12px', background: 'var(--bg-input)', border: '1.5px solid var(--border-input)', borderRadius: 8, color: 'var(--text-primary)', fontSize: 13, width: 220 }}
+          />
         </div>
 
         {o.vista === 'dia' && (
@@ -226,17 +238,17 @@ function AgendaOrientacionTecnica() {
             <div style={{ padding: '13px 18px', borderBottom: '1px solid rgba(255,255,255,0.07)', display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.02)', borderRadius: '12px 12px 0 0' }}>
               <Clock size={14} style={{ color: 'var(--text-muted)' }} />
               <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>Sesiones del día</span>
-              <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--text-muted)' }}>{o.sesiones.length} sesiones agendadas</span>
+              <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--text-muted)' }}>{sesionesFiltradas.length} sesiones agendadas</span>
             </div>
 
             {o.loading ? (
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 50, gap: 10, color: 'var(--text-muted)' }}>
                 <Loader2 size={16} className="animate-spin" /><span style={{ fontSize: 13 }}>Cargando...</span>
               </div>
-            ) : !o.sesiones.length ? (
+            ) : !sesionesFiltradas.length ? (
               <div style={{ textAlign: 'center', padding: 50, color: 'var(--text-muted)' }}>
                 <div style={{ fontSize: 28, marginBottom: 8 }}>📅</div>
-                <p style={{ fontSize: 13 }}>No hay sesiones agendadas para este día</p>
+                <p style={{ fontSize: 13 }}>{busquedaAlumno.trim() ? 'Ningún alumno coincide con la búsqueda' : 'No hay sesiones agendadas para este día'}</p>
               </div>
             ) : (
               <div style={{ overflowX: 'auto' }}>
@@ -244,11 +256,11 @@ function AgendaOrientacionTecnica() {
                   <thead>
                     <tr>
                       <th>Hora</th><th>Alumno</th><th>Programa</th><th>Motivo</th>
-                      <th>Agendado por</th><th>Zoom</th><th>Estado</th><th>Observaciones</th><th>Acciones</th>
+                      <th>Agendado por</th><th>Zoom</th><th>Estado</th><th>Observaciones</th><th>Preguntas frecuentes</th><th>Acciones</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {o.sesiones.map(s => (
+                    {sesionesFiltradas.map(s => (
                       <tr key={s.id}>
                         <td style={{ whiteSpace: 'nowrap', fontFamily: 'DM Mono, monospace', fontSize: 12, color: 'var(--accent)' }}>
                           {s.hora_inicio?.slice(0,5)} – {s.hora_fin?.slice(0,5)}
@@ -263,6 +275,9 @@ function AgendaOrientacionTecnica() {
                         <td><EstadoBadge estado={s.estado} /></td>
                         <td style={{ fontSize: 12, color: 'var(--text-secondary)', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={s.observaciones || ''}>
                           {s.observaciones || '—'}
+                        </td>
+                        <td style={{ fontSize: 12, color: 'var(--text-secondary)', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={s.preguntas_adicionales || ''}>
+                          {s.preguntas_adicionales || '—'}
                         </td>
                         <td>
                           <div style={{ display: 'flex', gap: 6 }}>
@@ -294,7 +309,7 @@ function AgendaOrientacionTecnica() {
             <div style={{ padding: '13px 18px', borderBottom: '1px solid rgba(255,255,255,0.07)', display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.02)', borderRadius: '12px 12px 0 0' }}>
               <Clock size={14} style={{ color: 'var(--text-muted)' }} />
               <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>Historial del mes</span>
-              <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--text-muted)', marginRight: 10 }}>{o.historial.length} sesiones</span>
+              <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--text-muted)', marginRight: 10 }}>{historialFiltrado.length} sesiones</span>
               <select value={o.mesHistorial} onChange={e => o.setMesHistorial(e.target.value)}
                 style={{ padding: '5px 10px', background: 'var(--bg-input)', border: '1.5px solid var(--border-input)', borderRadius: 8, color: 'var(--text-primary)', fontSize: 12, cursor: 'pointer' }}>
                 {/* Solo desde enero de este año — no hay datos de antes */}
@@ -311,10 +326,10 @@ function AgendaOrientacionTecnica() {
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 50, gap: 10, color: 'var(--text-muted)' }}>
                 <Loader2 size={16} className="animate-spin" /><span style={{ fontSize: 13 }}>Cargando...</span>
               </div>
-            ) : !o.historial.length ? (
+            ) : !historialFiltrado.length ? (
               <div style={{ textAlign: 'center', padding: 50, color: 'var(--text-muted)' }}>
                 <div style={{ fontSize: 28, marginBottom: 8 }}>📋</div>
-                <p style={{ fontSize: 13 }}>Sin sesiones registradas todavía</p>
+                <p style={{ fontSize: 13 }}>{busquedaAlumno.trim() ? 'Ningún alumno coincide con la búsqueda' : 'Sin sesiones registradas todavía'}</p>
               </div>
             ) : (
               <div style={{ overflowX: 'auto', maxHeight: 560, overflowY: 'auto' }}>
@@ -322,11 +337,11 @@ function AgendaOrientacionTecnica() {
                   <thead>
                     <tr>
                       <th>Fecha</th><th>Hora</th><th>Alumno</th><th>Programa</th><th>Motivo</th>
-                      <th>Agendado por</th><th>Zoom</th><th>Estado</th><th>Observaciones</th><th>Acciones</th>
+                      <th>Agendado por</th><th>Zoom</th><th>Estado</th><th>Observaciones</th><th>Preguntas frecuentes</th><th>Acciones</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {o.historial.map(s => (
+                    {historialFiltrado.map(s => (
                       <tr key={s.id}>
                         <td style={{ whiteSpace: 'nowrap', fontSize: 12, color: 'var(--text-secondary)' }}>
                           {format(new Date(s.fecha + 'T00:00:00'), 'dd/MM/yyyy')}
@@ -344,6 +359,9 @@ function AgendaOrientacionTecnica() {
                         <td><EstadoBadge estado={s.estado} /></td>
                         <td style={{ fontSize: 12, color: 'var(--text-secondary)', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={s.observaciones || ''}>
                           {s.observaciones || '—'}
+                        </td>
+                        <td style={{ fontSize: 12, color: 'var(--text-secondary)', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={s.preguntas_adicionales || ''}>
+                          {s.preguntas_adicionales || '—'}
                         </td>
                         <td>
                           <div style={{ display: 'flex', gap: 6 }}>
