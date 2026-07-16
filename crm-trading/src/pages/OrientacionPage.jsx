@@ -2,7 +2,7 @@
 import React from 'react'
 import { useOrientacion } from '../hooks/useOrientacion'
 import { useAuth } from '../context/AuthContext'
-import { updateSesionZoomUrl } from '../lib/api'
+import { updateSesionZoomUrl, hoyLima } from '../lib/api'
 import ModalTipificacion from '../components/modules/ModalTipificacion'
 import EfectividadDiariaOrientacion from '../components/modules/EfectividadDiariaOrientacion'
 import Select from 'react-select'
@@ -53,7 +53,7 @@ function esFechaSabado(fecha) {
 const ASESORAS = ['Fabiola M.', 'Katerin F.', 'Anael S.']
 
 function horaDisponible(hora, fechaSeleccionada) {
-  const hoy = format(new Date(), 'yyyy-MM-dd')
+  const hoy = hoyLima()
   // Si la fecha es futura, todas las horas disponibles
   if (fechaSeleccionada > hoy) return true
   // Si es hoy, verificar si la hora ya pasó (con 15 min de margen)
@@ -216,7 +216,7 @@ function AgendaOrientacionTecnica() {
             <button className="crm-btn crm-btn-sm" onClick={() => o.setFechaVista(format(addDays(new Date(o.fechaVista + 'T00:00:00'), 1), 'yyyy-MM-dd'))}>
               <ChevronRight size={14} />
             </button>
-            <button className="crm-btn crm-btn-sm" onClick={() => o.setFechaVista(format(new Date(), 'yyyy-MM-dd'))}>
+            <button className="crm-btn crm-btn-sm" onClick={() => o.setFechaVista(hoyLima())}>
               Hoy
             </button>
           </div>
@@ -388,7 +388,7 @@ function AgendaOrientacionTecnica() {
           <div style={{ height: 12 }} />
           <Field label="Fecha">
             <input type="date" className="crm-input" value={o.form.fecha}
-              min={format(new Date(), 'yyyy-MM-dd')}
+              min={hoyLima()}
               onChange={e => {
                 const nuevaFecha = e.target.value
                 const horasValidas = esFechaSabado(nuevaFecha) ? HORAS_SABADO : TODAS_HORAS

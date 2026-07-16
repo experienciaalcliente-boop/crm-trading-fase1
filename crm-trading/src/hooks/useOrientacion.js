@@ -1,8 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
-import { fetchAlumnos, fetchSesionesFecha, fetchHistorialSesiones, insertSesion, updateSesion, crearReunionZoom, deleteSesion, fetchOrientadorId } from '../lib/api'
+import { fetchAlumnos, fetchSesionesFecha, fetchHistorialSesiones, insertSesion, updateSesion, crearReunionZoom, deleteSesion, fetchOrientadorId, hoyLima } from '../lib/api'
 import { useAuth } from '../context/AuthContext'
 import toast from 'react-hot-toast'
-import { format } from 'date-fns'
 
 const MOTIVOS = [
   'Vinculación del bróker',
@@ -15,7 +14,7 @@ const MOTIVOS = [
 
 const FORM_INICIAL = {
   alumno:      null,
-  fecha:       format(new Date(), 'yyyy-MM-dd'),
+  fecha:       hoyLima(),
   hora:        '09:00',
   motivo:      '',
   agendado_por: '',
@@ -40,7 +39,7 @@ export function useOrientacion() {
   const asesoraIdPropia = user?.rol === 'asesora' ? user.asesora_id : undefined
   const [alumnos,       setAlumnos]       = useState([])
   const [sesiones,      setSesiones]      = useState([])
-  const [fechaVista,    setFechaVista]    = useState(format(new Date(), 'yyyy-MM-dd'))
+  const [fechaVista,    setFechaVista]    = useState(hoyLima())
   const [loading,       setLoading]       = useState(true)
   const [saving,        setSaving]        = useState(false)
   const [form,          setForm]          = useState(FORM_INICIAL)
