@@ -87,7 +87,10 @@ export function useComisiones() {
   const programaAsesoraMap = mapaProgramaAsesora(alumnos)
 
   function calcularResultadoAsesora(asesoraId) {
-    const misAlumnos = alumnos.filter(a => a.asesora_id === asesoraId)
+    // Igual que en el Dashboard: se excluyen cohortes cuyo programa todavía
+    // no arranca al cierre del mes filtrado (fecha_inicio > finMes) — no
+    // pueden tener contacto real y no deben penalizar la contactabilidad.
+    const misAlumnos = alumnos.filter(a => a.asesora_id === asesoraId && a.fecha_inicio <= finMes)
     const misAlumnoIds = new Set(misAlumnos.map(a => a.id))
     const misLlamadas = llamadas.filter(r => misAlumnoIds.has(r.alumno_id))
     const contactados = new Set(misLlamadas.filter(r => r.respondio === 'Sí').map(r => r.alumno_id))
@@ -113,7 +116,8 @@ export function useComisiones() {
     const sesionesPorAlumno = {}
     concretadas.forEach(s => { if (s.alumno_id) sesionesPorAlumno[s.alumno_id] = (sesionesPorAlumno[s.alumno_id] || 0) + 1 })
     const sinVolver = Object.values(sesionesPorAlumno).filter(n => n === 1).length
-    const efectividad = concretadas.length > 0 ? Math.round((sinVolver / concretadas.length) * 100) : null
+    const totalAlumnosConcretada = Object.keys(sesionesPorAlumno).length
+    const efectividad = totalAlumnosConcretada > 0 ? Math.round((sinVolver / totalAlumnosConcretada) * 100) : null
 
     const misEncuestas = encuestasMes.filter(e => e.tipo === 'orientacion')
 
