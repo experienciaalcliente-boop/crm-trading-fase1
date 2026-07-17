@@ -460,18 +460,22 @@ export function useDashboard() {
   })).filter(p => p.total > 0).sort((a,b) => b.total - a.total)
 
   // ── Efectividad del orientador ─────────────────────────────
-  // % de alumnos que NO volvieron a agendar tras una sesión Concretada —
-  // se asume que la sesión resolvió el problema por completo. Solo cuentan
-  // las sesiones Concretadas (una reprogramada o "no se conectó" no refleja
-  // un trabajo real del orientador).
+  // % de alumnos (no de sesiones) que NO volvieron a agendar tras una
+  // sesión Concretada — se asume que la sesión resolvió el problema por
+  // completo. Solo cuentan las sesiones Concretadas (una reprogramada o
+  // "no se conectó" no refleja un trabajo real del orientador). El
+  // denominador es la cantidad de ALUMNOS únicos, no de sesiones: si se
+  // usara el total de sesiones, cada repetición de un mismo alumno
+  // penalizaría más de una vez y distorsionaría el indicador.
   const sesionesPorAlumno = {}
   concretadas.forEach(s => {
     if (!s.alumno_id) return
     sesionesPorAlumno[s.alumno_id] = (sesionesPorAlumno[s.alumno_id] || 0) + 1
   })
   const alumnosSinVolver = Object.values(sesionesPorAlumno).filter(n => n === 1).length
-  const efectividadOrientador = concretadas.length > 0
-    ? Math.round((alumnosSinVolver / concretadas.length) * 100) : 0
+  const totalAlumnosConcretada = Object.keys(sesionesPorAlumno).length
+  const efectividadOrientador = totalAlumnosConcretada > 0
+    ? Math.round((alumnosSinVolver / totalAlumnosConcretada) * 100) : 0
 
   return {
     loading, cargar, lastUpdate, mesFiltro, setMesFiltro,

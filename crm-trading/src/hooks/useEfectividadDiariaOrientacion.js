@@ -69,9 +69,11 @@ export function useEfectividadDiariaOrientacion() {
   })
 
   // ── Indicadores operativos del orientador (mes seleccionado) ──
-  // Misma definición de Efectividad ya usada en el Dashboard: % de alumnos
-  // que NO volvieron a agendar tras una sesión Concretada, sobre el total
-  // de sesiones Concretadas de ese mes.
+  // Misma definición de Efectividad ya usada en el Dashboard: % de ALUMNOS
+  // (no de sesiones) que NO volvieron a agendar tras una sesión Concretada,
+  // sobre el total de alumnos únicos con Concretada ese mes. Si se dividiera
+  // entre el total de sesiones, cada repetición de un mismo alumno
+  // penalizaría más de una vez y distorsionaría el indicador.
   const concretadasMes = sesionesMes.filter(s => s.estado === 'Concretada')
   const sesionesPorAlumno = {}
   concretadasMes.forEach(s => {
@@ -79,7 +81,8 @@ export function useEfectividadDiariaOrientacion() {
     sesionesPorAlumno[s.alumno_id] = (sesionesPorAlumno[s.alumno_id] || 0) + 1
   })
   const alumnosSinVolver = Object.values(sesionesPorAlumno).filter(n => n === 1).length
-  const efectividad = concretadasMes.length > 0 ? Math.round((alumnosSinVolver / concretadasMes.length) * 100) : 0
+  const totalAlumnosMes = Object.keys(sesionesPorAlumno).length
+  const efectividad = totalAlumnosMes > 0 ? Math.round((alumnosSinVolver / totalAlumnosMes) * 100) : 0
 
   const motivosCount = {}
   sesionesMes.forEach(s => { if (s.motivo) motivosCount[s.motivo] = (motivosCount[s.motivo] || 0) + 1 })
