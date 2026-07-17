@@ -167,26 +167,34 @@ export function useDashboard() {
   const riesgoAlto = alumnosConRiesgo.filter(a => a.riesgo_nivel === 'Alto').length
 
   // ── Contactabilidad ───────────────────────────────────────
+  // Solo cuentan los alumnos cuyo programa ya había arrancado al cierre del
+  // mes filtrado (fecha_inicio <= finMes) — una cohorte que recién empieza
+  // el mes que viene (ej. Ago-26 arrancando el 01/08) todavía no tuvo
+  // oportunidad de recibir ninguna llamada, y contarla en el mes anterior
+  // castigaba de más a la asesora que la tiene a cargo. También se
+  // deduplica por alumno_id (no por nombre) para que numerador y
+  // denominador midan exactamente la misma población.
+  const alumnosContactablesMes = alumnosActivos.filter(a => a.fecha_inicio <= finMes)
+  const idsContactablesMes = new Set(alumnosContactablesMes.map(a => a.id))
+  const totalAlumnosContactablesMes = alumnosContactablesMes.length
   const alumnosQueRespondieronMes = new Set(
-    llamadasMes.filter(r => r.respondio === 'Sí').map(r => r.alumno?.nombre).filter(Boolean)
+    llamadasMes.filter(r => r.respondio === 'Sí' && idsContactablesMes.has(r.alumno_id)).map(r => r.alumno_id)
   )
-  const contactabilidad = totalAlumnosActivos > 0
-    ? Math.round((alumnosQueRespondieronMes.size / totalAlumnosActivos) * 100) : 0
+  const contactabilidad = totalAlumnosContactablesMes > 0
+    ? Math.round((alumnosQueRespondieronMes.size / totalAlumnosContactablesMes) * 100) : 0
 
   const contactabilidadPorPrograma = programas.map(prog => {
-    const alumnosProg = alumnosActivos.filter(a => a.programa === prog)
+    const alumnosProg = alumnosContactablesMes.filter(a => a.programa === prog)
+    const idsProg = new Set(alumnosProg.map(a => a.id))
     const respondieron = new Set(
-      llamadasMes.filter(r => r.alumno?.programa === prog && r.respondio === 'Sí')
-        .map(r => r.alumno?.nombre).filter(Boolean)
+      llamadasMes.filter(r => r.respondio === 'Sí' && idsProg.has(r.alumno_id)).map(r => r.alumno_id)
     )
-    // fecha_inicio siempre existe acá — alumnosActivos ya excluye los que no
-    // la tienen (ver programaActivo en lib/api.js).
     const fechaOrden = alumnosProg.reduce((min, a) => (!min || a.fecha_inicio < min) ? a.fecha_inicio : min, null)
     return {
       programa: prog, fechaOrden, total: alumnosProg.length, respondieron: respondieron.size,
       pct: alumnosProg.length > 0 ? Math.round((respondieron.size / alumnosProg.length) * 100) : 0
     }
-  }).sort((a,b) => (b.fechaOrden || '').localeCompare(a.fechaOrden || ''))
+  }).filter(p => p.total > 0).sort((a,b) => (b.fechaOrden || '').localeCompare(a.fechaOrden || ''))
 
   // ── Heatmap de avance por programa × mes (Ene-26 en adelante) ─
   // A propósito NO se limita a alumnosActivos: esta vista es histórica y
@@ -261,8 +269,11 @@ export function useDashboard() {
   const nombrePorAsesoraId = {}
   ;(raw.asesoras || []).forEach(a => { nombrePorAsesoraId[a.id] = a.nombre })
 
+  // Mismo criterio que la contactabilidad de arriba: solo alumnos cuya
+  // cohorte ya había arrancado al cierre del mes (alumnosContactablesMes),
+  // para no penalizar a la asesora con cohortes que todavía no inician.
   const gruposAsesora = {}
-  alumnosActivos.forEach(al => {
+  alumnosContactablesMes.forEach(al => {
     const key = al.asesora_id || `sin-id:${al.asesora || 'Sin asignar'}`
     if (!gruposAsesora[key]) {
       gruposAsesora[key] = { nombre: nombrePorAsesoraId[al.asesora_id] || al.asesora || 'Sin asignar', alumnos: [] }
