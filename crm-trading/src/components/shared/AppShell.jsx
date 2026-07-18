@@ -1,7 +1,7 @@
 // v-20260622-1614
 import { useState, useEffect } from 'react'
 import { Outlet, NavLink, useLocation } from 'react-router-dom'
-import { Phone, Upload, BarChart2, CreditCard, MonitorSmartphone, ChevronRight, ChevronDown, GraduationCap, LogOut, UserCircle, Sun, Moon, ShoppingBag, CalendarCheck, Award, RotateCcw, HeartHandshake, Wallet } from 'lucide-react'
+import { Phone, Upload, BarChart2, CreditCard, MonitorSmartphone, ChevronRight, ChevronDown, GraduationCap, LogOut, UserCircle, Sun, Moon, ShoppingBag, CalendarCheck, Award, RotateCcw, HeartHandshake, Wallet, TrendingUp } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
@@ -19,6 +19,7 @@ export const NAV = [
   { to:'/orientacion', icon:MonitorSmartphone, label:'Orient. Técnica', sub:'Agenda y sesiones',    roles:['supervisor','asesora','orientador'], group:'Gestión de Experiencia' },
   { to:'/onboarding',  icon:GraduationCap,     label:'Onboarding',      sub:'Próximas promociones', roles:['supervisor','asesora'], group:'Gestión de Experiencia' },
   { to:'/recaudacion', icon:CreditCard,        label:'Recaudación',     sub:'Cuotas y pagos',       roles:['supervisor'], group:'Gestión de Experiencia' },
+  { to:'/cuentas-reales', icon:TrendingUp,     label:'Cuentas Reales',  sub:'Capital y beneficios', roles:['supervisor'], group:'Gestión de Experiencia' },
 
   { to:'/complementos',icon:ShoppingBag,       label:'Complementos',    sub:'Venta de complementos', roles:['supervisor','asesora','orientador'], group:'Ventas y Comisiones' },
   { to:'/comisiones',  icon:Award,             label:'Comisiones',      sub:'Bono de incentivos',   roles:['supervisor','asesora','orientador'], group:'Ventas y Comisiones' },

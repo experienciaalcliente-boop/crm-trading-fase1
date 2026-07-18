@@ -10,6 +10,7 @@ import LoginPage         from './pages/LoginPage'
 import LlamadasPage      from './pages/LlamadasPage'
 import SeguimientoSemanalPage from './pages/SeguimientoSemanalPage'
 import RecaudacionPage   from './pages/RecaudacionPage'
+import CuentasRealesPage from './pages/CuentasRealesPage'
 import OrientacionPage   from './pages/OrientacionPage'
 import DashboardPage     from './pages/DashboardPage'
 import OnboardingPage    from './pages/OnboardingPage'
@@ -78,6 +79,7 @@ function ProtectedApp() {
           <Route path="/llamadas"       element={<RequireRole path="/llamadas"><ErrorBoundary><LlamadasPage /></ErrorBoundary></RequireRole>} />
           <Route path="/seguimiento-semanal" element={<RequireRole path="/seguimiento-semanal"><ErrorBoundary><SeguimientoSemanalPage /></ErrorBoundary></RequireRole>} />
           <Route path="/recaudacion"    element={<RequireRole path="/recaudacion"><RecaudacionPage /></RequireRole>} />
+          <Route path="/cuentas-reales" element={<RequireRole path="/cuentas-reales"><ErrorBoundary><CuentasRealesPage /></ErrorBoundary></RequireRole>} />
           <Route path="/orientacion"    element={<OrientacionPage />} />
           <Route path="/onboarding"     element={<RequireRole path="/onboarding"><RequireProximaPromocion><OnboardingPage /></RequireProximaPromocion></RequireRole>} />
           <Route path="/complementos"   element={<RequireRole path="/complementos"><VentaComplementosPage /></RequireRole>} />
