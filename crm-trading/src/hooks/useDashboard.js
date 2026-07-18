@@ -6,36 +6,41 @@ import { programaActivo, fetchEncuestasSatisfaccion, calcularNPS, calcularCSAT, 
   mapaProgramaAsesora, distribucionEscala, distribucionCategorica } from '../lib/api'
 import toast from 'react-hot-toast'
 
-// Safe calcularRiesgo — no crashes
+// Safe calcularRiesgo — no crashes. Además del score, arma `motivos`: la
+// lista en texto plano de cada factor que sí sumó puntos, para poder
+// explicarle a la asesora POR QUÉ un alumno puntual quedó en riesgo (no
+// solo mostrarle el número).
 function calcularRiesgoLocal(alumno, cuotas, llamadas) {
-  if (!alumno) return { score: 0, nivel: 'Bajo' }
+  if (!alumno) return { score: 0, nivel: 'Bajo', motivos: [] }
   let score = 0
+  const motivos = []
   const hoy = new Date()
   const hoyStr = hoyLima()
 
   if (alumno.ultimo_contacto_at) {
     const dias = Math.floor((hoy - new Date(alumno.ultimo_contacto_at + 'T00:00:00')) / 86400000)
-    if (dias >= 21) score += 40
-    else if (dias >= 15) score += 25
-    else if (dias >= 7) score += 15
+    if (dias >= 21) { score += 40; motivos.push(`Sin contacto hace ${dias} días`) }
+    else if (dias >= 15) { score += 25; motivos.push(`Sin contacto hace ${dias} días`) }
+    else if (dias >= 7) { score += 15; motivos.push(`Sin contacto hace ${dias} días`) }
   } else {
     score += 25
+    motivos.push('Nunca se le ha registrado un contacto')
   }
 
   const cuotasArr = Array.isArray(cuotas) ? cuotas : []
   const vencidas = cuotasArr.filter(c => c && c.fecha_vence && c.fecha_vence < hoyStr && c.estado !== 'Pagada')
-  if (vencidas.length >= 2) score += 25
-  else if (vencidas.length === 1) score += 15
+  if (vencidas.length >= 2) { score += 25; motivos.push(`${vencidas.length} cuotas vencidas`) }
+  else if (vencidas.length === 1) { score += 15; motivos.push('1 cuota vencida') }
 
   const llamadasArr = Array.isArray(llamadas) ? llamadas.filter(Boolean) : []
   const semana = parseInt(alumno.semana_actual) || 0
   const ult = llamadasArr[0]
-  if (ult && semana >= 8 && (ult.avance || 0) < 30) score += 15
-  if (ult && semana >= 12 && ult.cuenta === 'Demo') score += 10
-  if (alumno.nivel_atencion === 'Crítico') score += 10
+  if (ult && semana >= 8 && (ult.avance || 0) < 30) { score += 15; motivos.push(`Avance bajo (${ult.avance || 0}%) para su semana ${semana}`) }
+  if (ult && semana >= 12 && ult.cuenta === 'Demo') { score += 10; motivos.push(`Sigue en cuenta Demo en semana ${semana}`) }
+  if (alumno.nivel_atencion === 'Crítico') { score += 10; motivos.push('Nivel de atención marcado como Crítico') }
 
   score = Math.min(score, 100)
-  return { score, nivel: score >= 56 ? 'Alto' : score >= 26 ? 'Medio' : 'Bajo' }
+  return { score, nivel: score >= 56 ? 'Alto' : score >= 26 ? 'Medio' : 'Bajo', motivos }
 }
 
 async function fetchDashboard() {
@@ -156,8 +161,8 @@ export function useDashboard() {
   const alumnosConRiesgo = alumnosActivos.map(al => {
     const hists    = llamadasPorAlumno[al.nombre] || []
     const cuotasAl = cuotas.filter(c => c.alumno?.nombre === al.nombre)
-    const { score, nivel } = calcularRiesgoLocal(al, cuotasAl, hists)
-    return { ...al, riesgo_score: score, riesgo_nivel: nivel }
+    const { score, nivel, motivos } = calcularRiesgoLocal(al, cuotasAl, hists)
+    return { ...al, riesgo_score: score, riesgo_nivel: nivel, riesgo_motivos: motivos }
   })
 
   // Solo el conteo total sigue vivo — alimenta el KPI de la vista de
@@ -165,6 +170,13 @@ export function useDashboard() {
   // del desglose (bajo/medio, segmentación por último contacto, listado)
   // solo lo usaba la sección "Sistema de Riesgo" ya eliminada del dashboard.
   const riesgoAlto = alumnosConRiesgo.filter(a => a.riesgo_nivel === 'Alto').length
+
+  // Detalle para la vista de la asesora: como alumnosActivos ya viene
+  // scopeado a sus propios alumnos cuando esAsesora, este listado solo
+  // trae los suyos — con el motivo puntual de cada uno.
+  const misAlumnosRiesgoAlto = alumnosConRiesgo
+    .filter(a => a.riesgo_nivel === 'Alto')
+    .sort((a, b) => b.riesgo_score - a.riesgo_score)
 
   // ── Contactabilidad ───────────────────────────────────────
   // Solo cuentan los alumnos cuyo programa ya había arrancado al cierre del
@@ -496,7 +508,7 @@ export function useDashboard() {
     encuestaGeneralCombinada,
     encuestaAsesoriaPropia, fechaComentarios, setFechaComentarios, comentariosDelDia,
     encuestaOrientacionPropia, fechaComentariosOrientacion, setFechaComentariosOrientacion, comentariosDelDiaOrientacion,
-    totalAlumnosActivos, totalLlamadas:llamadasMes.length,
+    totalAlumnosActivos, totalLlamadas:llamadasMes.length, misAlumnosRiesgoAlto,
     alumnosQueRespondieronMes, respondieron:alumnosQueRespondieronMes.size,
     contactabilidad, contactabilidadPorPrograma,
     tiposCuenta, totalCuentas, cuentasPorPrograma,

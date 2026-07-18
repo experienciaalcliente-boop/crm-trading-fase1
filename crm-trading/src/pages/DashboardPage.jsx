@@ -1,6 +1,6 @@
 import { useDashboard } from '../hooks/useDashboard'
 import { useAuth } from '../context/AuthContext'
-import { Loader2, RefreshCw, Phone, CreditCard, MonitorSmartphone, TrendingUp, Smile } from 'lucide-react'
+import { Loader2, RefreshCw, Phone, CreditCard, MonitorSmartphone, TrendingUp, Smile, AlertTriangle } from 'lucide-react'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts'
@@ -142,6 +142,26 @@ export default function DashboardPage() {
           <KPICard label="NPS general"        value={d.encuestaGeneralCombinada.nps != null ? `${d.encuestaGeneralCombinada.nps}%` : '—'} sub={d.encuestaGeneralCombinada.total > 0 ? `${d.encuestaGeneralCombinada.total} respuestas` : 'Sin datos aún'} color="var(--accent)" accent="var(--accent)" />
           <KPICard label="Recaudación total"  value={`${d.pctRecaudado}%`} sub={`S/ ${fmt(d.montoPagadoPEN)}`} color="#f5b93a" accent="#f5b93a" />
         </div>
+      )}
+
+      {/* ══ ALUMNOS EN RIESGO ALTO (solo asesora, solo los propios) ══ */}
+      {esAsesora && d.misAlumnosRiesgoAlto.length > 0 && (
+      <>
+      <SectionTitle icon={AlertTriangle} title="Alumnos en riesgo alto" color="#f07070" />
+      <div className="crm-card" style={{ padding:18, marginBottom:16 }}>
+        {d.misAlumnosRiesgoAlto.map(a => (
+          <div key={a.id} style={{ padding:'10px 0', borderBottom:'1px solid rgba(255,255,255,0.05)' }}>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'baseline', marginBottom:4, gap:8 }}>
+              <span style={{ fontSize:13, fontWeight:600, color:'var(--text-primary)' }}>{a.nombre}</span>
+              <span style={{ fontSize:11, color:'var(--text-muted)', whiteSpace:'nowrap' }}>{a.programa} · score {a.riesgo_score}</span>
+            </div>
+            <ul style={{ margin:0, paddingLeft:18, fontSize:12, color:'var(--text-secondary)' }}>
+              {a.riesgo_motivos.map((m, i) => <li key={i}>{m}</li>)}
+            </ul>
+          </div>
+        ))}
+      </div>
+      </>
       )}
 
       {/* ══ ENCUESTA DE SATISFACCIÓN (solo asesora) ══ */}
