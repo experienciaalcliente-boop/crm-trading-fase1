@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react'
-import { setAuthToken } from '../lib/supabase'
+import toast from 'react-hot-toast'
+import { setAuthToken, setSesionExpiradaHandler } from '../lib/supabase'
 
 const AuthContext = createContext(null)
 
@@ -15,6 +16,12 @@ export function AuthProvider({ children }) {
   // Rehidratar la sesión al cargar la app, no solo el estado de React
   useEffect(() => {
     setAuthToken(session?.token || null)
+    setSesionExpiradaHandler(() => {
+      setSession(null)
+      sessionStorage.removeItem('crm_session')
+      setAuthToken(null)
+      toast.error('Tu sesión expiró — inicia sesión de nuevo')
+    })
   }, [])
 
   const login = async (dni, pin) => {
