@@ -32,6 +32,7 @@ export default function ExpCampanaPage() {
   const r = useExpCampana()
   const [emailPrueba, setEmailPrueba] = useState('')
   const [correoPrueba, setCorreoPrueba] = useState(0)
+  const [asesoraPrueba, setAsesoraPrueba] = useState('')
   const [enviandoPrueba, setEnviandoPrueba] = useState(false)
   const [forzando, setForzando] = useState(false)
 
@@ -59,12 +60,14 @@ export default function ExpCampanaPage() {
 
   const enviarPrueba = async () => {
     if (!emailPrueba.trim()) { toast.error('Ingresa un correo de destino'); return }
+    const asesoraElegida = asesoraPrueba || r.asesoras[0]?.id
+    if (!asesoraElegida) { toast.error('No hay asesoras cargadas todavía'); return }
     setEnviandoPrueba(true)
     try {
       const res = await fetch('/api/reactivate-test-send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ destinatario: emailPrueba.trim(), campana: 'exalumnos', correoNumero: correoPrueba }),
+        body: JSON.stringify({ destinatario: emailPrueba.trim(), campana: 'exalumnos', correoNumero: correoPrueba, asesoraId: asesoraElegida }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Error al enviar')
@@ -135,6 +138,11 @@ export default function ExpCampanaPage() {
             {Array.from({ length: 10 }, (_, i) => i).map(n => (
               <option key={n} value={n}>{nombreCorreo(n)}</option>
             ))}
+          </select>
+          <select value={asesoraPrueba} onChange={e => setAsesoraPrueba(e.target.value)}
+            title="El botón de WhatsApp del correo de prueba usará el wa.link real de esta asesora"
+            style={{ padding: '6px 10px', background: 'var(--bg-input)', border: '1.5px solid var(--border-input)', borderRadius: 8, color: 'var(--text-primary)', fontSize: 13 }}>
+            {r.asesoras.map(a => <option key={a.id} value={a.id}>wa.link de {a.nombre}</option>)}
           </select>
           <input
             type="email"

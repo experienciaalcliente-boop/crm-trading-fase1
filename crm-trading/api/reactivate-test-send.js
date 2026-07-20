@@ -5,7 +5,8 @@
 import nodemailer from 'nodemailer'
 import { randomUUID } from 'node:crypto'
 import { construirCorreo as construirCorreoReactivate, conPixelDeApertura } from './_lib/reactivateEmails.js'
-import { construirCorreo as construirCorreoExalumnos } from './_lib/expCampanaEmails.js'
+import { construirCorreo as construirCorreoExalumnos, variantePara } from './_lib/expCampanaEmails.js'
+import { waLinkPara } from './_lib/expCampanaAsesoras.js'
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*')
@@ -14,7 +15,7 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end()
   if (req.method !== 'POST') return res.status(405).json({ error: 'Método no permitido' })
 
-  const { destinatario, campana, correoNumero } = req.body || {}
+  const { destinatario, campana, correoNumero, asesoraId } = req.body || {}
   if (!destinatario) return res.status(400).json({ error: 'Falta el destinatario' })
 
   if (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD) {
@@ -28,11 +29,19 @@ export default async function handler(req, res) {
     const esExalumnos = campana === 'exalumnos'
     const token = randomUUID() // token de prueba, no queda registrado en ninguna tabla
     const baseUrl = process.env.PUBLIC_APP_URL
-    // El tracking de ambas campañas vive en el mismo endpoint (reactivate-track.js).
-    const waUrl = `${baseUrl}/api/reactivate-track?t=${token}&e=click`
     const pixelUrl = `${baseUrl}/api/reactivate-track?t=${token}&e=open`
 
     const numero = Number.isInteger(correoNumero) ? correoNumero : 0
+    // Un correo de prueba nunca queda registrado en campana_exalumnos_envios
+    // (a propósito, para no ensuciar datos de campaña) — así que el
+    // endpoint de tracking no podría saber a qué asesora pertenece y caería
+    // al link genérico de respaldo. Para poder VERIFICAR el enrutamiento
+    // real, el botón de un correo de prueba de Exalumnos usa directo el
+    // wa.link de la asesora elegida (sin pasar por el redirect de tracking).
+    const waUrl = esExalumnos
+      ? waLinkPara(asesoraId, variantePara(numero))
+      : `${baseUrl}/api/reactivate-track?t=${token}&e=click`
+
     const { asunto, html } = esExalumnos
       ? construirCorreoExalumnos(numero, { nombre: 'Alumno de Prueba', waUrl })
       : construirCorreoReactivate(1, { nombre: 'Alumno de Prueba', waUrl, testimonioUrls: {} })
