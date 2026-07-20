@@ -40,6 +40,9 @@ async function activarReactivateBurs(supabase, baseUrl) {
 async function activarExalumnos(supabase, baseUrl) {
   await supabase.from('campana_exalumnos_config').update({ campana_activa: true, updated_at: new Date().toISOString() }).eq('id', 'default')
 
+  const hoyStr = new Date().toISOString().slice(0, 10)
+  // "Pendiente" (nunca arrancó) — activar solo dispara arranques nuevos,
+  // no re-procesa a quien ya está en curso (eso lo hace el cron diario).
   const candidatos = await fetchTodosPaginado((desde, hasta) =>
     supabase
       .from('campana_exalumnos_alumnos')
@@ -54,10 +57,9 @@ async function activarExalumnos(supabase, baseUrl) {
   // los 3202 correos de golpe (superaría el límite de envío de Gmail), solo
   // arranca hoy hasta CUPO_DIARIO_POR_ASESORA leads de cada una. El resto
   // arranca automáticamente en los días siguientes vía el cron compartido.
-  const { candidatosHoy, pendientesRestantes } = filtrarCupoDiario(candidatos)
+  const { candidatosHoy, pendientesRestantes } = filtrarCupoDiario(candidatos, hoyStr)
 
   const transporter = transporterGmailPool()
-  const hoyStr = new Date().toISOString().slice(0, 10)
 
   const { enviados, errores } = await procesarEnLotes(candidatosHoy, CONCURRENCIA_ENVIO, (lead) =>
     enviarCorreoLead({ supabase, transporter, baseUrl, gmailUser: process.env.GMAIL_USER, lead, correoNumero: 0, fechaInicio: hoyStr })

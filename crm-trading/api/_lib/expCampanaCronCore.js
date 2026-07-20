@@ -47,24 +47,55 @@ export async function fetchTodosPaginado(construirQuery) {
 // Recibe candidatos ya filtrados (excluido=false, en secuencia) y devuelve
 // solo los que corresponde procesar HOY: todos los que ya arrancaron su
 // secuencia (fecha_inicio_campana no nulo) + hasta CUPO_DIARIO_POR_ASESORA
-// de los "Pendiente" (nunca arrancaron) de CADA asesora, en orden estable.
-export function filtrarCupoDiario(candidatos) {
+// de los "Pendiente" (nunca arrancaron) de CADA asesora.
+//
+// Dos cuidados importantes, aprendidos al activar en producción:
+// 1) "hoyStr" descuenta a quienes YA arrancaron hoy mismo (fecha_inicio_
+//    campana === hoyStr) del cupo restante — si "forzar envío" se llama
+//    varias veces el mismo día (porque la función serverless se corta a
+//    los 60s con cientos de correos), no se le vuelve a dar cupo completo
+//    a quien ya lo agotó, y se completa el de quien quedó a medias.
+// 2) El orden final intercala las asesoras una por una (round-robin), no
+//    todos los de una asesora seguidos de todos los de la otra — así, si
+//    el envío se corta a medias, TODAS quedan con una cantidad pareja
+//    procesada, no solo la primera del array (esto pasó literalmente la
+//    primera vez: Fabiola terminó con sus 100 y Katerin con 12).
+export function filtrarCupoDiario(candidatos, hoyStr) {
   const pendientesPorAsesora = {}
-  const enCurso = []
+  const enCursoPorAsesora = {}
+  const yaArrancaronHoyPorAsesora = {}
   candidatos.forEach(lead => {
-    if (lead.fecha_inicio_campana) { enCurso.push(lead); return }
+    if (lead.fecha_inicio_campana) {
+      ;(enCursoPorAsesora[lead.asesora_id] ||= []).push(lead)
+      if (lead.fecha_inicio_campana === hoyStr) {
+        yaArrancaronHoyPorAsesora[lead.asesora_id] = (yaArrancaronHoyPorAsesora[lead.asesora_id] || 0) + 1
+      }
+      return
+    }
     ;(pendientesPorAsesora[lead.asesora_id] ||= []).push(lead)
   })
 
-  const pendientesDeHoy = []
+  const asesoraIds = [...new Set([...Object.keys(pendientesPorAsesora), ...Object.keys(enCursoPorAsesora)])]
   let pendientesRestantes = 0
-  Object.values(pendientesPorAsesora).forEach(arr => {
-    arr.sort((a, b) => a.id.localeCompare(b.id))
-    pendientesDeHoy.push(...arr.slice(0, CUPO_DIARIO_POR_ASESORA))
-    pendientesRestantes += Math.max(0, arr.length - CUPO_DIARIO_POR_ASESORA)
+  const listaPorAsesora = {}
+  asesoraIds.forEach(id => {
+    const pend = (pendientesPorAsesora[id] || []).sort((a, b) => a.id.localeCompare(b.id))
+    const cupoRestanteHoy = Math.max(0, CUPO_DIARIO_POR_ASESORA - (yaArrancaronHoyPorAsesora[id] || 0))
+    const elegibles = pend.slice(0, cupoRestanteHoy)
+    pendientesRestantes += Math.max(0, pend.length - cupoRestanteHoy)
+    listaPorAsesora[id] = [...(enCursoPorAsesora[id] || []), ...elegibles]
   })
 
-  return { candidatosHoy: [...enCurso, ...pendientesDeHoy], pendientesRestantes }
+  const candidatosHoy = []
+  for (let i = 0; ; i++) {
+    let alguno = false
+    for (const id of asesoraIds) {
+      if (listaPorAsesora[id][i]) { candidatosHoy.push(listaPorAsesora[id][i]); alguno = true }
+    }
+    if (!alguno) break
+  }
+
+  return { candidatosHoy, pendientesRestantes }
 }
 
 export async function ejecutarCicloDiarioExalumnos({ supabase, baseUrl }) {
@@ -96,7 +127,7 @@ export async function ejecutarCicloDiarioExalumnos({ supabase, baseUrl }) {
       .range(desde, hasta)
   )
 
-  const { candidatosHoy, pendientesRestantes } = filtrarCupoDiario(candidatos)
+  const { candidatosHoy, pendientesRestantes } = filtrarCupoDiario(candidatos, hoyStr)
 
   // Los reenvíos (correo 1 y 4) no se mandan si el lead ya abrió el correo
   // original (0 y 3) — se necesita su historial de envíos para saberlo.
