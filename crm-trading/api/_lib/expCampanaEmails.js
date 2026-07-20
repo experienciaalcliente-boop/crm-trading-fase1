@@ -1,8 +1,13 @@
-// Plantillas HTML de los 2 correos del Plan Exalumnos (Correo 0 = Aula
-// Virtual, Correo 1 = Impulso). Mismo layout/tono que Plan Reactivate Burs
-// (api/_lib/reactivateEmails.js) — tablas con CSS inline para máxima
-// compatibilidad con clientes de correo — pero copy propio, redactado para
-// esta campaña (no hay un docx fuente para esta, a diferencia de Reactivate).
+// Plantillas HTML de los correos del Plan Exalumnos — copy tomado
+// literalmente de plan_email_marketing_julio_burs.md (v2), sección 4.
+// 8 correos principales (C1-C8) + 2 reenvíos a no-abiertos (de C1 y C3),
+// mismo layout de tabla con CSS inline que Reactivate Burs para máxima
+// compatibilidad con clientes de correo.
+//
+// Simplificaciones acordadas frente al documento original: un solo asunto
+// fijo por correo (sin A/B con medición de ganador) y sin los broadcasts de
+// WhatsApp del día 4 y día 13 (esos los hace cada asesora a mano — ver el
+// segmento "Calientes sin compra" en la página).
 
 const TEAL_DARK = '#1c4047'
 const TEAL_ACCENT = '#65a7a6'
@@ -56,7 +61,7 @@ function baseShell({ preheader, bodyHtml }) {
             </td>
           </tr>
           <tr>
-            <td style="padding:32px 32px 24px 32px; font-family:Arial,Helvetica,sans-serif; font-size:15px; line-height:1.6; color:#28353a;">
+            <td style="padding:32px 32px 24px 32px; font-family:Arial,Helvetica,sans-serif; font-size:15px; line-height:1.6; color:#28353a; white-space:pre-line;">
               ${bodyHtml}
             </td>
           </tr>
@@ -73,42 +78,195 @@ function baseShell({ preheader, bodyHtml }) {
 </html>`
 }
 
-// Correo 0 — Aula Virtual: invita a recuperar el acceso a la formación que
-// quedó pausada (mismo espíritu que Reactivate Burs, pero dirigido a la
-// base general de exalumnos, no solo a retirados recientes con saldo).
-const CORREO_AULA = {
-  asunto: 'Tu Aula Virtual de BURS todavía te está esperando',
-  variante: 'aula',
-  cuerpo: (nombre) => `
-    <p>Hola, ${nombre}.</p>
-    <p>En algún momento comenzaste tu formación con nosotros en BURS Advisory.</p>
-    <p>Sabemos que la vida se atraviesa — el trabajo, el tiempo, mil prioridades — y muchas veces eso hace que una formación quede en pausa.</p>
-    <p>Queremos contarte algo: <strong>tu Aula Virtual sigue disponible</strong>, con todo el contenido, las clases grabadas y el material que adquiriste en su momento.</p>
-    <p>Si quieres retomarlo, con gusto te explicamos cómo reactivar tu acceso.</p>`,
-  cierre: () => `<p>Será un gusto volver a acompañarte.</p><p>Equipo BURS</p>`,
-  textoBoton: 'Quiero recuperar mi acceso',
+function p(texto) {
+  return `<p style="margin:0 0 14px;">${texto}</p>`
 }
 
-// Correo 1 — Impulso: para quien no respondió al primer correo, se ofrece
-// un camino distinto — acompañamiento directo con un mentor (producto
-// "Impulso Burs"), en vez de solo retomar el contenido grabado.
-const CORREO_IMPULSO = {
-  asunto: 'Una forma más rápida de retomar tu camino en trading',
-  variante: 'impulso',
-  cuerpo: (nombre) => `
-    <p>Hola, ${nombre}.</p>
-    <p>Te escribimos hace unos días para contarte que tu Aula Virtual sigue disponible.</p>
-    <p>Hoy queremos contarte de una alternativa distinta, para quienes prefieren un acompañamiento más cercano al retomar.</p>
-    <p>Se llama <strong>Impulso Burs</strong>: mentorías personalizadas 1 a 1 con uno de nuestros mentores, pensadas para ayudarte a poner en práctica lo aprendido con seguimiento real, no solo contenido grabado.</p>
-    <p>Si sientes que necesitas ese empujón para retomar con confianza, conversemos.</p>`,
-  cierre: () => `<p>Estamos para ayudarte a dar el siguiente paso.</p><p>Equipo BURS</p>`,
-  textoBoton: 'Quiero conocer Impulso Burs',
-}
-
-const CORREOS = [CORREO_AULA, CORREO_IMPULSO]
+// nombre: label corto para la UI. dia: offset en días desde la activación
+// (día 0 = C1), tal como se acordó al correr todo el calendario original
+// +3 días para que arranque hoy en vez del 17/07. reenvioDe: si es un
+// reenvío a no-abiertos, el número de correo original que reemplaza (no
+// se envía si esa persona ya abrió el original).
+const CORREOS = [
+  // C1 — Reconexión (día 0)
+  {
+    nombre: 'C1 — Reconexión',
+    dia: 0,
+    variante: 'aula',
+    asunto: '¿Recuerdas lo que lograste?',
+    preheader: 'Terminaste la formación. Eso no lo hace cualquiera.',
+    textoBoton: 'Quiero acceder a la nueva plataforma',
+    cuerpo: (nombre) => [
+      p(`Hola, ${nombre}.`),
+      p(`Terminaste la formación de Burs Advisory. No mucha gente llega al final. Tú sí.`),
+      p(`Desde entonces, de nuestro lado cambiaron muchas cosas — y hay algo que aún no hemos contado públicamente: el aula virtual de Burs Advisory ya no es la misma.`),
+      p(`Te contaremos todo. Si quieres adelantarte:`),
+    ].join(''),
+    cierre: () => p(`Equipo Burs Advisory<br/><span style="font-size:13px; color:#5a6b6e;">P.D. Hay algo que vale la pena que veas antes de que termine el ciclo.</span>`),
+  },
+  // Reenvío C1 — solo a quien no abrió C1 (día 1)
+  {
+    nombre: 'Reenvío C1',
+    dia: 1,
+    variante: 'aula',
+    reenvioDe: 0,
+    asunto: '¿No llegó nuestro correo de ayer?',
+    preheader: 'Solo 30 segundos.',
+    textoBoton: 'Quiero acceder a la nueva plataforma',
+    cuerpo: (nombre) => [
+      p(`Hola, ${nombre}.`),
+      p(`Terminaste la formación de Burs Advisory. No mucha gente llega al final. Tú sí.`),
+      p(`Desde entonces, de nuestro lado cambiaron muchas cosas — y hay algo que aún no hemos contado públicamente: el aula virtual de Burs Advisory ya no es la misma.`),
+      p(`Te contaremos todo. Si quieres adelantarte:`),
+    ].join(''),
+    cierre: () => p(`Equipo Burs Advisory`),
+  },
+  // C2 — El aula nueva (día 3)
+  {
+    nombre: 'C2 — El aula nueva',
+    dia: 3,
+    variante: 'aula',
+    asunto: 'Esto no existía cuando estudiaste aquí',
+    preheader: '146 videos. 95 sesiones en vivo grabadas. Todo nuevo.',
+    textoBoton: 'Quiero acceder a la nueva plataforma',
+    cuerpo: (nombre) => [
+      p(`Hola, ${nombre}.`),
+      p(`Cuando estudiaste con nosotros, el aula era Teachable.`),
+      p(`Hoy es Sabionet, una plataforma completamente nueva:`),
+      p(`✅ 146 videos actualizados al mercado actual<br/>✅ 95 clases en vivo archivadas, disponibles 24/7<br/>✅ Módulos estructurados<br/>✅ PDFs y herramientas de análisis descargables`),
+      p(`Tú ya tienes la base. Solo necesitas actualizarla — y como exalumno, tienes un acceso especial que tu asesor te explica en un mensaje.`),
+    ].join(''),
+    cierre: () => p(`Equipo Burs Advisory`),
+  },
+  // C3 — El mercado cambió (día 5)
+  {
+    nombre: 'C3 — El mercado cambió',
+    dia: 5,
+    variante: 'aula',
+    asunto: '¿Y si el problema nunca fuiste tú?',
+    preheader: 'Lo que veías difuso hoy se ve con más claridad.',
+    textoBoton: 'Quiero acceder a la nueva plataforma',
+    cuerpo: (nombre) => [
+      p(`Hola, ${nombre}.`),
+      p(`Una pregunta directa: si terminaste la formación y aún no tienes la consistencia que esperabas, ¿el problema es lo que aprendiste o que el mercado ya no es el mismo?`),
+      p(`Los patrones evolucionan. La nueva aula no repite lo que viste: lo actualiza al mercado de hoy y lo organiza para que practicar sea viable.`),
+      p(`Tienes el conocimiento. Nosotros tenemos la actualización.`),
+    ].join(''),
+    cierre: () => p(`Equipo Burs Advisory<br/><span style="font-size:13px; color:#5a6b6e;">P.D. Muy pronto te contamos algo que incluye al CEO de Burs.</span>`),
+  },
+  // Reenvío C3 — solo a quien no abrió C3 (día 6)
+  {
+    nombre: 'Reenvío C3',
+    dia: 6,
+    variante: 'aula',
+    reenvioDe: 3,
+    asunto: 'Léelo antes de que avance el ciclo',
+    preheader: 'Lo que veías difuso hoy se ve con más claridad.',
+    textoBoton: 'Quiero acceder a la nueva plataforma',
+    cuerpo: (nombre) => [
+      p(`Hola, ${nombre}.`),
+      p(`Una pregunta directa: si terminaste la formación y aún no tienes la consistencia que esperabas, ¿el problema es lo que aprendiste o que el mercado ya no es el mismo?`),
+      p(`Los patrones evolucionan. La nueva aula no repite lo que viste: lo actualiza al mercado de hoy y lo organiza para que practicar sea viable.`),
+      p(`Tienes el conocimiento. Nosotros tenemos la actualización.`),
+    ].join(''),
+    cierre: () => p(`Equipo Burs Advisory`),
+  },
+  // C4 — Impulso BURS: mentoría con el CEO (día 7)
+  {
+    nombre: 'C4 — Impulso BURS',
+    dia: 7,
+    variante: 'impulso',
+    asunto: 'Operar junto a Jeampier Savedra',
+    preheader: 'Corrección en vivo, análisis compartidos y su grupo privado.',
+    textoBoton: 'Quiero suscribirme',
+    cuerpo: (nombre) => [
+      p(`Hola, ${nombre}.`),
+      p(`Esto es lo que anunciamos: Impulso BURS.`),
+      p(`• 3 sesiones en vivo con Jeampier Savedra, CEO de Burs Advisory, de manera mensual<br/>• Mentoría grupal: corrige tus operaciones y análisis en vivo<br/>• Si el mercado es apto, el mentor opera en vivo<br/>• Acceso al telegram privado de Impulso BURS, manejado exclusivamente por él`),
+      p(`No es una clase más. Es tener al mentor revisando tu proceso.`),
+      p(`Los grupos son reducidos para que la corrección sea real.`),
+    ].join(''),
+    cierre: () => p(`Equipo Burs Advisory`),
+  },
+  // C5 — Objeción (día 10)
+  {
+    nombre: 'C5 — Objeción',
+    dia: 10,
+    variante: 'aula',
+    asunto: 'Sé que todavía lo estás pensando',
+    preheader: 'No es el contenido. Entonces, ¿qué es?',
+    textoBoton: 'Activar suscripción',
+    cuerpo: (nombre) => [
+      p(`Hola, ${nombre}.`),
+      p(`Has abierto estos correos. Algo llamó tu atención. Pero aún no diste el paso.`),
+      p(`Lo entendemos: "lo analizo, lo pienso, veo si es el momento". Eso mismo es lo que te ha mantenido sin practicar estos meses.`),
+      p(`El costo de no decidir no es cero: es el tiempo que pasa mientras otros exalumnos ya están practicando con información actualizada.`),
+      p(`Resuélvelo en un mensaje. Tu asesor te explica las opciones y eliges la tuya.`),
+    ].join(''),
+    cierre: () => p(`Equipo Burs Advisory<br/><span style="font-size:13px; color:#5a6b6e;">P.D. El ciclo cierra pronto.</span>`),
+  },
+  // C6 — El grupo privado del mentor (día 12)
+  {
+    nombre: 'C6 — Grupo privado',
+    dia: 12,
+    variante: 'impulso',
+    asunto: 'Dentro del grupo privado de Jeampier',
+    preheader: 'Análisis, contexto y corrección — directo del CEO.',
+    textoBoton: 'Quiero suscribirme',
+    cuerpo: (nombre) => [
+      p(`Hola, ${nombre}.`),
+      p(`Lo más difícil del trading no es la técnica. Es sostener la disciplina operando solo.`),
+      p(`En el grupo privado de Impulso BURS —manejado exclusivamente por Jeampier Savedra— los alumnos comparten análisis, reciben contexto del mercado y llegan a las sesiones en vivo con sus operaciones listas para corrección.`),
+      p(`Tú ya hablas el idioma técnico de Burs. Este es el siguiente nivel.`),
+      p(`El ciclo cierra muy pronto.`),
+    ].join(''),
+    cierre: () => p(`Equipo Burs Advisory`),
+  },
+  // C7 — Mañana cierra (día 13)
+  {
+    nombre: 'C7 — Mañana cierra',
+    dia: 13,
+    variante: 'aula',
+    asunto: 'Mañana cierra el ciclo',
+    preheader: 'Aula renovada e Impulso BURS. Hasta mañana.',
+    textoBoton: 'Activar mi suscripción',
+    cuerpo: (nombre) => [
+      p(`Hola, ${nombre}.`),
+      p(`Mañana cierra el ciclo de activación para exalumnos: el aula renovada en Sabionet y los lugares de Impulso BURS con las sesiones del CEO.`),
+      p(`No es una táctica: es la fecha real de cierre.`),
+      p(`Si llevas dos semanas pensándolo, esta es la señal. Un mensaje y tu asesor te lo deja resuelto hoy mismo.`),
+    ].join(''),
+    cierre: () => p(`Equipo Burs Advisory`),
+  },
+  // C8 — Hoy termina (día 14)
+  {
+    nombre: 'C8 — Hoy termina',
+    dia: 14,
+    variante: 'aula',
+    asunto: 'Hoy termina el ciclo',
+    preheader: 'Si no es ahora, el próximo ciclo te encontrará en el mismo lugar.',
+    textoBoton: 'Quiero aprovechar la oportunidad',
+    cuerpo: (nombre) => [
+      p(`Hola, ${nombre}.`),
+      p(`Este es el último correo del ciclo.`),
+      p(`Si decidiste que no es el momento, lo respetamos.`),
+      p(`Pero una pregunta antes de cerrar: cuando llegue el próximo ciclo, ¿vas a estar en el mismo lugar que hoy?`),
+      p(`Terminaste la formación de Burs. No dejas las cosas a medias. Hoy es el último día para activar con estas condiciones.`),
+    ].join(''),
+    cierre: () => p(`Equipo Burs Advisory<br/><span style="font-size:13px; color:#5a6b6e;">P.D. Acceso inmediato, sin burocracia. Ya sabes dónde está el botón.</span>`),
+  },
+]
 
 export function totalCorreos() {
-  return CORREOS.length // 2 (Correo 0 = Aula Virtual, Correo 1 = Impulso)
+  return CORREOS.length // 10 (8 principales + 2 reenvíos a no-abiertos)
+}
+
+export function diaPara(correoNumero) {
+  return CORREOS[correoNumero]?.dia
+}
+
+export function reenvioDePara(correoNumero) {
+  return CORREOS[correoNumero]?.reenvioDe
 }
 
 export function variantePara(correoNumero) {
@@ -120,11 +278,9 @@ export function conPixelDeApertura(html, pixelUrl) {
   return html.replace('</body>', `${pixel}</body>`)
 }
 
-// waUrl: URL de tracking de clic (apunta a nuestro endpoint, que registra
-// el clic y redirige al WhatsApp de la asesora asignada a este alumno).
 export function construirCorreo(numero, { nombre, waUrl }) {
   const def = CORREOS[numero]
-  if (!def) throw new Error(`Correo ${numero} no existe (rango válido 0-1)`)
+  if (!def) throw new Error(`Correo ${numero} no existe (rango válido 0-${CORREOS.length - 1})`)
   const primerNom = primerNombre(nombre)
 
   let html = def.cuerpo(primerNom)
@@ -133,6 +289,6 @@ export function construirCorreo(numero, { nombre, waUrl }) {
 
   return {
     asunto: def.asunto,
-    html: baseShell({ preheader: def.asunto, bodyHtml: html }),
+    html: baseShell({ preheader: def.preheader, bodyHtml: html }),
   }
 }

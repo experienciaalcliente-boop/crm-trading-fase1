@@ -1,9 +1,12 @@
 import { useState } from 'react'
-import { X, Mail, MailOpen, MousePointerClick, MessageCircle } from 'lucide-react'
+import { X, Mail, MailOpen, MousePointerClick, MessageCircle, Copy } from 'lucide-react'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
+import toast from 'react-hot-toast'
 import { useAuth } from '../../context/AuthContext'
-import { ESTADOS_GESTIONABLES, nombreCorreo } from '../../hooks/useExpCampana'
+import { ESTADOS_GESTIONABLES, nombreCorreo, mensajeWhatsappBroadcast } from '../../hooks/useExpCampana'
+
+const ESTADOS_YA_RESUELTOS = ['Reactivado', 'No interesado']
 
 function fmt(fecha) {
   if (!fecha) return '—'
@@ -18,6 +21,16 @@ export default function ModalExpCampana({ detalle, onCerrar, onRegistrarAvance }
 
   if (!detalle) return null
   const { lead, envios, seguimiento, loadingDetalle } = detalle
+
+  // "Caliente sin compra": abrió 2+ correos y no se marcó como resuelto —
+  // candidato al broadcast manual de WhatsApp del plan (día 4 / día 13).
+  const correosAbiertos = envios.filter(e => e.abierto).length
+  const esCaliente = correosAbiertos >= 2 && !ESTADOS_YA_RESUELTOS.includes(lead.estado_campana)
+
+  const copiarMensajeWhatsapp = () => {
+    navigator.clipboard.writeText(mensajeWhatsappBroadcast(lead))
+    toast.success('Mensaje copiado — pégalo en WhatsApp')
+  }
 
   const guardar = async () => {
     if (!estadoNuevo) return
@@ -51,6 +64,17 @@ export default function ModalExpCampana({ detalle, onCerrar, onRegistrarAvance }
           <InfoItem label="Estado actual" value={lead.estado_campana} />
           <InfoItem label="Saldo pendiente" value={lead.monto_faltante != null ? Number(lead.monto_faltante).toFixed(2) : '—'} />
         </div>
+
+        {esCaliente && (
+          <div style={{ padding: '12px 20px', borderBottom: '1px solid rgba(255,255,255,0.07)', background: 'rgba(251,146,60,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+            <div style={{ fontSize: 12, color: '#fb923c' }}>
+              🔥 Abrió {correosAbiertos} correos y no ha comprado — según el plan, este es un candidato para el WhatsApp de seguimiento manual.
+            </div>
+            <button className="crm-btn crm-btn-sm" style={{ fontSize: 11, whiteSpace: 'nowrap' }} onClick={copiarMensajeWhatsapp}>
+              <Copy size={12} /> Copiar mensaje
+            </button>
+          </div>
+        )}
 
         {/* Historial de correos */}
         <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>

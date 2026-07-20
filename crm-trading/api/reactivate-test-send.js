@@ -28,12 +28,13 @@ export default async function handler(req, res) {
     const esExalumnos = campana === 'exalumnos'
     const token = randomUUID() // token de prueba, no queda registrado en ninguna tabla
     const baseUrl = process.env.PUBLIC_APP_URL
-    const trackPath = esExalumnos ? 'expcampana-track' : 'reactivate-track'
-    const waUrl = `${baseUrl}/api/${trackPath}?t=${token}&e=click`
-    const pixelUrl = `${baseUrl}/api/${trackPath}?t=${token}&e=open`
+    // El tracking de ambas campañas vive en el mismo endpoint (reactivate-track.js).
+    const waUrl = `${baseUrl}/api/reactivate-track?t=${token}&e=click`
+    const pixelUrl = `${baseUrl}/api/reactivate-track?t=${token}&e=open`
 
+    const numero = Number.isInteger(correoNumero) ? correoNumero : 0
     const { asunto, html } = esExalumnos
-      ? construirCorreoExalumnos(correoNumero === 1 ? 1 : 0, { nombre: 'Alumno de Prueba', waUrl })
+      ? construirCorreoExalumnos(numero, { nombre: 'Alumno de Prueba', waUrl })
       : construirCorreoReactivate(1, { nombre: 'Alumno de Prueba', waUrl, testimonioUrls: {} })
     const htmlConPixel = conPixelDeApertura(html, pixelUrl)
 

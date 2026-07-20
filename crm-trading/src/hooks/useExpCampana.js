@@ -5,15 +5,48 @@ import toast from 'react-hot-toast'
 
 export const ESTADOS_EXCAMPANA = [
   'Pendiente',
-  'Correo 0 enviado', 'Correo 1 enviado',
+  ...Array.from({ length: 10 }, (_, i) => `Correo ${i} enviado`),
   'Interesado', 'Contactado', 'Negociación', 'Reactivado', 'No interesado', 'Sin respuesta',
 ]
 
 export const ESTADOS_GESTIONABLES = ['Interesado', 'Contactado', 'Negociación', 'Reactivado', 'No interesado', 'Sin respuesta']
 
-const NOMBRE_CORREO = { 0: 'Aula Virtual', 1: 'Impulso' }
+// Mismos nombres/orden que api/_lib/expCampanaEmails.js (10 slots: 8
+// correos principales + 2 reenvíos a quien no abrió C1/C3).
+const NOMBRE_CORREO = {
+  0: 'C1 — Reconexión',
+  1: 'Reenvío C1',
+  2: 'C2 — Aula nueva',
+  3: 'C3 — El mercado cambió',
+  4: 'Reenvío C3',
+  5: 'C4 — Impulso BURS',
+  6: 'C5 — Objeción',
+  7: 'C6 — Grupo privado',
+  8: 'C7 — Mañana cierra',
+  9: 'C8 — Hoy termina',
+}
 export function nombreCorreo(numero) {
   return numero != null ? (NOMBRE_CORREO[numero] || `Correo ${numero}`) : null
+}
+
+// Día (offset desde la activación) en que cada asesora debería hacer el
+// broadcast manual de WhatsApp del plan (día 4 y día 13 del calendario) — no
+// automatizado (decisión: cada asesora lo hace a mano), pero el CRM le arma
+// el mensaje y le dice a quién mandárselo (ver "calientes sin compra").
+function primerNombreFrontend(nombreCompleto) {
+  const p = String(nombreCompleto || '').trim().split(/\s+/)[0] || ''
+  return p.charAt(0).toUpperCase() + p.slice(1).toLowerCase()
+}
+export function diasDesdeActivacion(lead) {
+  if (!lead.fecha_inicio_campana) return 0
+  return Math.floor((new Date() - new Date(lead.fecha_inicio_campana + 'T00:00:00')) / 86400000)
+}
+export function mensajeWhatsappBroadcast(lead) {
+  const nombre = primerNombreFrontend(lead.nombre)
+  if (diasDesdeActivacion(lead) >= 13) {
+    return `${nombre}, último aviso del ciclo. Mañana cierra la activación para exalumnos: aula renovada en Sabionet e Impulso BURS con las sesiones del CEO. Si te interesa, lo resolvemos aquí mismo.`
+  }
+  return `Hola ${nombre}, del equipo de Burs Advisory. Esta semana te escribimos sobre el aula renovada y el acceso especial para exalumnos. ¿Pudiste verlo? Te explico los planes por aquí en 2 minutos.`
 }
 
 // Plan Exalumnos — mismo patrón que useReactivate.js (Plan Reactivate Burs),
@@ -27,10 +60,12 @@ export function useExpCampana() {
 
   const [leads,   setLeads]   = useState([])
   const [asesoras, setAsesoras] = useState([])
+  const [aperturasPorLead, setAperturasPorLead] = useState({}) // alumno_id -> Set(correo_numero abiertos)
   const [loading, setLoading] = useState(true)
   const [config,  setConfig]  = useState(null)
   const [filtroEstado, setFiltroEstado] = useState('Todos')
   const [filtroAsesora, setFiltroAsesora] = useState('')
+  const [soloCalientes, setSoloCalientes] = useState(false)
   const [buscar, setBuscar] = useState('')
   const [detalle, setDetalle] = useState(null)
   const [activando, setActivando] = useState(false)
@@ -63,25 +98,55 @@ export function useExpCampana() {
     return todos
   }, [asesoraIdPropia])
 
+  // Aperturas por lead (para el segmento "calientes sin compra": abrieron
+  // 2+ correos y no compraron) — filtra por la asesora del lead vía el
+  // join embebido de PostgREST, así no hace falta mandar miles de ids en
+  // un .in(). Paginado igual que fetchTodosLosLeads.
+  const fetchAperturasPorLead = useCallback(async () => {
+    const TAMANO_PAGINA = 1000
+    let desde = 0
+    const mapa = {}
+    while (true) {
+      let query = supabase
+        .from('campana_exalumnos_envios')
+        .select('alumno_id, correo_numero, abierto, lead:campana_exalumnos_alumnos!inner(asesora_id)')
+        .eq('abierto', true)
+        .order('id')
+        .range(desde, desde + TAMANO_PAGINA - 1)
+      if (asesoraIdPropia) query = query.eq('lead.asesora_id', asesoraIdPropia)
+      const { data, error } = await query
+      if (error) throw error
+      ;(data || []).forEach(e => {
+        if (!mapa[e.alumno_id]) mapa[e.alumno_id] = new Set()
+        mapa[e.alumno_id].add(e.correo_numero)
+      })
+      if (!data || data.length < TAMANO_PAGINA) break
+      desde += TAMANO_PAGINA
+    }
+    return mapa
+  }, [asesoraIdPropia])
+
   const cargar = useCallback(async () => {
     setLoading(true)
     try {
-      const [leadsData, { data: configData, error: errC }, { data: asesorasData }] = await Promise.all([
+      const [leadsData, { data: configData, error: errC }, { data: asesorasData }, aperturas] = await Promise.all([
         fetchTodosLosLeads(),
         supabase.from('campana_exalumnos_config').select('*').eq('id', 'default').maybeSingle(),
         esSupervisor ? supabase.from('asesoras').select('id, nombre') : Promise.resolve({ data: [] }),
+        fetchAperturasPorLead(),
       ])
       if (errC) throw errC
       setLeads(leadsData || [])
       setConfig(configData)
       setAsesoras(asesorasData || [])
+      setAperturasPorLead(aperturas)
     } catch (err) {
       toast.error('Error al cargar el Plan Exalumnos')
       console.error(err)
     } finally {
       setLoading(false)
     }
-  }, [fetchTodosLosLeads, esSupervisor])
+  }, [fetchTodosLosLeads, fetchAperturasPorLead, esSupervisor])
 
   useEffect(() => { cargar() }, [cargar])
 
@@ -107,7 +172,7 @@ export function useExpCampana() {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Error al activar')
       setConfig((prev) => ({ ...prev, campana_activa: true }))
-      toast.success(`Campaña activada — Correo Aula Virtual enviado a ${data.enviados} de ${data.total} leads`)
+      toast.success(`Campaña activada — Correo C1 enviado a ${data.enviados} de ${data.total} leads`)
       await cargar()
     } catch (err) {
       toast.error(err.message)
@@ -149,9 +214,18 @@ export function useExpCampana() {
     return true
   }, [detalle, cargar, abrirDetalle])
 
+  const ESTADOS_YA_RESUELTOS = ['Reactivado', 'No interesado']
+  function correosAbiertos(leadId) {
+    return aperturasPorLead[leadId]?.size || 0
+  }
+  function esCalienteSinCompra(lead) {
+    return correosAbiertos(lead.id) >= 2 && !ESTADOS_YA_RESUELTOS.includes(lead.estado_campana)
+  }
+
   const leadsFiltrados = leads.filter((l) => {
     if (filtroEstado !== 'Todos' && l.estado_campana !== filtroEstado) return false
     if (filtroAsesora && l.asesora_id !== filtroAsesora) return false
+    if (soloCalientes && !esCalienteSinCompra(l)) return false
     if (buscar.trim() && !l.nombre.toLowerCase().includes(buscar.toLowerCase())) return false
     return true
   })
@@ -167,6 +241,7 @@ export function useExpCampana() {
       noInteresados: arr.filter((a) => a.estado_campana === 'No interesado').length,
       sinRespuesta: arr.filter((a) => a.estado_campana === 'Sin respuesta').length,
       conClic: arr.filter((a) => a.primer_click_at).length,
+      calientes: arr.filter((a) => esCalienteSinCompra(a)).length,
     }
   }
 
@@ -188,6 +263,7 @@ export function useExpCampana() {
   return {
     leads: leadsFiltrados, totalSinFiltrar: leads.length, loading, config, esSupervisor,
     filtroEstado, setFiltroEstado, filtroAsesora, setFiltroAsesora, asesoras, buscar, setBuscar,
+    soloCalientes, setSoloCalientes, correosAbiertos, esCalienteSinCompra,
     stats, porAsesora,
     toggleCampana, activando, detalle, abrirDetalle, cerrarDetalle, registrarAvance, cargar,
   }

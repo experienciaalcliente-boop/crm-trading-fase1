@@ -132,8 +132,9 @@ export default function ExpCampanaPage() {
           </div>
           <select value={correoPrueba} onChange={e => setCorreoPrueba(Number(e.target.value))}
             style={{ padding: '6px 10px', background: 'var(--bg-input)', border: '1.5px solid var(--border-input)', borderRadius: 8, color: 'var(--text-primary)', fontSize: 13 }}>
-            <option value={0}>Aula Virtual (Correo 0)</option>
-            <option value={1}>Impulso (Correo 1)</option>
+            {Array.from({ length: 10 }, (_, i) => i).map(n => (
+              <option key={n} value={n}>{nombreCorreo(n)}</option>
+            ))}
           </select>
           <input
             type="email"
@@ -174,11 +175,12 @@ export default function ExpCampanaPage() {
       )}
 
       {/* KPIs (del filtro actual) */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 10, marginBottom: 20 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8, 1fr)', gap: 10, marginBottom: 20 }}>
         {[
           { label: 'En campaña',     value: r.totalSinFiltrar,       color: 'var(--accent)' },
           { label: 'Correos env.',   value: r.stats.correosEnviados, color: 'var(--text-primary)' },
           { label: 'Clics (CTR)',    value: `${tasaClic}%`,           color: '#25D366' },
+          { label: 'Calientes',      value: r.stats.calientes,        color: '#fb923c' },
           { label: 'Interesados',    value: r.stats.interesados,      color: '#f5b93a' },
           { label: 'Contactados',    value: r.stats.contactados,      color: 'var(--accent)' },
           { label: 'Reactivados',    value: r.stats.reactivados,      color: '#2dd4a0' },
@@ -213,6 +215,16 @@ export default function ExpCampanaPage() {
             {r.asesoras.map(a => <option key={a.id} value={a.id}>{a.nombre}</option>)}
           </select>
         )}
+        <button onClick={() => r.setSoloCalientes(v => !v)}
+          title="Abrieron 2 o más correos y todavía no compran ni se marcan como resueltos — candidatos para el WhatsApp de seguimiento manual"
+          style={{
+            padding: '5px 12px', borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+            background: r.soloCalientes ? '#fb923c' : 'rgba(255,255,255,0.05)',
+            border: `1px solid ${r.soloCalientes ? '#fb923c' : 'rgba(255,255,255,0.1)'}`,
+            color: r.soloCalientes ? '#1c2b2e' : 'var(--text-muted)',
+          }}>
+          🔥 Calientes sin compra
+        </button>
         <input
           type="text"
           placeholder="🔍 Buscar alumno..."
