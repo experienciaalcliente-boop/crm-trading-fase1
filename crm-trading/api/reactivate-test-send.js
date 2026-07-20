@@ -43,8 +43,8 @@ export default async function handler(req, res) {
       : `${baseUrl}/api/reactivate-track?t=${token}&e=click`
 
     const { asunto, html } = esExalumnos
-      ? construirCorreoExalumnos(numero, { nombre: 'Alumno de Prueba', waUrl })
-      : construirCorreoReactivate(1, { nombre: 'Alumno de Prueba', waUrl, testimonioUrls: {} })
+      ? construirCorreoExalumnos(numero, { nombre: 'Alumno de Prueba', waUrl, baseUrl })
+      : construirCorreoReactivate(1, { nombre: 'Alumno de Prueba', waUrl, testimonioUrls: {}, baseUrl })
     const htmlConPixel = conPixelDeApertura(html, pixelUrl)
 
     const transporter = nodemailer.createTransport({

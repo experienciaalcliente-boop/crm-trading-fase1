@@ -17,7 +17,7 @@ export async function enviarCorreoLead({ supabase, transporter, baseUrl, gmailUs
   const variante = variantePara(correoNumero)
   const waLinkDestino = waLinkPara(lead.asesora_id, variante)
 
-  const { asunto, html } = construirCorreo(correoNumero, { nombre: lead.nombre, waUrl })
+  const { asunto, html } = construirCorreo(correoNumero, { nombre: lead.nombre, waUrl, baseUrl })
   const htmlConPixel = conPixelDeApertura(html, pixelUrl)
 
   await transporter.sendMail({

@@ -11,7 +11,7 @@ export async function enviarCorreoAlumno({ supabase, transporter, baseUrl, gmail
   const waUrl = `${baseUrl}/api/reactivate-track?t=${token}&e=click`
   const pixelUrl = `${baseUrl}/api/reactivate-track?t=${token}&e=open`
 
-  const { asunto, html } = construirCorreo(correoNumero, { nombre: alumno.nombre, waUrl, testimonioUrls })
+  const { asunto, html } = construirCorreo(correoNumero, { nombre: alumno.nombre, waUrl, testimonioUrls, baseUrl })
   const htmlConPixel = conPixelDeApertura(html, pixelUrl)
 
   await transporter.sendMail({

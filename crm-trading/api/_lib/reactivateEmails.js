@@ -13,17 +13,17 @@ export function primerNombre(nombreCompleto) {
   return primera.charAt(0).toUpperCase() + primera.slice(1).toLowerCase()
 }
 
-// Sin ícono SVG/PNG embebido a propósito: Gmail bloquea las imágenes
-// data:image/svg+xml y Outlook de escritorio bloquea CUALQUIER imagen en
-// data: URI (svg o png), dejando un ícono roto en vez del botón. El emoji
-// 💬 es texto Unicode real — se ve igual (con el dibujo nativo del
-// sistema) en todos los clientes de correo, sin ninguna imagen que cargar.
-function whatsappButton(url) {
+// Ícono real (logo de WhatsApp), alojado como archivo estático propio del
+// sitio (public/whatsapp-icon.png) y referenciado por URL https normal —
+// NO como data: URI, que Outlook de escritorio bloquea por completo, ni
+// como SVG, que Gmail no renderiza. Mismo patrón que ya funciona en
+// testimonioEmbed() con las miniaturas de YouTube.
+function whatsappButton(url, baseUrl) {
   return `
   <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:28px auto;">
     <tr>
       <td align="center" bgcolor="${WHATSAPP_GREEN}" style="border-radius:30px;">
-        <a href="${url}" target="_blank" style="display:inline-block; padding:14px 28px; font-family:Arial,Helvetica,sans-serif; font-size:15px; font-weight:bold; color:#ffffff; text-decoration:none; border-radius:30px; letter-spacing:0.2px;">💬 Conocer mi propuesta de retorno</a>
+        <a href="${url}" target="_blank" style="display:inline-block; padding:14px 28px; font-family:Arial,Helvetica,sans-serif; font-size:15px; font-weight:bold; color:#ffffff; text-decoration:none; border-radius:30px; letter-spacing:0.2px;"><img src="${baseUrl}/whatsapp-icon.png" width="18" height="18" alt="" style="vertical-align:middle; margin-right:8px; border:0;" />Conocer mi propuesta de retorno</a>
       </td>
     </tr>
   </table>
@@ -213,7 +213,7 @@ export function conPixelDeApertura(html, pixelUrl) {
 // Construye el HTML/asunto de un correo específico (0-6) para un alumno dado.
 // waUrl: URL de tracking de clic (ya apunta a nuestro endpoint, que redirige a WhatsApp).
 // testimonioUrls: { 1: url, 2: url } tal como se guardan en reactivate_config.
-export function construirCorreo(numero, { nombre, waUrl, testimonioUrls }) {
+export function construirCorreo(numero, { nombre, waUrl, testimonioUrls, baseUrl }) {
   const def = CORREOS[numero]
   if (!def) throw new Error(`Correo ${numero} no existe (rango válido 0-6)`)
   const primerNom = primerNombre(nombre)
@@ -224,7 +224,7 @@ export function construirCorreo(numero, { nombre, waUrl, testimonioUrls }) {
     html += testimonioEmbed(url)
   }
   if (def.cierre) html += def.cierre()
-  if (def.incluyeBoton) html += whatsappButton(waUrl)
+  if (def.incluyeBoton) html += whatsappButton(waUrl, baseUrl)
   if (def.cierreFinal) html += def.cierreFinal()
 
   return {
