@@ -172,7 +172,10 @@ export function useExpCampana() {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Error al activar')
       setConfig((prev) => ({ ...prev, campana_activa: true }))
-      toast.success(`Campaña activada — Correo C1 enviado a ${data.enviados} de ${data.total} leads`)
+      const detalleCupo = data.pendientesRestantes
+        ? ` — quedan ${data.pendientesRestantes} por arrancar en los próximos días (cupo diario parejo por asesora)`
+        : ''
+      toast.success(`Campaña activada — Correo C1 enviado a ${data.enviados} de ${data.total} leads${detalleCupo}`, { duration: 6000 })
       await cargar()
     } catch (err) {
       toast.error(err.message)

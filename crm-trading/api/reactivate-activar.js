@@ -10,6 +10,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { enviarCorreoAlumno, transporterGmailPool, procesarEnLotes } from './_lib/reactivateSend.js'
 import { enviarCorreoLead } from './_lib/expCampanaSend.js'
+import { filtrarCupoDiario, CUPO_DIARIO_POR_ASESORA, fetchTodosPaginado } from './_lib/expCampanaCronCore.js'
 
 const CONCURRENCIA_ENVIO = 8
 
@@ -39,22 +40,33 @@ async function activarReactivateBurs(supabase, baseUrl) {
 async function activarExalumnos(supabase, baseUrl) {
   await supabase.from('campana_exalumnos_config').update({ campana_activa: true, updated_at: new Date().toISOString() }).eq('id', 'default')
 
-  const { data: candidatos, error } = await supabase
-    .from('campana_exalumnos_alumnos')
-    .select('id, nombre, email, asesora_id')
-    .eq('excluido', false)
-    .eq('estado_campana', 'Pendiente')
-    .is('fecha_inicio_campana', null)
-  if (error) throw error
+  const candidatos = await fetchTodosPaginado((desde, hasta) =>
+    supabase
+      .from('campana_exalumnos_alumnos')
+      .select('id, nombre, email, asesora_id, fecha_inicio_campana')
+      .eq('excluido', false)
+      .eq('estado_campana', 'Pendiente')
+      .is('fecha_inicio_campana', null)
+      .range(desde, hasta)
+  )
+
+  // Mismo cupo diario parejo por asesora que usa el cron — activar no manda
+  // los 3202 correos de golpe (superaría el límite de envío de Gmail), solo
+  // arranca hoy hasta CUPO_DIARIO_POR_ASESORA leads de cada una. El resto
+  // arranca automáticamente en los días siguientes vía el cron compartido.
+  const { candidatosHoy, pendientesRestantes } = filtrarCupoDiario(candidatos)
 
   const transporter = transporterGmailPool()
   const hoyStr = new Date().toISOString().slice(0, 10)
 
-  const { enviados, errores } = await procesarEnLotes(candidatos, CONCURRENCIA_ENVIO, (lead) =>
+  const { enviados, errores } = await procesarEnLotes(candidatosHoy, CONCURRENCIA_ENVIO, (lead) =>
     enviarCorreoLead({ supabase, transporter, baseUrl, gmailUser: process.env.GMAIL_USER, lead, correoNumero: 0, fechaInicio: hoyStr })
   )
   transporter.close()
-  return { ok: true, activada: true, total: candidatos.length, enviados, errores }
+  return {
+    ok: true, activada: true, total: candidatosHoy.length, enviados, errores, pendientesRestantes,
+    mensaje: `Cupo diario: ${CUPO_DIARIO_POR_ASESORA} por asesora. Quedan ${pendientesRestantes} leads por arrancar en los próximos días.`,
+  }
 }
 
 export default async function handler(req, res) {
