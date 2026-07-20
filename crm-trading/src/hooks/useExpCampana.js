@@ -35,18 +35,37 @@ export function useExpCampana() {
   const [detalle, setDetalle] = useState(null)
   const [activando, setActivando] = useState(false)
 
+  // PostgREST solo devuelve 1000 filas por consulta por defecto — con 3202
+  // leads en la campaña hay que paginar con .range(), si no el supervisor
+  // (y cualquier vista sin filtro de asesora_id) se queda con el primer
+  // millar nada más. Mismo patrón que fetchTodasLasPaginas en lib/api.js.
+  const fetchTodosLosLeads = useCallback(async () => {
+    const TAMANO_PAGINA = 1000
+    let desde = 0
+    let todos = []
+    while (true) {
+      let query = supabase.from('campana_exalumnos_alumnos').select('*')
+        .eq('excluido', false)
+        .order('created_at', { ascending: false })
+        .range(desde, desde + TAMANO_PAGINA - 1)
+      if (asesoraIdPropia) query = query.eq('asesora_id', asesoraIdPropia)
+      const { data, error } = await query
+      if (error) throw error
+      todos = todos.concat(data || [])
+      if (!data || data.length < TAMANO_PAGINA) break
+      desde += TAMANO_PAGINA
+    }
+    return todos
+  }, [asesoraIdPropia])
+
   const cargar = useCallback(async () => {
     setLoading(true)
     try {
-      let query = supabase.from('campana_exalumnos_alumnos').select('*').eq('excluido', false).order('created_at', { ascending: false })
-      if (asesoraIdPropia) query = query.eq('asesora_id', asesoraIdPropia)
-
-      const [{ data: leadsData, error: errL }, { data: configData, error: errC }, { data: asesorasData }] = await Promise.all([
-        query,
+      const [leadsData, { data: configData, error: errC }, { data: asesorasData }] = await Promise.all([
+        fetchTodosLosLeads(),
         supabase.from('campana_exalumnos_config').select('*').eq('id', 'default').maybeSingle(),
         esSupervisor ? supabase.from('asesoras').select('id, nombre') : Promise.resolve({ data: [] }),
       ])
-      if (errL) throw errL
       if (errC) throw errC
       setLeads(leadsData || [])
       setConfig(configData)
@@ -57,7 +76,7 @@ export function useExpCampana() {
     } finally {
       setLoading(false)
     }
-  }, [asesoraIdPropia, esSupervisor])
+  }, [fetchTodosLosLeads, esSupervisor])
 
   useEffect(() => { cargar() }, [cargar])
 
