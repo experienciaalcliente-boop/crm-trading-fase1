@@ -13,19 +13,17 @@ export function primerNombre(nombreCompleto) {
   return primera.charAt(0).toUpperCase() + primera.slice(1).toLowerCase()
 }
 
-// Sin ícono SVG embebido a propósito: Gmail y la mayoría de clientes de
-// correo bloquean o no renderizan bien las imágenes data:image/svg+xml,
-// dejando un ícono roto en vez del botón — texto limpio es lo único que
-// se ve bien en todos los clientes.
+// Sin ícono SVG/PNG embebido a propósito: Gmail bloquea las imágenes
+// data:image/svg+xml y Outlook de escritorio bloquea CUALQUIER imagen en
+// data: URI (svg o png), dejando un ícono roto en vez del botón. El emoji
+// 💬 es texto Unicode real — se ve igual (con el dibujo nativo del
+// sistema) en todos los clientes de correo, sin ninguna imagen que cargar.
 function whatsappButton(url) {
   return `
   <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:28px auto;">
     <tr>
       <td align="center" bgcolor="${WHATSAPP_GREEN}" style="border-radius:30px;">
-        <a href="${url}" target="_blank"
-           style="display:inline-block; padding:14px 28px; font-family:Arial,Helvetica,sans-serif; font-size:15px; font-weight:bold; color:#ffffff; text-decoration:none; border-radius:30px; letter-spacing:0.2px;">
-          Conocer mi propuesta de retorno
-        </a>
+        <a href="${url}" target="_blank" style="display:inline-block; padding:14px 28px; font-family:Arial,Helvetica,sans-serif; font-size:15px; font-weight:bold; color:#ffffff; text-decoration:none; border-radius:30px; letter-spacing:0.2px;">💬 Conocer mi propuesta de retorno</a>
       </td>
     </tr>
   </table>
