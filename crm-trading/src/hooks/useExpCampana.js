@@ -44,9 +44,14 @@ export function useExpCampana() {
     let desde = 0
     let todos = []
     while (true) {
+      // El import masivo insertó cada lote de 500 en una sola transacción,
+      // así que cientos de filas comparten el mismo created_at exacto —
+      // sin "id" como desempate, .range() no tiene un orden determinístico
+      // entre páginas y puede saltarse o repetir filas.
       let query = supabase.from('campana_exalumnos_alumnos').select('*')
         .eq('excluido', false)
         .order('created_at', { ascending: false })
+        .order('id')
         .range(desde, desde + TAMANO_PAGINA - 1)
       if (asesoraIdPropia) query = query.eq('asesora_id', asesoraIdPropia)
       const { data, error } = await query
