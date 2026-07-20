@@ -239,7 +239,7 @@ export default function ExpCampanaPage() {
               <thead>
                 <tr>
                   <th>Alumno</th>
-                  <th>Paquete</th>
+                  <th>Programa</th>
                   <th>Último correo</th>
                   <th>Estado</th>
                   <th>Clic WhatsApp</th>
@@ -250,7 +250,7 @@ export default function ExpCampanaPage() {
                 {r.leads.map((l) => (
                   <tr key={l.id}>
                     <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{l.nombre}</td>
-                    <td style={{ fontSize: 12 }}>{l.paquete || '—'}</td>
+                    <td style={{ fontSize: 12 }}>{l.programa_retirado || '—'}</td>
                     <td style={{ fontSize: 12 }}>
                       {l.ultimo_correo_enviado != null ? nombreCorreo(l.ultimo_correo_enviado) : '—'}
                       {l.fecha_ultimo_envio && (
