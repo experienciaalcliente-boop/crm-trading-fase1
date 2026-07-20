@@ -25,6 +25,7 @@ export const NAV = [
   { to:'/comisiones',  icon:Award,             label:'Comisiones',      sub:'Bono de incentivos',   roles:['supervisor','asesora','orientador'], group:'Ventas y Comisiones' },
 
   { to:'/reactivate',  icon:RotateCcw,         label:'Reactivate Burs', sub:'Exalumnos retirados',  roles:['supervisor'], group:'Plan Reactivate' },
+  { to:'/exalumnos',   icon:RotateCcw,         label:'Plan Exalumnos', sub:'Campaña repartida',    roles:['supervisor','asesora','orientador'], group:'Plan Reactivate' },
 
   { to:'/importar',    icon:Upload,            label:'Importar',        sub:'CSV / Excel',          roles:['supervisor'], group:null },
 ]

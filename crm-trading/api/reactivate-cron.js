@@ -1,8 +1,12 @@
-// Vercel Cron (diario) — dispara el ciclo del Plan Reactivate Burs. Ver la
-// lógica real en api/_lib/reactivateCronCore.js (compartida con el botón
-// "Forzar envío pendiente ahora" del panel).
+// Vercel Cron (diario) — dispara el ciclo del Plan Reactivate Burs Y el del
+// Plan Exalumnos. Van en el mismo cron a propósito: el plan Hobby de Vercel
+// limita a 2 crons y ya había 2 registrados en vercel.json (este y
+// sync-programas-encuestas), así que un 3er cron dedicado para Exalumnos
+// no era viable — en cambio, ambas campañas comparten este único disparo
+// diario, cada una con su propio "en pausa" independiente si no le toca.
 import { createClient } from '@supabase/supabase-js'
 import { ejecutarCicloDiario } from './_lib/reactivateCronCore.js'
+import { ejecutarCicloDiarioExalumnos } from './_lib/expCampanaCronCore.js'
 
 export default async function handler(req, res) {
   const auth = req.headers.authorization
@@ -16,11 +20,20 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Falta configurar PUBLIC_APP_URL en las variables de entorno' })
   }
 
+  const resultado = { reactivateBurs: null, planExalumnos: null }
   try {
-    const resultado = await ejecutarCicloDiario({ supabase, baseUrl })
-    return res.status(200).json(resultado)
+    resultado.reactivateBurs = await ejecutarCicloDiario({ supabase, baseUrl })
   } catch (err) {
-    console.error('reactivate-cron:', err)
-    return res.status(500).json({ error: err.message || 'Error interno' })
+    console.error('reactivate-cron (Reactivate Burs):', err)
+    resultado.reactivateBurs = { ok: false, error: err.message || 'Error interno' }
   }
+
+  try {
+    resultado.planExalumnos = await ejecutarCicloDiarioExalumnos({ supabase, baseUrl })
+  } catch (err) {
+    console.error('reactivate-cron (Plan Exalumnos):', err)
+    resultado.planExalumnos = { ok: false, error: err.message || 'Error interno' }
+  }
+
+  return res.status(200).json(resultado)
 }

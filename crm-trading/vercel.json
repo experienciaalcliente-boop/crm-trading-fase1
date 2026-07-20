@@ -23,6 +23,8 @@
   "functions": {
     "api/reactivate-cron.js": { "maxDuration": 60 },
     "api/reactivate-activar.js": { "maxDuration": 60 },
-    "api/reactivate-forzar-envio.js": { "maxDuration": 60 }
+    "api/reactivate-forzar-envio.js": { "maxDuration": 60 },
+    "api/expcampana-activar.js": { "maxDuration": 60 },
+    "api/expcampana-forzar-envio.js": { "maxDuration": 60 }
   }
 }
