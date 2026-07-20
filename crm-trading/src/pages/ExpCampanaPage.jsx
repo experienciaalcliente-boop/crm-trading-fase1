@@ -40,7 +40,11 @@ export default function ExpCampanaPage() {
   const forzarEnvioPendiente = async () => {
     setForzando(true)
     try {
-      const res = await fetch('/api/expcampana-forzar-envio', { method: 'POST' })
+      const res = await fetch('/api/reactivate-forzar-envio', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ campana: 'exalumnos' }),
+      })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Error al forzar el envío')
       if (data.saltado) { toast(data.saltado, { icon: '⏸️' }); return }
@@ -57,10 +61,10 @@ export default function ExpCampanaPage() {
     if (!emailPrueba.trim()) { toast.error('Ingresa un correo de destino'); return }
     setEnviandoPrueba(true)
     try {
-      const res = await fetch('/api/expcampana-test-send', {
+      const res = await fetch('/api/reactivate-test-send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ destinatario: emailPrueba.trim(), correoNumero: correoPrueba }),
+        body: JSON.stringify({ destinatario: emailPrueba.trim(), campana: 'exalumnos', correoNumero: correoPrueba }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Error al enviar')

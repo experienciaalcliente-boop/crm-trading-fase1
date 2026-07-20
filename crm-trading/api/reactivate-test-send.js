@@ -1,13 +1,11 @@
-// Envía UN correo de prueba (Correo 1 de la secuencia) a la dirección que
-// indique el supervisor desde el panel — no toca la base de datos ni cuenta
-// como envío real de campaña. Sirve para validar que GMAIL_USER /
-// GMAIL_APP_PASSWORD / PUBLIC_APP_URL están bien configurados antes de
-// activar la campaña de verdad. Mismo patrón de acceso que api/zoom-meeting.js
-// (sin verificación de rol propia — la página que lo llama ya está protegida
-// para supervisor en el frontend).
+// Envía UN correo de prueba a la dirección indicada — no toca la base de
+// datos ni cuenta como envío real. Atiende ambas campañas (body.campana)
+// con el mismo archivo, ver nota en api/reactivate-activar.js sobre el
+// límite de funciones del plan Hobby.
 import nodemailer from 'nodemailer'
 import { randomUUID } from 'node:crypto'
-import { construirCorreo, conPixelDeApertura } from './_lib/reactivateEmails.js'
+import { construirCorreo as construirCorreoReactivate, conPixelDeApertura } from './_lib/reactivateEmails.js'
+import { construirCorreo as construirCorreoExalumnos } from './_lib/expCampanaEmails.js'
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*')
@@ -16,7 +14,7 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end()
   if (req.method !== 'POST') return res.status(405).json({ error: 'Método no permitido' })
 
-  const { destinatario } = req.body || {}
+  const { destinatario, campana, correoNumero } = req.body || {}
   if (!destinatario) return res.status(400).json({ error: 'Falta el destinatario' })
 
   if (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD) {
@@ -27,14 +25,17 @@ export default async function handler(req, res) {
   }
 
   try {
-    const token = randomUUID() // token de prueba, no queda registrado en reactivate_envios
+    const esExalumnos = campana === 'exalumnos'
+    const token = randomUUID() // token de prueba, no queda registrado en ninguna tabla
     const baseUrl = process.env.PUBLIC_APP_URL
-    const { asunto, html } = construirCorreo(1, {
-      nombre: 'Alumno de Prueba',
-      waUrl: `${baseUrl}/api/reactivate-track?t=${token}&e=click`,
-      testimonioUrls: {},
-    })
-    const htmlConPixel = conPixelDeApertura(html, `${baseUrl}/api/reactivate-track?t=${token}&e=open`)
+    const trackPath = esExalumnos ? 'expcampana-track' : 'reactivate-track'
+    const waUrl = `${baseUrl}/api/${trackPath}?t=${token}&e=click`
+    const pixelUrl = `${baseUrl}/api/${trackPath}?t=${token}&e=open`
+
+    const { asunto, html } = esExalumnos
+      ? construirCorreoExalumnos(correoNumero === 1 ? 1 : 0, { nombre: 'Alumno de Prueba', waUrl })
+      : construirCorreoReactivate(1, { nombre: 'Alumno de Prueba', waUrl, testimonioUrls: {} })
+    const htmlConPixel = conPixelDeApertura(html, pixelUrl)
 
     const transporter = nodemailer.createTransport({
       service: 'gmail',

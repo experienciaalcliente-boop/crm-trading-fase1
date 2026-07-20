@@ -1,9 +1,9 @@
-// Corre el mismo ciclo diario que el cron programado, pero disparado a mano
-// desde el botón "Forzar envío pendiente ahora" del panel del supervisor —
-// útil si una tanda diaria se cortó a medias (por el límite de tiempo de
-// una función serverless) y no quieren esperar a la corrida de mañana.
+// Corre el ciclo diario a mano, sin esperar a la corrida automática —
+// atiende ambas campañas (body.campana) con el mismo archivo, ver nota en
+// api/reactivate-activar.js sobre el límite de funciones del plan Hobby.
 import { createClient } from '@supabase/supabase-js'
 import { ejecutarCicloDiario } from './_lib/reactivateCronCore.js'
+import { ejecutarCicloDiarioExalumnos } from './_lib/expCampanaCronCore.js'
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*')
@@ -16,8 +16,12 @@ export default async function handler(req, res) {
   const baseUrl = process.env.PUBLIC_APP_URL
   if (!baseUrl) return res.status(500).json({ error: 'Falta configurar PUBLIC_APP_URL en las variables de entorno' })
 
+  const campana = req.body?.campana === 'exalumnos' ? 'exalumnos' : 'reactivate'
+
   try {
-    const resultado = await ejecutarCicloDiario({ supabase, baseUrl })
+    const resultado = campana === 'exalumnos'
+      ? await ejecutarCicloDiarioExalumnos({ supabase, baseUrl })
+      : await ejecutarCicloDiario({ supabase, baseUrl })
     return res.status(200).json(resultado)
   } catch (err) {
     console.error('reactivate-forzar-envio:', err)

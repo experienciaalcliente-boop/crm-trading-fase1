@@ -75,7 +75,11 @@ export function useExpCampana() {
 
     setActivando(true)
     try {
-      const res = await fetch('/api/expcampana-activar', { method: 'POST' })
+      const res = await fetch('/api/reactivate-activar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ campana: 'exalumnos' }),
+      })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Error al activar')
       setConfig((prev) => ({ ...prev, campana_activa: true }))

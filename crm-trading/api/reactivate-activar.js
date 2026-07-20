@@ -1,13 +1,61 @@
-// Activa la campaña Reactivate Burs y, a diferencia del cron diario, envía
-// el Correo 0 DE INMEDIATO a todos los alumnos que aún no iniciaron su
-// secuencia — así el supervisor ve resultado apenas activa el interruptor,
-// en vez de esperar a la próxima corrida del cron (9am hora Perú). Los
-// correos 1 a 6 de cada alumno sí siguen el cronograma normal vía
-// api/reactivate-cron.js.
+// Activa una campaña y envía su primer correo DE INMEDIATO a quien aún no
+// inició su secuencia — así el supervisor ve resultado apenas activa el
+// interruptor, en vez de esperar a la próxima corrida del cron (9am hora
+// Perú). El resto de la secuencia de cada quien sigue el cronograma normal
+// vía api/reactivate-cron.js.
+//
+// Atiende DOS campañas con el mismo archivo (Plan Reactivate Burs y Plan
+// Exalumnos, según body.campana) para no sumar una función serverless más
+// — el plan Hobby de Vercel limita a 12 y ya estaba en el tope.
 import { createClient } from '@supabase/supabase-js'
 import { enviarCorreoAlumno, transporterGmailPool, procesarEnLotes } from './_lib/reactivateSend.js'
+import { enviarCorreoLead } from './_lib/expCampanaSend.js'
 
 const CONCURRENCIA_ENVIO = 8
+
+async function activarReactivateBurs(supabase, baseUrl) {
+  const { data: config } = await supabase.from('reactivate_config').select('*').eq('id', 'default').maybeSingle()
+  await supabase.from('reactivate_config').update({ campana_activa: true, updated_at: new Date().toISOString() }).eq('id', 'default')
+
+  const { data: candidatos, error } = await supabase
+    .from('reactivate_alumnos')
+    .select('id, nombre, email')
+    .eq('excluido', false)
+    .eq('estado_campana', 'Pendiente')
+    .is('fecha_inicio_campana', null)
+  if (error) throw error
+
+  const transporter = transporterGmailPool()
+  const hoyStr = new Date().toISOString().slice(0, 10)
+  const testimonioUrls = { 1: config?.testimonio_url_1, 2: config?.testimonio_url_2 }
+
+  const { enviados, errores } = await procesarEnLotes(candidatos, CONCURRENCIA_ENVIO, (alumno) =>
+    enviarCorreoAlumno({ supabase, transporter, baseUrl, gmailUser: process.env.GMAIL_USER, alumno, correoNumero: 0, fechaInicio: hoyStr, testimonioUrls })
+  )
+  transporter.close()
+  return { ok: true, activada: true, total: candidatos.length, enviados, errores }
+}
+
+async function activarExalumnos(supabase, baseUrl) {
+  await supabase.from('campana_exalumnos_config').update({ campana_activa: true, updated_at: new Date().toISOString() }).eq('id', 'default')
+
+  const { data: candidatos, error } = await supabase
+    .from('campana_exalumnos_alumnos')
+    .select('id, nombre, email, asesora_id')
+    .eq('excluido', false)
+    .eq('estado_campana', 'Pendiente')
+    .is('fecha_inicio_campana', null)
+  if (error) throw error
+
+  const transporter = transporterGmailPool()
+  const hoyStr = new Date().toISOString().slice(0, 10)
+
+  const { enviados, errores } = await procesarEnLotes(candidatos, CONCURRENCIA_ENVIO, (lead) =>
+    enviarCorreoLead({ supabase, transporter, baseUrl, gmailUser: process.env.GMAIL_USER, lead, correoNumero: 0, fechaInicio: hoyStr })
+  )
+  transporter.close()
+  return { ok: true, activada: true, total: candidatos.length, enviados, errores }
+}
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*')
@@ -23,32 +71,13 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'GMAIL_USER / GMAIL_APP_PASSWORD no están configurados en el servidor' })
   }
 
+  const campana = req.body?.campana === 'exalumnos' ? 'exalumnos' : 'reactivate'
+
   try {
-    const { data: config } = await supabase.from('reactivate_config').select('*').eq('id', 'default').maybeSingle()
-
-    await supabase.from('reactivate_config').update({
-      campana_activa: true,
-      updated_at: new Date().toISOString(),
-    }).eq('id', 'default')
-
-    const { data: candidatos, error } = await supabase
-      .from('reactivate_alumnos')
-      .select('id, nombre, email')
-      .eq('excluido', false)
-      .eq('estado_campana', 'Pendiente')
-      .is('fecha_inicio_campana', null)
-    if (error) throw error
-
-    const transporter = transporterGmailPool()
-    const hoyStr = new Date().toISOString().slice(0, 10)
-    const testimonioUrls = { 1: config?.testimonio_url_1, 2: config?.testimonio_url_2 }
-
-    const { enviados, errores } = await procesarEnLotes(candidatos, CONCURRENCIA_ENVIO, (alumno) =>
-      enviarCorreoAlumno({ supabase, transporter, baseUrl, gmailUser: process.env.GMAIL_USER, alumno, correoNumero: 0, fechaInicio: hoyStr, testimonioUrls })
-    )
-    transporter.close()
-
-    return res.status(200).json({ ok: true, activada: true, total: candidatos.length, enviados, errores })
+    const resultado = campana === 'exalumnos'
+      ? await activarExalumnos(supabase, baseUrl)
+      : await activarReactivateBurs(supabase, baseUrl)
+    return res.status(200).json(resultado)
   } catch (err) {
     console.error('reactivate-activar:', err)
     return res.status(500).json({ error: err.message || 'Error interno' })
