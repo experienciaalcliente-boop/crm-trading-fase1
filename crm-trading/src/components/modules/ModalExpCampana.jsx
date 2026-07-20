@@ -39,7 +39,7 @@ export default function ModalExpCampana({ detalle, onCerrar, onRegistrarAvance }
               {lead.email} · {lead.telefono || '—'}
             </div>
             <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
-              Paquete: {lead.paquete || '—'}
+              Programa: {lead.programa_retirado || '—'}
             </div>
           </div>
           <button onClick={onCerrar} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 4 }}>
