@@ -8,15 +8,15 @@ const TEAL_ACCENT = '#65a7a6'
 const CREAM = '#eaf7f5'
 const WHATSAPP_GREEN = '#25D366'
 
-// Ícono de WhatsApp en SVG, embebido como data URI (no depende de imágenes externas).
-const WHATSAPP_ICON_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="20" height="20"><circle cx="16" cy="16" r="16" fill="#ffffff"/><path fill="${WHATSAPP_GREEN}" d="M16 3C9 3 3.3 8.6 3.3 15.5c0 2.4.7 4.7 1.9 6.7L3 29l7-2.1c1.9 1 4 1.6 6 1.6 7 0 12.7-5.6 12.7-12.5S23 3 16 3z"/><path fill="#ffffff" d="M22.4 19c-.3-.2-1.8-.9-2.1-1s-.5-.2-.7.2-.8 1-.9 1.1-.3.2-.6 0c-.3-.1-1.2-.4-2.3-1.4-.9-.8-1.4-1.7-1.6-2s0-.4.1-.6c.1-.1.3-.3.4-.5s.2-.3.3-.5c.1-.2 0-.4 0-.5s-.7-1.6-.9-2.2c-.2-.5-.5-.5-.7-.5h-.6c-.2 0-.5.1-.8.4-.3.3-1 1-1 2.4s1 2.8 1.2 3c.1.2 2 3.1 4.9 4.3.7.3 1.2.5 1.6.6.7.2 1.3.2 1.8.1.5-.1 1.8-.7 2-1.4.3-.7.3-1.3.2-1.4-.1-.1-.3-.2-.6-.3z"/></svg>`
-const WHATSAPP_ICON_DATA_URI = `data:image/svg+xml;base64,${Buffer.from(WHATSAPP_ICON_SVG).toString('base64')}`
-
 export function primerNombre(nombreCompleto) {
   const primera = String(nombreCompleto || '').trim().split(/\s+/)[0] || ''
   return primera.charAt(0).toUpperCase() + primera.slice(1).toLowerCase()
 }
 
+// Sin ícono SVG embebido a propósito: Gmail y la mayoría de clientes de
+// correo bloquean o no renderizan bien las imágenes data:image/svg+xml,
+// dejando un ícono roto en vez del botón — texto limpio es lo único que
+// se ve bien en todos los clientes.
 function whatsappButton(url) {
   return `
   <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:28px auto;">
@@ -24,8 +24,7 @@ function whatsappButton(url) {
       <td align="center" bgcolor="${WHATSAPP_GREEN}" style="border-radius:30px;">
         <a href="${url}" target="_blank"
            style="display:inline-block; padding:14px 28px; font-family:Arial,Helvetica,sans-serif; font-size:15px; font-weight:bold; color:#ffffff; text-decoration:none; border-radius:30px; letter-spacing:0.2px;">
-          <img src="${WHATSAPP_ICON_DATA_URI}" width="20" height="20" alt="WhatsApp" style="vertical-align:middle; margin-right:8px;" />
-          <span style="vertical-align:middle;">Conocer mi propuesta de retorno</span>
+          Conocer mi propuesta de retorno
         </a>
       </td>
     </tr>
