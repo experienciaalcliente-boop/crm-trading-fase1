@@ -18,12 +18,12 @@ export function primerNombre(nombreCompleto) {
 // NO como data: URI, que Outlook de escritorio bloquea por completo, ni
 // como SVG, que Gmail no renderiza. Mismo patrón que ya funciona en
 // testimonioEmbed() con las miniaturas de YouTube.
-function whatsappButton(url, baseUrl) {
+function whatsappButton(url, baseUrl, texto = 'Conocer mi propuesta de retorno') {
   return `
   <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:28px auto;">
     <tr>
       <td align="center" bgcolor="${WHATSAPP_GREEN}" style="border-radius:30px;">
-        <a href="${url}" target="_blank" style="display:inline-block; padding:14px 28px; font-family:Arial,Helvetica,sans-serif; font-size:15px; font-weight:bold; color:#ffffff; text-decoration:none; border-radius:30px; letter-spacing:0.2px;"><img src="${baseUrl}/whatsapp-icon.png" width="18" height="18" alt="" style="vertical-align:middle; margin-right:8px; border:0;" />Conocer mi propuesta de retorno</a>
+        <a href="${url}" target="_blank" style="display:inline-block; padding:14px 28px; font-family:Arial,Helvetica,sans-serif; font-size:15px; font-weight:bold; color:#ffffff; text-decoration:none; border-radius:30px; letter-spacing:0.2px;"><img src="${baseUrl}/whatsapp-icon.png" width="18" height="18" alt="" style="vertical-align:middle; margin-right:8px; border:0;" />${texto}</a>
       </td>
     </tr>
   </table>
@@ -200,6 +200,75 @@ const CORREOS = [
     incluyeTestimonio: null,
   },
 ]
+
+// Bloques visuales del correo de cierre (mismo criterio que expCampanaEmails.js:
+// se parte en tarjetas cortas para que se pueda escanear sin perder el hilo).
+function priceCard() {
+  return `
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0;">
+    <tr>
+      <td align="center" style="background:${CREAM}; border:1.5px solid ${TEAL_ACCENT}; border-radius:12px; padding:20px 18px;">
+        <div style="font-family:Arial,Helvetica,sans-serif; font-size:11px; letter-spacing:0.08em; text-transform:uppercase; color:#5a6b6e; margin-bottom:8px;">Valor real de tu formación</div>
+        <div style="font-family:Arial,Helvetica,sans-serif; font-size:24px; color:#9aa8ab; text-decoration:line-through; margin-bottom:6px;">$3,000</div>
+        <div style="font-family:Arial,Helvetica,sans-serif; font-size:13px; color:#5a6b6e; margin-bottom:8px;">Hoy tú solo pagas</div>
+        <div style="font-family:Arial,Helvetica,sans-serif; font-size:19px; font-weight:bold; color:${TEAL_DARK};">Lo que dejaste pendiente</div>
+      </td>
+    </tr>
+  </table>`
+}
+
+function benefitsBox(items) {
+  const filas = items.map(texto => `
+        <tr>
+          <td style="padding:6px 8px 6px 0; vertical-align:top; width:20px; font-family:Arial,Helvetica,sans-serif; color:${TEAL_ACCENT}; font-weight:bold; font-size:14px;">✓</td>
+          <td style="padding:6px 0; vertical-align:top; font-family:Arial,Helvetica,sans-serif; font-size:14px; line-height:1.5; color:#28353a;">${texto}</td>
+        </tr>`).join('')
+  return `
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:18px 0;">
+    <tr>
+      <td style="background:${CREAM}; border-radius:12px; padding:14px 18px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+          ${filas}
+        </table>
+      </td>
+    </tr>
+  </table>`
+}
+
+function fraseDecision(texto) {
+  return `<p style="margin:20px 0 6px; padding:14px 16px; border-left:3px solid ${TEAL_ACCENT}; background:${CREAM}; border-radius:0 8px 8px 0; font-family:Arial,Helvetica,sans-serif; font-size:14.5px; font-weight:bold; color:${TEAL_DARK};">${texto}</p>`
+}
+
+// Correo de cierre — envío único y manual (no forma parte de la secuencia
+// Correo 0-6), a los 399 alumnos retirados con saldo pendiente real. Mismo
+// copy/diseño aprobado que el correo de cierre de Plan Exalumnos.
+export const CORREO_NUMERO_CIERRE = 99
+
+export function construirCorreoCierre({ nombre, waUrl, baseUrl }) {
+  const primerNom = primerNombre(nombre)
+  const html = [
+    `<p>Hola, ${primerNom}.</p>`,
+    `<p>Una pregunta directa, sin rodeos: ¿cuánto tiempo más vas a dejar en pausa algo que ya empezaste a construir?</p>`,
+    `<p>Sabemos por qué no has vuelto. No es falta de interés — es el dinero. Hoy queremos resolver justo eso.</p>`,
+    priceCard(),
+    `<p>Sí, hay una condición: por un incumplimiento anterior, ese saldo ya no se puede fraccionar en cuotas programadas. Pero puedes ir aportando de a pocos, a tu ritmo, hasta completarlo — sin fechas que te ahoguen, solo constancia de tu parte.</p>`,
+    `<p>Y en cuanto termines de cubrirlo, esto vuelve a ser tuyo:</p>`,
+    benefitsBox([
+      'Todo el material pregrabado del programa, de inicio a fin',
+      'Las grabaciones completas de todas las sesiones en vivo que se dictaron en el programa en el que te inscribiste',
+      'Una sesión grupal en vivo para resolver tus dudas sobre el contenido que vayas revisando',
+      'Tu lugar en la comunidad de exalumnos: entradas de los mentores, dinámicas con beneficios adicionales, y también puedes compartir las tuyas',
+    ]),
+    `<p>Esta es la última puerta que dejamos abierta de este ciclo. La próxima vez que quieras retomarlo, no vas a encontrar esta condición — vas a encontrar el precio completo, otra vez.</p>`,
+    fraseDecision(`La decisión no es sobre dinero. Es sobre si vas a terminar lo que empezaste, o vas a dejar que esto se quede ahí para siempre.`),
+    `<p>Equipo Burs Advisory<br/><span style="font-size:13px; color:#5a6b6e;">P.D. Tu asesor(a) ya sabe que te vamos a escribir. Un mensaje, y hoy mismo lo resuelves.</span></p>`,
+    whatsappButton(waUrl, baseUrl, 'Sí, quiero terminar lo que empecé'),
+  ].join('')
+  return {
+    asunto: 'Lo que dejaste a medias, hoy cuesta menos de lo que crees',
+    html: baseShell({ preheader: 'No es una promoción. Es la última puerta abierta de este ciclo.', bodyHtml: html }),
+  }
+}
 
 export function totalCorreos() {
   return CORREOS.length // 7 (Correo 0 a Correo 6)

@@ -4,7 +4,7 @@
 // (api/reactivate-forzar-envio.js), para poder ponerse al día sin esperar
 // a la próxima corrida automática si una tanda se cortó a medias.
 import { totalCorreos } from './reactivateEmails.js'
-import { enviarCorreoAlumno, transporterGmailPool, procesarEnLotes } from './reactivateSend.js'
+import { enviarCorreoAlumno, enviarCorreoCierreAlumno, transporterGmailPool, procesarEnLotes } from './reactivateSend.js'
 
 // Días transcurridos desde fecha_inicio_campana (día 1 = 0 transcurridos) en
 // los que corresponde enviar el correo N según la sección 5 del plan.
@@ -70,4 +70,29 @@ export async function ejecutarCicloDiario({ supabase, baseUrl }) {
   transporter.close()
 
   return { ok: true, enviados, errores, omitidos, totalCandidatos: candidatos.length }
+}
+
+// Correo de cierre del Plan Reactivate Burs — envío único y manual (lo
+// dispara el supervisor desde el panel, no el cron), a los 399 alumnos
+// retirados con saldo pendiente real. Reanudable: a quien ya quedó en
+// "Cierre enviado" no se le reenvía.
+const ESTADOS_YA_RESUELTOS_CIERRE = ['Reactivado', 'No interesado', 'Cierre enviado']
+
+export async function ejecutarEnvioCierre({ supabase, baseUrl }) {
+  const { data: candidatos, error } = await supabase
+    .from('reactivate_alumnos')
+    .select('id, nombre, email, estado_campana')
+    .eq('excluido', false)
+    .order('id')
+  if (error) throw error
+
+  const pendientes = candidatos.filter(a => !ESTADOS_YA_RESUELTOS_CIERRE.includes(a.estado_campana))
+
+  const transporter = transporterGmailPool()
+  const { enviados, errores } = await procesarEnLotes(pendientes, CONCURRENCIA_ENVIO, (alumno) =>
+    enviarCorreoCierreAlumno({ supabase, transporter, baseUrl, gmailUser: process.env.GMAIL_USER, alumno })
+  )
+  transporter.close()
+
+  return { ok: true, enviados, errores, pendientesRestantes: Math.max(0, pendientes.length - enviados) }
 }

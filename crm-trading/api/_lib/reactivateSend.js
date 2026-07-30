@@ -4,7 +4,7 @@
 // lógica de armar el correo + registrar el envío + actualizar el estado.
 import { randomUUID } from 'node:crypto'
 import nodemailer from 'nodemailer'
-import { construirCorreo, conPixelDeApertura } from './reactivateEmails.js'
+import { construirCorreo, construirCorreoCierre, conPixelDeApertura, CORREO_NUMERO_CIERRE } from './reactivateEmails.js'
 
 export async function enviarCorreoAlumno({ supabase, transporter, baseUrl, gmailUser, alumno, correoNumero, testimonioUrls, fechaInicio }) {
   const token = randomUUID()
@@ -31,6 +31,37 @@ export async function enviarCorreoAlumno({ supabase, transporter, baseUrl, gmail
     estado_campana: `Correo ${correoNumero} enviado`,
     ultimo_correo_enviado: correoNumero,
     fecha_inicio_campana: fechaInicio,
+    fecha_ultimo_envio: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  }).eq('id', alumno.id)
+}
+
+// Correo de cierre — envío único y manual, a los 399 alumnos de Reactivate
+// Burs, todos con saldo pendiente real. No forma parte de la secuencia
+// Correo 0-6.
+export async function enviarCorreoCierreAlumno({ supabase, transporter, baseUrl, gmailUser, alumno }) {
+  const token = randomUUID()
+  const waUrl = `${baseUrl}/api/reactivate-track?t=${token}&e=click`
+  const pixelUrl = `${baseUrl}/api/reactivate-track?t=${token}&e=open`
+
+  const { asunto, html } = construirCorreoCierre({ nombre: alumno.nombre, waUrl, baseUrl })
+  const htmlConPixel = conPixelDeApertura(html, pixelUrl)
+
+  await transporter.sendMail({
+    from: `"BURS Advisory" <${gmailUser}>`,
+    to: alumno.email,
+    subject: asunto,
+    html: htmlConPixel,
+  })
+
+  await supabase.from('reactivate_envios').insert({
+    alumno_id: alumno.id,
+    correo_numero: CORREO_NUMERO_CIERRE,
+    token,
+  })
+
+  await supabase.from('reactivate_alumnos').update({
+    estado_campana: 'Cierre enviado',
     fecha_ultimo_envio: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   }).eq('id', alumno.id)

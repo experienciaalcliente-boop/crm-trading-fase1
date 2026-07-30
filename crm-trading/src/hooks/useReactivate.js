@@ -6,7 +6,7 @@ export const ESTADOS_REACTIVATE = [
   'Pendiente',
   'Correo 0 enviado', 'Correo 1 enviado', 'Correo 2 enviado', 'Correo 3 enviado',
   'Correo 4 enviado', 'Correo 5 enviado', 'Correo 6 enviado',
-  'Interesado', 'Contactado', 'Negociación', 'Reactivado', 'No interesado', 'Sin respuesta',
+  'Interesado', 'Contactado', 'Negociación', 'Reactivado', 'No interesado', 'Sin respuesta', 'Cierre enviado',
 ]
 
 // Estados a los que el supervisor/asesor puede mover manualmente a un alumno
