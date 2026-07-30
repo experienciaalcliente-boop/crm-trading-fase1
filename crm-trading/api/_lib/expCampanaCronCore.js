@@ -124,6 +124,7 @@ export async function ejecutarCicloDiarioExalumnos({ supabase, baseUrl }) {
       .select('id, nombre, email, asesora_id, estado_campana, fecha_inicio_campana, ultimo_correo_enviado')
       .eq('excluido', false)
       .in('estado_campana', ESTADOS_EN_SECUENCIA)
+      .order('id')
       .range(desde, hasta)
   )
 
@@ -218,11 +219,17 @@ export const CUPO_DIARIO_CIERRE_POR_ASESORA = 400
 // diario por asesora se descuenta de quienes ya lo recibieron hoy mismo.
 export async function ejecutarEnvioCierre({ supabase, baseUrl }) {
   const hoyStr = new Date().toISOString().slice(0, 10)
+  // .order('id') es obligatorio: sin un orden explícito, .range() puede
+  // saltarse o duplicar filas de una llamada a otra en una tabla con miles
+  // de registros (mismo bug de paginación no determinista ya visto antes en
+  // useExpCampana.js) — sin esto, dos corridas seguidas podían "perder" de
+  // vista leads con cupo disponible y quedarse reintentando solo 1 o 2.
   const candidatos = await fetchTodosPaginado((desde, hasta) =>
     supabase
       .from('campana_exalumnos_alumnos')
       .select('id, nombre, email, asesora_id, estado_campana, fecha_ultimo_envio')
       .eq('excluido', false)
+      .order('id')
       .range(desde, hasta)
   )
 
