@@ -3,7 +3,7 @@
 // api/reactivate-activar.js sobre el límite de funciones del plan Hobby.
 import { createClient } from '@supabase/supabase-js'
 import { ejecutarCicloDiario } from './_lib/reactivateCronCore.js'
-import { ejecutarCicloDiarioExalumnos, ejecutarEnvioCierre } from './_lib/expCampanaCronCore.js'
+import { ejecutarCicloDiarioExalumnos, ejecutarEnvioCierre, ejecutarEnvioAclaracion } from './_lib/expCampanaCronCore.js'
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*')
@@ -16,14 +16,17 @@ export default async function handler(req, res) {
   const baseUrl = process.env.PUBLIC_APP_URL
   if (!baseUrl) return res.status(500).json({ error: 'Falta configurar PUBLIC_APP_URL en las variables de entorno' })
 
-  const campana = req.body?.campana === 'exalumnos' ? 'exalumnos' : req.body?.campana === 'cierre' ? 'cierre' : 'reactivate'
+  const campanasValidas = ['exalumnos', 'cierre', 'aclaracion']
+  const campana = campanasValidas.includes(req.body?.campana) ? req.body.campana : 'reactivate'
 
   try {
     const resultado = campana === 'cierre'
       ? await ejecutarEnvioCierre({ supabase, baseUrl })
-      : campana === 'exalumnos'
-        ? await ejecutarCicloDiarioExalumnos({ supabase, baseUrl })
-        : await ejecutarCicloDiario({ supabase, baseUrl })
+      : campana === 'aclaracion'
+        ? await ejecutarEnvioAclaracion({ supabase })
+        : campana === 'exalumnos'
+          ? await ejecutarCicloDiarioExalumnos({ supabase, baseUrl })
+          : await ejecutarCicloDiario({ supabase, baseUrl })
     return res.status(200).json(resultado)
   } catch (err) {
     console.error('reactivate-forzar-envio:', err)

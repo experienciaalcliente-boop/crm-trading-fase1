@@ -4,8 +4,8 @@
 // original del documento (que arrancaba el 17/07) para poder activarse hoy
 // sin perder ningún correo de la secuencia. El cierre real de ciclo
 // (antes 31/07) queda en día 14 desde la activación.
-import { totalCorreos, diaPara, reenvioDePara } from './expCampanaEmails.js'
-import { enviarCorreoLead, enviarCorreoCierreLead, transporterGmailPool, procesarEnLotes } from './expCampanaSend.js'
+import { totalCorreos, diaPara, reenvioDePara, CORREO_NUMERO_ACLARACION } from './expCampanaEmails.js'
+import { enviarCorreoLead, enviarCorreoCierreLead, enviarCorreoAclaracionLead, transporterGmailPool, procesarEnLotes } from './expCampanaSend.js'
 
 const DIAS_GRACIA_SIN_RESPUESTA = 3 // margen tras el último correo (C8) antes de cerrar el ciclo
 const CONCURRENCIA_ENVIO = 20
@@ -267,4 +267,41 @@ export async function ejecutarEnvioCierre({ supabase, baseUrl }) {
   transporter.close()
 
   return { ok: true, enviados, errores, pendientesRestantes: Math.max(0, totalPendientesAntes - enviados) }
+}
+
+// Fe de erratas: corrige el correo de cierre que se envió por error a quien
+// no tiene saldo pendiente real (ver commit del fix de segmentación). Solo
+// a quien quedó en "Cierre enviado" sin monto_faltante>0, y que todavía no
+// recibió esta corrección (se controla por la presencia de un envío con
+// correo_numero=CORREO_NUMERO_ACLARACION).
+export async function ejecutarEnvioAclaracion({ supabase }) {
+  const candidatos = await fetchTodosPaginado((desde, hasta) =>
+    supabase
+      .from('campana_exalumnos_alumnos')
+      .select('id, nombre, email, monto_faltante')
+      .eq('excluido', false)
+      .eq('estado_campana', 'Cierre enviado')
+      .or('monto_faltante.is.null,monto_faltante.lte.0')
+      .order('id')
+      .range(desde, hasta)
+  )
+
+  const yaNotificados = await fetchTodosPaginado((desde, hasta) =>
+    supabase
+      .from('campana_exalumnos_envios')
+      .select('alumno_id')
+      .eq('correo_numero', CORREO_NUMERO_ACLARACION)
+      .order('alumno_id')
+      .range(desde, hasta)
+  )
+  const idsNotificados = new Set(yaNotificados.map(e => e.alumno_id))
+  const pendientes = candidatos.filter(l => !idsNotificados.has(l.id))
+
+  const transporter = transporterGmailPool()
+  const { enviados, errores } = await procesarEnLotes(pendientes, CONCURRENCIA_ENVIO, (lead) =>
+    enviarCorreoAclaracionLead({ supabase, transporter, gmailUser: process.env.GMAIL_USER, lead })
+  )
+  transporter.close()
+
+  return { ok: true, enviados, errores, pendientesRestantes: Math.max(0, pendientes.length - enviados) }
 }

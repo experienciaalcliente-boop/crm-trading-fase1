@@ -37,6 +37,7 @@ export default function ExpCampanaPage() {
   const [enviandoPrueba, setEnviandoPrueba] = useState(false)
   const [forzando, setForzando] = useState(false)
   const [enviandoCierre, setEnviandoCierre] = useState(false)
+  const [enviandoAclaracion, setEnviandoAclaracion] = useState(false)
 
   const tasaClic = r.stats.correosEnviados > 0 ? Math.round((r.stats.conClic / r.stats.correosEnviados) * 100) : 0
 
@@ -76,6 +77,25 @@ export default function ExpCampanaPage() {
       toast.error(err.message)
     } finally {
       setEnviandoCierre(false)
+    }
+  }
+
+  const enviarAclaracion = async () => {
+    setEnviandoAclaracion(true)
+    try {
+      const res = await fetch('/api/reactivate-forzar-envio', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ campana: 'aclaracion' }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Error al enviar la fe de erratas')
+      toast.success(`Fe de erratas: ${data.enviados} enviados${data.errores ? `, ${data.errores} con error` : ''}. Quedan ${data.pendientesRestantes} pendientes.`)
+      await r.cargar()
+    } catch (err) {
+      toast.error(err.message)
+    } finally {
+      setEnviandoAclaracion(false)
     }
   }
 
@@ -150,6 +170,18 @@ export default function ExpCampanaPage() {
                 opacity: enviandoCierre ? 0.7 : 1,
               }}>
               {enviandoCierre ? <><Loader2 size={13} className="animate-spin" /> Enviando cierre…</> : <><Zap size={13} /> Enviar correo de cierre</>}
+            </button>
+            <button
+              onClick={enviarAclaracion}
+              disabled={enviandoAclaracion}
+              title="Corrige el correo de cierre enviado por error a quien no tiene saldo pendiente real"
+              style={{
+                display: 'flex', alignItems: 'center', gap: 6, padding: '7px 16px', borderRadius: 8,
+                fontSize: 12, fontWeight: 700, cursor: enviandoAclaracion ? 'default' : 'pointer', border: '1px solid rgba(240,92,92,0.35)',
+                background: 'transparent', color: '#f07070',
+                opacity: enviandoAclaracion ? 0.7 : 1,
+              }}>
+              {enviandoAclaracion ? <><Loader2 size={13} className="animate-spin" /> Enviando fe de erratas…</> : <>Enviar fe de erratas</>}
             </button>
           </div>
         )}

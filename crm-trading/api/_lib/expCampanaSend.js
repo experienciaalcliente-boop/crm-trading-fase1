@@ -3,7 +3,7 @@
 // A diferencia de Plan Reactivate Burs (un wa_link único), acá el link de
 // WhatsApp depende de la asesora asignada a este alumno_id específico.
 import { randomUUID } from 'node:crypto'
-import { construirCorreo, construirCorreoCierre, conPixelDeApertura, variantePara, CORREO_NUMERO_CIERRE } from './expCampanaEmails.js'
+import { construirCorreo, construirCorreoCierre, construirCorreoAclaracion, conPixelDeApertura, variantePara, CORREO_NUMERO_CIERRE, CORREO_NUMERO_ACLARACION } from './expCampanaEmails.js'
 import { waLinkPara } from './expCampanaAsesoras.js'
 export { transporterGmailPool, procesarEnLotes, dormir } from './reactivateSend.js'
 
@@ -78,5 +78,26 @@ export async function enviarCorreoCierreLead({ supabase, transporter, baseUrl, g
     fecha_ultimo_envio: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   }).eq('id', lead.id)
+}
+
+// Fe de erratas — corrige el correo de cierre enviado por error a quien no
+// tiene saldo pendiente real. No toca estado_campana (sigue siendo
+// "Cierre enviado", es históricamente correcto); solo deja registro del
+// envío para no reenviarla dos veces.
+export async function enviarCorreoAclaracionLead({ supabase, transporter, gmailUser, lead }) {
+  const { asunto, html } = construirCorreoAclaracion({ nombre: lead.nombre })
+
+  await transporter.sendMail({
+    from: `"BURS Advisory" <${gmailUser}>`,
+    to: lead.email,
+    subject: asunto,
+    html,
+  })
+
+  await supabase.from('campana_exalumnos_envios').insert({
+    alumno_id: lead.id,
+    correo_numero: CORREO_NUMERO_ACLARACION,
+    token: randomUUID(),
+  })
 }
 

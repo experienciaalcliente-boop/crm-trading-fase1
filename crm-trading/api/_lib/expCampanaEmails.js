@@ -340,6 +340,27 @@ export function variantePararCierre() {
   return CORREO_CIERRE.variante
 }
 
+// 98 = marcador de la fe de erratas (correo de corrección enviado solo a
+// quien recibió el correo de cierre por error, sin tener saldo pendiente
+// real). No lleva botón de WhatsApp ni oferta — es solo una aclaración.
+export const CORREO_NUMERO_ACLARACION = 98
+
+export function construirCorreoAclaracion({ nombre }) {
+  const primerNom = primerNombre(nombre)
+  const html = [
+    p(`Hola, ${primerNom}.`),
+    p(`Hace unas horas te llegó un correo nuestro sobre pagar el saldo pendiente de tu formación.`),
+    p(`Si tú ya completaste tu pago en su momento, ese mensaje no te correspondía — fue un error nuestro al armar el envío, y queríamos aclararlo cuanto antes para no dejarte con la duda.`),
+    p(`No tienes que hacer nada de tu parte. Si de todas formas quieres confirmar el estado de tu cuenta, tu asesor(a) puede confirmártelo en minutos.`),
+    p(`Gracias por tu comprensión, y disculpa la confusión.`),
+    p(`Equipo Burs Advisory`),
+  ].join('')
+  return {
+    asunto: 'Aclaración sobre el correo que recibiste hoy',
+    html: baseShell({ preheader: 'Ese mensaje no era para ti — nuestras disculpas.', bodyHtml: html }),
+  }
+}
+
 export function totalCorreos() {
   return CORREOS.length // 10 (8 principales + 2 reenvíos a no-abiertos)
 }
