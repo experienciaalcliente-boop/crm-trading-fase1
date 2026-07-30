@@ -14,6 +14,7 @@ const ESTADO_STYLE = {
   'Reactivado':    { bg: 'rgba(34,201,142,0.12)',  color: '#2dd4a0',            border: 'rgba(34,201,142,0.25)' },
   'No interesado': { bg: 'rgba(240,92,92,0.12)',   color: '#f07070',            border: 'rgba(240,92,92,0.25)' },
   'Sin respuesta': { bg: 'rgba(240,92,92,0.08)',   color: '#c98080',            border: 'rgba(240,92,92,0.15)' },
+  'Cierre enviado': { bg: 'rgba(136,150,180,0.12)', color: '#8896b4',           border: 'rgba(136,150,180,0.25)' },
 }
 function estiloEstado(estado) {
   return ESTADO_STYLE[estado] || { bg: 'rgba(255,255,255,0.04)', color: 'var(--text-faint)', border: 'rgba(255,255,255,0.08)' }
@@ -35,6 +36,7 @@ export default function ExpCampanaPage() {
   const [asesoraPrueba, setAsesoraPrueba] = useState('')
   const [enviandoPrueba, setEnviandoPrueba] = useState(false)
   const [forzando, setForzando] = useState(false)
+  const [enviandoCierre, setEnviandoCierre] = useState(false)
 
   const tasaClic = r.stats.correosEnviados > 0 ? Math.round((r.stats.conClic / r.stats.correosEnviados) * 100) : 0
 
@@ -55,6 +57,25 @@ export default function ExpCampanaPage() {
       toast.error(err.message)
     } finally {
       setForzando(false)
+    }
+  }
+
+  const enviarCierre = async () => {
+    setEnviandoCierre(true)
+    try {
+      const res = await fetch('/api/reactivate-forzar-envio', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ campana: 'cierre' }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Error al enviar el correo de cierre')
+      toast.success(`Cierre: ${data.enviados} enviados${data.errores ? `, ${data.errores} con error` : ''}. Quedan ${data.pendientesRestantes} pendientes (cupo diario por asesora).`)
+      await r.cargar()
+    } catch (err) {
+      toast.error(err.message)
+    } finally {
+      setEnviandoCierre(false)
     }
   }
 
@@ -118,6 +139,18 @@ export default function ExpCampanaPage() {
                   : r.config.campana_activa ? <><Pause size={13} /> Pausar campaña</> : <><Play size={13} /> Activar campaña</>}
               </button>
             )}
+            <button
+              onClick={enviarCierre}
+              disabled={enviandoCierre}
+              title="Envía el correo de cierre a quien todavía no lo recibió (cupo diario por asesora — repite el clic mañana para completar al resto)"
+              style={{
+                display: 'flex', alignItems: 'center', gap: 6, padding: '7px 16px', borderRadius: 8,
+                fontSize: 12, fontWeight: 700, cursor: enviandoCierre ? 'default' : 'pointer', border: 'none',
+                background: enviandoCierre ? 'var(--text-faint)' : '#e8963a', color: '#fff',
+                opacity: enviandoCierre ? 0.7 : 1,
+              }}>
+              {enviandoCierre ? <><Loader2 size={13} className="animate-spin" /> Enviando cierre…</> : <><Zap size={13} /> Enviar correo de cierre</>}
+            </button>
           </div>
         )}
       </div>

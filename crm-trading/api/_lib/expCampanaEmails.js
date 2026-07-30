@@ -255,6 +255,46 @@ const CORREOS = [
   },
 ]
 
+// Bloques visuales del correo de cierre — es el correo más largo y con más
+// carga emocional del ciclo, así que en vez de un bloque de texto corrido se
+// parte en tarjetas cortas (precio, beneficios, frase de decisión) para que
+// se pueda "escanear" sin perder el hilo y no se quede a medias a la mitad.
+function priceCard() {
+  return `
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0;">
+    <tr>
+      <td align="center" style="background:${CREAM}; border:1.5px solid ${TEAL_ACCENT}; border-radius:12px; padding:20px 18px;">
+        <div style="font-family:Arial,Helvetica,sans-serif; font-size:11px; letter-spacing:0.08em; text-transform:uppercase; color:#5a6b6e; margin-bottom:8px;">Valor real de tu formación</div>
+        <div style="font-family:Arial,Helvetica,sans-serif; font-size:24px; color:#9aa8ab; text-decoration:line-through; margin-bottom:6px;">$3,000</div>
+        <div style="font-family:Arial,Helvetica,sans-serif; font-size:13px; color:#5a6b6e; margin-bottom:8px;">Hoy tú solo pagas</div>
+        <div style="font-family:Arial,Helvetica,sans-serif; font-size:19px; font-weight:bold; color:${TEAL_DARK};">Lo que dejaste pendiente</div>
+      </td>
+    </tr>
+  </table>`
+}
+
+function benefitsBox(items) {
+  const filas = items.map(texto => `
+        <tr>
+          <td style="padding:6px 8px 6px 0; vertical-align:top; width:20px; font-family:Arial,Helvetica,sans-serif; color:${TEAL_ACCENT}; font-weight:bold; font-size:14px;">✓</td>
+          <td style="padding:6px 0; vertical-align:top; font-family:Arial,Helvetica,sans-serif; font-size:14px; line-height:1.5; color:#28353a;">${texto}</td>
+        </tr>`).join('')
+  return `
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:18px 0;">
+    <tr>
+      <td style="background:${CREAM}; border-radius:12px; padding:14px 18px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+          ${filas}
+        </table>
+      </td>
+    </tr>
+  </table>`
+}
+
+function fraseDecision(texto) {
+  return `<p style="margin:20px 0 6px; padding:14px 16px; border-left:3px solid ${TEAL_ACCENT}; background:${CREAM}; border-radius:0 8px 8px 0; font-family:Arial,Helvetica,sans-serif; font-size:14.5px; font-weight:bold; color:${TEAL_DARK};">${texto}</p>`
+}
+
 // Correo de cierre de campaña — no forma parte del calendario C1-C8 (no
 // tiene "dia" ni se dispara por el cron), es un envío único y manual para
 // cerrar el ciclo de reactivación. Se manda a todo lead que no se haya
@@ -263,20 +303,26 @@ const CORREOS = [
 // aula, no de Impulso BURS).
 const CORREO_CIERRE = {
   variante: 'aula',
-  asunto: 'Última comunicación: tu formación, por lo que ya quedó pendiente',
-  preheader: 'Tu formación vale $3,000. A ti solo te falta el saldo que dejaste pendiente.',
-  textoBoton: 'Quiero resolver mi saldo pendiente',
+  asunto: 'Lo que dejaste a medias, hoy cuesta menos de lo que crees',
+  preheader: 'No es una promoción. Es la última puerta abierta de este ciclo.',
+  textoBoton: 'Sí, quiero terminar lo que empecé',
   cuerpo: (nombre) => [
     p(`Hola, ${nombre}.`),
-    p(`Este es el último correo que te enviamos sobre esto. No porque dejes de importarnos, sino porque el ciclo de reactivación para exalumnos cierra, y después de hoy no vamos a insistir más.`),
-    p(`Queremos ser directos contigo, sin vueltas.`),
-    p(`Tu formación en Burs Advisory tiene un valor de <strong>$3,000</strong>. Pero tú no vas a pagar $3,000: vas a pagar únicamente el <strong>saldo que dejaste pendiente</strong> cuando saliste del programa. Ni un dólar más.`),
-    p(`Es la última oportunidad para cerrar esa cuenta en estas condiciones. Queremos ser claros en un punto: por haber quedado un incumplimiento anterior, este saldo ya no se puede fraccionar en cuotas programadas. Pero sí puedes ir aportando de forma parcial, a tu ritmo, hasta completarlo — sin presión de fechas, solo constancia.`),
-    p(`Y en cuanto termines de cubrir ese saldo, esto es lo que desbloqueas:`),
-    p(`✅ Acceso a todo el material pregrabado del programa, de inicio a fin<br/>✅ Las grabaciones completas de todas las sesiones en vivo que se dictaron en el programa en el que te inscribiste<br/>✅ Una sesión grupal en vivo para resolver tus dudas sobre el contenido que vayas revisando<br/>✅ Tu lugar en la comunidad de exalumnos: ahí se comparten las entradas de los mentores, se publican dinámicas con beneficios adicionales, y tú también puedes compartir las tuyas`),
-    p(`Todo eso, solo por el saldo que ya quedó pendiente. No hay una oferta más simple que esta.`),
+    p(`Una pregunta directa, sin rodeos: ¿cuánto tiempo más vas a dejar en pausa algo que ya empezaste a construir?`),
+    p(`Sabemos por qué no has vuelto. No es falta de interés — es el dinero. Hoy queremos resolver justo eso.`),
+    priceCard(),
+    p(`Sí, hay una condición: por un incumplimiento anterior, ese saldo ya no se puede fraccionar en cuotas programadas. Pero puedes ir aportando de a pocos, a tu ritmo, hasta completarlo — sin fechas que te ahoguen, solo constancia de tu parte.`),
+    p(`Y en cuanto termines de cubrirlo, esto vuelve a ser tuyo:`),
+    benefitsBox([
+      'Todo el material pregrabado del programa, de inicio a fin',
+      'Las grabaciones completas de todas las sesiones en vivo que se dictaron en el programa en el que te inscribiste',
+      'Una sesión grupal en vivo para resolver tus dudas sobre el contenido que vayas revisando',
+      'Tu lugar en la comunidad de exalumnos: entradas de los mentores, dinámicas con beneficios adicionales, y también puedes compartir las tuyas',
+    ]),
+    p(`Esta es la última puerta que dejamos abierta de este ciclo. La próxima vez que quieras retomarlo, no vas a encontrar esta condición — vas a encontrar el precio completo, otra vez.`),
+    fraseDecision(`La decisión no es sobre dinero. Es sobre si vas a terminar lo que empezaste, o vas a dejar que esto se quede ahí para siempre.`),
   ].join(''),
-  cierre: () => p(`Equipo Burs Advisory<br/><span style="font-size:13px; color:#5a6b6e;">P.D. Esta es la última comunicación de este ciclo. Escríbele a tu asesor hoy y déjalo resuelto.</span>`),
+  cierre: () => p(`Equipo Burs Advisory<br/><span style="font-size:13px; color:#5a6b6e;">P.D. Tu asesor(a) ya sabe que te vamos a escribir. Un mensaje, y hoy mismo lo resuelves.</span>`),
 }
 
 export function construirCorreoCierre({ nombre, waUrl, baseUrl }) {
@@ -306,7 +352,13 @@ export function reenvioDePara(correoNumero) {
   return CORREOS[correoNumero]?.reenvioDe
 }
 
+// 99 = marcador del correo de cierre (fuera del rango 0-9 de C1-C8), tanto
+// para campana_exalumnos_envios.correo_numero como para que reactivate-track
+// resuelva el wa_link correcto (variante "aula") al hacer clic.
+export const CORREO_NUMERO_CIERRE = 99
+
 export function variantePara(correoNumero) {
+  if (correoNumero === CORREO_NUMERO_CIERRE) return CORREO_CIERRE.variante
   return CORREOS[correoNumero]?.variante
 }
 

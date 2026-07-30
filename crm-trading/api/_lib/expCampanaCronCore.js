@@ -5,7 +5,7 @@
 // sin perder ningún correo de la secuencia. El cierre real de ciclo
 // (antes 31/07) queda en día 14 desde la activación.
 import { totalCorreos, diaPara, reenvioDePara } from './expCampanaEmails.js'
-import { enviarCorreoLead, transporterGmailPool, procesarEnLotes } from './expCampanaSend.js'
+import { enviarCorreoLead, enviarCorreoCierreLead, transporterGmailPool, procesarEnLotes } from './expCampanaSend.js'
 
 const DIAS_GRACIA_SIN_RESPUESTA = 3 // margen tras el último correo (C8) antes de cerrar el ciclo
 const CONCURRENCIA_ENVIO = 20
@@ -181,4 +181,78 @@ export async function ejecutarCicloDiarioExalumnos({ supabase, baseUrl }) {
   transporter.close()
 
   return { ok: true, enviados, errores, omitidos, saltadosPorApertura, pendientesRestantes, totalCandidatos: candidatos.length }
+}
+
+const ESTADOS_YA_RESUELTOS_CIERRE = ['Reactivado', 'No interesado', 'Cierre enviado']
+
+// Intercala los leads uno por asesora (no todos los de una seguidos de
+// todos los de otra) — si esta corrida se corta a medias por el límite de
+// 60s de la función serverless, todas las asesoras quedan con una cantidad
+// pareja procesada. Misma idea que el reparto de filtrarCupoDiario.
+function intercalarPorAsesora(leads) {
+  const porAsesora = {}
+  leads.forEach(l => { (porAsesora[l.asesora_id] ||= []).push(l) })
+  Object.keys(porAsesora).forEach(id => porAsesora[id].sort((a, b) => a.id.localeCompare(b.id)))
+  const intercalado = []
+  for (let i = 0; ; i++) {
+    let alguno = false
+    for (const id of Object.keys(porAsesora)) {
+      if (porAsesora[id][i]) { intercalado.push(porAsesora[id][i]); alguno = true }
+    }
+    if (!alguno) break
+  }
+  return intercalado
+}
+
+// Cupo diario por asesora para el correo de cierre — igual que
+// CUPO_DIARIO_POR_ASESORA, pero para un envío único (no una secuencia de
+// varios días): reparte los ~3200 destinatarios en un par de días en vez de
+// mandarlos todos de golpe, protegiendo la cuenta de Gmail compartida.
+export const CUPO_DIARIO_CIERRE_POR_ASESORA = 400
+
+// Correo de cierre del ciclo de reactivación: envío único y manual (lo
+// dispara el supervisor desde el panel, no el cron), a todo lead que no se
+// haya reactivado ni marcado "No interesado", sin importar en qué correo de
+// la secuencia C1-C8 se haya quedado. Reanudable llamando de nuevo al mismo
+// endpoint: a quien ya quedó en "Cierre enviado" no se le reenvía, y el cupo
+// diario por asesora se descuenta de quienes ya lo recibieron hoy mismo.
+export async function ejecutarEnvioCierre({ supabase, baseUrl }) {
+  const hoyStr = new Date().toISOString().slice(0, 10)
+  const candidatos = await fetchTodosPaginado((desde, hasta) =>
+    supabase
+      .from('campana_exalumnos_alumnos')
+      .select('id, nombre, email, asesora_id, estado_campana, fecha_ultimo_envio')
+      .eq('excluido', false)
+      .range(desde, hasta)
+  )
+
+  const enviadosHoyPorAsesora = {}
+  candidatos.forEach(l => {
+    if (l.estado_campana === 'Cierre enviado' && l.fecha_ultimo_envio?.slice(0, 10) === hoyStr) {
+      enviadosHoyPorAsesora[l.asesora_id] = (enviadosHoyPorAsesora[l.asesora_id] || 0) + 1
+    }
+  })
+
+  const pendientesPorAsesora = {}
+  candidatos
+    .filter(l => !ESTADOS_YA_RESUELTOS_CIERRE.includes(l.estado_campana))
+    .forEach(l => { (pendientesPorAsesora[l.asesora_id] ||= []).push(l) })
+
+  const totalPendientesAntes = Object.values(pendientesPorAsesora).reduce((s, a) => s + a.length, 0)
+
+  const elegiblesHoy = []
+  Object.keys(pendientesPorAsesora).forEach(id => {
+    const lista = pendientesPorAsesora[id].sort((a, b) => a.id.localeCompare(b.id))
+    const cupoRestanteHoy = Math.max(0, CUPO_DIARIO_CIERRE_POR_ASESORA - (enviadosHoyPorAsesora[id] || 0))
+    elegiblesHoy.push(...lista.slice(0, cupoRestanteHoy))
+  })
+  const enOrden = intercalarPorAsesora(elegiblesHoy)
+
+  const transporter = transporterGmailPool()
+  const { enviados, errores } = await procesarEnLotes(enOrden, CONCURRENCIA_ENVIO, (lead) =>
+    enviarCorreoCierreLead({ supabase, transporter, baseUrl, gmailUser: process.env.GMAIL_USER, lead })
+  )
+  transporter.close()
+
+  return { ok: true, enviados, errores, pendientesRestantes: Math.max(0, totalPendientesAntes - enviados) }
 }

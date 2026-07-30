@@ -1,29 +1,22 @@
-// Script de un solo uso: envía el correo de CIERRE del Plan Exalumnos (último
-// correo del ciclo — oferta de pagar solo el saldo pendiente, no el valor
-// completo de $3,000) a todo lead que siga activo en la campaña, y luego
-// desactiva la secuencia automática C1-C8 (campana_activa=false) para que el
-// cron diario deje de escribirle a nadie después de este cierre.
+// Script de SOLO CONTEO para el correo de cierre del Plan Exalumnos — el
+// envío real vive en el botón "Enviar correo de cierre" del panel (llama a
+// POST /api/reactivate-forzar-envio {campana:'cierre'}), no acá.
 //
-// "Activo" = excluido=false y estado_campana no está en Reactivado / No
-// interesado / Cierre enviado (a esos no se les reenvía nada).
+// Por qué: el envío real se intentó primero desde este script corriendo en
+// la máquina local, y Gmail lo rechazó con "530 Authentication Required" —
+// probablemente porque el login SMTP vino de una IP residencial distinta a
+// la que usa siempre la cuenta (Vercel), y Google lo trató como actividad
+// sospechosa. El endpoint del panel corre en Vercel, el mismo origen que ya
+// viene enviando el resto de la campaña sin problemas.
 //
-// Uso:
-//   node scripts/enviar-cierre-exalumnos.mjs --dry-run   (solo cuenta, no envía ni desactiva)
-//   node scripts/enviar-cierre-exalumnos.mjs             (envío real)
-//
-// Requiere en .env.local: VITE_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY,
-// GMAIL_USER, GMAIL_APP_PASSWORD, PUBLIC_APP_URL.
+// Uso: node scripts/enviar-cierre-exalumnos.mjs   (solo cuenta cuántos faltan, no envía nada)
+// Requiere en .env.local: VITE_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY.
 import { createClient } from '@supabase/supabase-js'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, resolve } from 'node:path'
-import { randomUUID } from 'node:crypto'
-import { construirCorreoCierre, conPixelDeApertura, variantePararCierre } from '../api/_lib/expCampanaEmails.js'
-import { waLinkPara } from '../api/_lib/expCampanaAsesoras.js'
-import { transporterGmailPool, procesarEnLotes } from '../api/_lib/reactivateSend.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
-const DRY_RUN = process.argv.includes('--dry-run')
 
 function cargarEnv() {
   const envPath = resolve(__dirname, '..', '.env.local')
@@ -37,10 +30,7 @@ function cargarEnv() {
 }
 
 const env = cargarEnv()
-for (const [k, v] of Object.entries(env)) process.env[k] = v
-
 const supabase = createClient(env.VITE_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY)
-const baseUrl = env.PUBLIC_APP_URL
 
 const ESTADOS_YA_RESUELTOS = ['Reactivado', 'No interesado', 'Cierre enviado']
 
@@ -65,60 +55,22 @@ async function main() {
   const candidatos = await fetchTodosPaginado((desde, hasta) =>
     supabase
       .from('campana_exalumnos_alumnos')
-      .select('id, nombre, email, asesora_id, estado_campana')
+      .select('id, asesora_id, estado_campana, fecha_ultimo_envio')
       .eq('excluido', false)
       .range(desde, hasta)
   )
-  const porEnviar = candidatos.filter(l => !ESTADOS_YA_RESUELTOS.includes(l.estado_campana))
+  const pendientes = candidatos.filter(l => !ESTADOS_YA_RESUELTOS.includes(l.estado_campana))
+  const yaEnviados = candidatos.filter(l => l.estado_campana === 'Cierre enviado')
 
   const porAsesora = {}
-  porEnviar.forEach(l => { porAsesora[l.asesora_id] = (porAsesora[l.asesora_id] || 0) + 1 })
+  pendientes.forEach(l => { porAsesora[l.asesora_id] = (porAsesora[l.asesora_id] || 0) + 1 })
+
   console.log(`Total leads activos (excluido=false): ${candidatos.length}`)
-  console.log(`Recibirán el correo de cierre: ${porEnviar.length}`)
-  console.log('Por asesora:')
+  console.log(`Ya recibieron el correo de cierre: ${yaEnviados.length}`)
+  console.log(`Pendientes de recibir el correo de cierre: ${pendientes.length}`)
+  console.log('Pendientes por asesora:')
   Object.entries(porAsesora).forEach(([id, n]) => console.log(`  ${nombrePorId[id] || id}: ${n}`))
-
-  if (DRY_RUN) {
-    console.log('\n--dry-run: no se envía nada ni se desactiva la campaña.')
-    return
-  }
-
-  const transporter = transporterGmailPool()
-  const variante = variantePararCierre()
-  const { enviados, errores } = await procesarEnLotes(porEnviar, 20, async (lead) => {
-    const token = randomUUID()
-    const waUrl = waLinkPara(lead.asesora_id, variante)
-    const pixelUrl = `${baseUrl}/api/reactivate-track?t=${token}&e=open`
-    const { asunto, html } = construirCorreoCierre({ nombre: lead.nombre, waUrl, baseUrl })
-    const htmlConPixel = conPixelDeApertura(html, pixelUrl)
-
-    await transporter.sendMail({
-      from: `"BURS Advisory" <${env.GMAIL_USER}>`,
-      to: lead.email,
-      subject: asunto,
-      html: htmlConPixel,
-    })
-
-    await supabase.from('campana_exalumnos_envios').insert({
-      alumno_id: lead.id,
-      correo_numero: 99, // 99 = correo de cierre, fuera del rango 0-9 de la secuencia C1-C8
-      token,
-    })
-
-    await supabase.from('campana_exalumnos_alumnos').update({
-      estado_campana: 'Cierre enviado',
-      fecha_ultimo_envio: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    }).eq('id', lead.id)
-  })
-  transporter.close()
-
-  console.log(`\nEnviados: ${enviados}, errores: ${errores}`)
-
-  await supabase.from('campana_exalumnos_config')
-    .update({ campana_activa: false, updated_at: new Date().toISOString() })
-    .eq('id', 'default')
-  console.log('Campaña Plan Exalumnos desactivada (campana_activa=false) — el cron ya no continuará la secuencia C1-C8.')
+  console.log('\nPara enviar: usa el botón "Enviar correo de cierre" en el panel de Plan Exalumnos.')
 }
 
 main().catch(err => { console.error(err); process.exit(1) })
