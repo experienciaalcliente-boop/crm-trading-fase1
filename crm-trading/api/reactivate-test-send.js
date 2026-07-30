@@ -5,7 +5,7 @@
 import nodemailer from 'nodemailer'
 import { randomUUID } from 'node:crypto'
 import { construirCorreo as construirCorreoReactivate, conPixelDeApertura } from './_lib/reactivateEmails.js'
-import { construirCorreo as construirCorreoExalumnos, variantePara } from './_lib/expCampanaEmails.js'
+import { construirCorreo as construirCorreoExalumnos, construirCorreoCierre, variantePara, variantePararCierre } from './_lib/expCampanaEmails.js'
 import { waLinkPara } from './_lib/expCampanaAsesoras.js'
 
 export default async function handler(req, res) {
@@ -31,6 +31,7 @@ export default async function handler(req, res) {
     const baseUrl = process.env.PUBLIC_APP_URL
     const pixelUrl = `${baseUrl}/api/reactivate-track?t=${token}&e=open`
 
+    const esCierre = correoNumero === 'cierre'
     const numero = Number.isInteger(correoNumero) ? correoNumero : 0
     // Un correo de prueba nunca queda registrado en campana_exalumnos_envios
     // (a propósito, para no ensuciar datos de campaña) — así que el
@@ -39,12 +40,14 @@ export default async function handler(req, res) {
     // real, el botón de un correo de prueba de Exalumnos usa directo el
     // wa.link de la asesora elegida (sin pasar por el redirect de tracking).
     const waUrl = esExalumnos
-      ? waLinkPara(asesoraId, variantePara(numero))
+      ? waLinkPara(asesoraId, esCierre ? variantePararCierre() : variantePara(numero))
       : `${baseUrl}/api/reactivate-track?t=${token}&e=click`
 
-    const { asunto, html } = esExalumnos
-      ? construirCorreoExalumnos(numero, { nombre: 'Alumno de Prueba', waUrl, baseUrl })
-      : construirCorreoReactivate(1, { nombre: 'Alumno de Prueba', waUrl, testimonioUrls: {}, baseUrl })
+    const { asunto, html } = esCierre
+      ? construirCorreoCierre({ nombre: 'Alumno de Prueba', waUrl, baseUrl })
+      : esExalumnos
+        ? construirCorreoExalumnos(numero, { nombre: 'Alumno de Prueba', waUrl, baseUrl })
+        : construirCorreoReactivate(1, { nombre: 'Alumno de Prueba', waUrl, testimonioUrls: {}, baseUrl })
     const htmlConPixel = conPixelDeApertura(html, pixelUrl)
 
     const transporter = nodemailer.createTransport({

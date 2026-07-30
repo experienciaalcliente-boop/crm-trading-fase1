@@ -133,11 +133,12 @@ export default function ExpCampanaPage() {
           <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
             Enviar correo de prueba (no cuenta como envío de campaña):
           </div>
-          <select value={correoPrueba} onChange={e => setCorreoPrueba(Number(e.target.value))}
+          <select value={correoPrueba} onChange={e => setCorreoPrueba(e.target.value === 'cierre' ? 'cierre' : Number(e.target.value))}
             style={{ padding: '6px 10px', background: 'var(--bg-input)', border: '1.5px solid var(--border-input)', borderRadius: 8, color: 'var(--text-primary)', fontSize: 13 }}>
             {Array.from({ length: 10 }, (_, i) => i).map(n => (
               <option key={n} value={n}>{nombreCorreo(n)}</option>
             ))}
+            <option value="cierre">🔒 Correo de cierre (final)</option>
           </select>
           <select value={asesoraPrueba} onChange={e => setAsesoraPrueba(e.target.value)}
             title="El botón de WhatsApp del correo de prueba usará el wa.link real de esta asesora"

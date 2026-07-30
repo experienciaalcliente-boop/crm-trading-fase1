@@ -6,7 +6,7 @@ import toast from 'react-hot-toast'
 export const ESTADOS_EXCAMPANA = [
   'Pendiente',
   ...Array.from({ length: 10 }, (_, i) => `Correo ${i} enviado`),
-  'Interesado', 'Contactado', 'Negociación', 'Reactivado', 'No interesado', 'Sin respuesta',
+  'Interesado', 'Contactado', 'Negociación', 'Reactivado', 'No interesado', 'Sin respuesta', 'Cierre enviado',
 ]
 
 export const ESTADOS_GESTIONABLES = ['Interesado', 'Contactado', 'Negociación', 'Reactivado', 'No interesado', 'Sin respuesta']
