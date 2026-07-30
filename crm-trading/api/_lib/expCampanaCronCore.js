@@ -224,11 +224,16 @@ export async function ejecutarEnvioCierre({ supabase, baseUrl }) {
   // de registros (mismo bug de paginación no determinista ya visto antes en
   // useExpCampana.js) — sin esto, dos corridas seguidas podían "perder" de
   // vista leads con cupo disponible y quedarse reintentando solo 1 o 2.
+  // El correo de cierre ofrece pagar solo el saldo pendiente — solo tiene
+  // sentido para quien REALMENTE tiene un saldo pendiente (monto_faltante >
+  // 0). La mayoría del universo de Plan Exalumnos (3023 de 3202) ya pagó
+  // completo y no debería recibir este correo.
   const candidatos = await fetchTodosPaginado((desde, hasta) =>
     supabase
       .from('campana_exalumnos_alumnos')
-      .select('id, nombre, email, asesora_id, estado_campana, fecha_ultimo_envio')
+      .select('id, nombre, email, asesora_id, estado_campana, fecha_ultimo_envio, monto_faltante')
       .eq('excluido', false)
+      .gt('monto_faltante', 0)
       .order('id')
       .range(desde, hasta)
   )
