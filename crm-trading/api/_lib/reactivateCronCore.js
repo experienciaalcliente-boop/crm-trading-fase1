@@ -4,7 +4,7 @@
 // (api/reactivate-forzar-envio.js), para poder ponerse al día sin esperar
 // a la próxima corrida automática si una tanda se cortó a medias.
 import { totalCorreos } from './reactivateEmails.js'
-import { enviarCorreoAlumno, enviarCorreoCierreAlumno, transporterGmailPool, procesarEnLotes } from './reactivateSend.js'
+import { enviarCorreoAlumno, enviarCorreoCierreAlumno, transporterGmailPool, transporterGmailSimple, procesarEnLotes } from './reactivateSend.js'
 
 // Días transcurridos desde fecha_inicio_campana (día 1 = 0 transcurridos) en
 // los que corresponde enviar el correo N según la sección 5 del plan.
@@ -88,11 +88,11 @@ export async function ejecutarEnvioCierre({ supabase, baseUrl }) {
 
   const pendientes = candidatos.filter(a => !ESTADOS_YA_RESUELTOS_CIERRE.includes(a.estado_campana))
 
-  // Concurrencia baja a propósito: Gmail acaba de liberar la cuenta tras el
-  // bloqueo de hoy por "too many login attempts" — abrir de golpe 8
-  // conexiones pooleadas (CONCURRENCIA_ENVIO=20 con maxConnections=8) puede
-  // volver a dispararlo. Mejor unas pocas a la vez.
-  const transporter = transporterGmailPool()
+  // transporterGmailSimple (sin pool) en vez de transporterGmailPool: el
+  // pool se quedó colgado sin completar ni un envío justo después del
+  // bloqueo de hoy por volumen. Concurrencia baja para no forzar de golpe
+  // muchas conexiones sueltas simultáneas tampoco.
+  const transporter = transporterGmailSimple()
   const { enviados, errores } = await procesarEnLotes(pendientes, 3, (alumno) =>
     enviarCorreoCierreAlumno({ supabase, transporter, baseUrl, gmailUser: process.env.GMAIL_USER, alumno })
   )

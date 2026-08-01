@@ -69,6 +69,19 @@ export async function enviarCorreoCierreAlumno({ supabase, transporter, baseUrl,
 
 export const dormir = (ms) => new Promise((r) => setTimeout(r, ms))
 
+// Transporter simple, sin pool de conexiones — mismo patrón que
+// reactivate-test-send.js (probado: responde al instante). Se usa para el
+// envío de cierre porque transporterGmailPool() se quedó colgado sin
+// completar ni un solo correo justo después de que Gmail liberara la cuenta
+// de un bloqueo por volumen (probablemente sigue penalizando conexiones
+// persistentes por un rato, aunque ya acepte conexiones sueltas).
+export function transporterGmailSimple() {
+  return nodemailer.createTransport({
+    service: 'gmail',
+    auth: { user: process.env.GMAIL_USER, pass: process.env.GMAIL_APP_PASSWORD },
+  })
+}
+
 export function transporterGmailPool() {
   // pool:true reutiliza conexiones SMTP en vez de abrir una nueva por
   // correo — con cientos de alumnos el costo de conexión+TLS por envío
