@@ -88,8 +88,12 @@ export async function ejecutarEnvioCierre({ supabase, baseUrl }) {
 
   const pendientes = candidatos.filter(a => !ESTADOS_YA_RESUELTOS_CIERRE.includes(a.estado_campana))
 
+  // Concurrencia baja a propósito: Gmail acaba de liberar la cuenta tras el
+  // bloqueo de hoy por "too many login attempts" — abrir de golpe 8
+  // conexiones pooleadas (CONCURRENCIA_ENVIO=20 con maxConnections=8) puede
+  // volver a dispararlo. Mejor unas pocas a la vez.
   const transporter = transporterGmailPool()
-  const { enviados, errores } = await procesarEnLotes(pendientes, CONCURRENCIA_ENVIO, (alumno) =>
+  const { enviados, errores } = await procesarEnLotes(pendientes, 3, (alumno) =>
     enviarCorreoCierreAlumno({ supabase, transporter, baseUrl, gmailUser: process.env.GMAIL_USER, alumno })
   )
   transporter.close()
