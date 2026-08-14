@@ -110,10 +110,23 @@ function tablaDetalleVentas(detalleVentas) {
       <td class="col-num">${fmtSoles(v.valor_comision)}</td>
       <td class="col-muted">${esc(v.nro_operacion || '—')}</td>
     </tr>`).join('')
+
+  const totalValorProducto = detalleVentas.reduce((s, v) => s + (parseFloat(v.valor_producto) || 0), 0)
+  const totalComision = detalleVentas.reduce((s, v) => s + (parseFloat(v.valor_comision) || 0), 0)
+
   return `
     <table class="tabla tabla-chica">
       <thead><tr><th>Fecha</th><th>Asesora</th><th>Alumno</th><th>Complemento</th><th>Valor producto</th><th>Comisión</th><th>N° operación</th></tr></thead>
       <tbody>${filas || '<tr><td colspan="7" class="vacio">Sin ventas registradas este mes</td></tr>'}</tbody>
+      ${detalleVentas.length > 0 ? `
+      <tfoot>
+        <tr>
+          <td colspan="4" class="col-total">TOTAL DEL MES (${fmtNum(detalleVentas.length)} ventas)</td>
+          <td class="col-num col-total">$ ${fmtNum(totalValorProducto)}</td>
+          <td class="col-num col-total">${fmtSoles(totalComision)}</td>
+          <td></td>
+        </tr>
+      </tfoot>` : ''}
     </table>`
 }
 
@@ -208,7 +221,7 @@ export function generarHTMLDashboardComisiones(data, meta) {
   .subbloque { margin-bottom: 14px; }
   .subbloque-titulo { font-size: 12.5px; font-weight: 700; margin-bottom: 6px; }
 
-  table.tabla-pago tfoot td { border-top: 2px solid var(--accent); border-bottom: none; padding-top: 10px; font-weight: 800; }
+  table.tabla tfoot td { border-top: 2px solid var(--accent); border-bottom: none; padding-top: 10px; font-weight: 800; background: var(--plane); }
   .col-total { font-weight: 800; }
   .col-total-grande { font-size: 15px; color: var(--accent); }
 
