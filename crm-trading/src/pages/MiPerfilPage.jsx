@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext'
 import { updatePin, fetchAllUsers, resetPin } from '../lib/api'
 import { Loader2, KeyRound, RefreshCw, Check } from 'lucide-react'
 import toast from 'react-hot-toast'
+import DescargarDashboardComisiones from '../components/modules/DescargarDashboardComisiones'
 
 function CambiarPin({ user }) {
   const [pinActual, setPinActual] = useState('')
@@ -142,6 +143,7 @@ export default function MiPerfilPage() {
 
       <div style={{ display:'flex', flexDirection:'column', gap:20 }}>
         <CambiarPin user={user} />
+        {user?.rol === 'supervisor' && <DescargarDashboardComisiones />}
         {user?.rol === 'supervisor' && <GestionUsuarios token={token} />}
       </div>
     </div>
