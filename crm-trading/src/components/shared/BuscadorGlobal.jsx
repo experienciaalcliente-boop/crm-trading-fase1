@@ -37,7 +37,7 @@ export default function BuscadorGlobal() {
   }
 
   return (
-    <div ref={ref} style={{ position:'relative', width:220 }}>
+    <div ref={ref} style={{ position:'relative', width:'100%' }}>
       <div style={{ position:'relative' }}>
         <Search size={13} style={{ position:'absolute', left:10, top:'50%', transform:'translateY(-50%)', color:'var(--text-muted)' }} />
         <input

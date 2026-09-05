@@ -1,7 +1,7 @@
 // v-20260622-1614
 import { useState, useEffect } from 'react'
 import { Outlet, NavLink, useLocation } from 'react-router-dom'
-import { Phone, Upload, BarChart2, CreditCard, MonitorSmartphone, ChevronRight, ChevronDown, GraduationCap, LogOut, UserCircle, Sun, Moon, ShoppingBag, CalendarCheck, Award, RotateCcw, HeartHandshake, Wallet, TrendingUp, ListChecks } from 'lucide-react'
+import { Phone, Upload, BarChart2, CreditCard, MonitorSmartphone, ChevronRight, ChevronDown, GraduationCap, LogOut, UserCircle, Sun, Moon, ShoppingBag, CalendarCheck, Award, RotateCcw, HeartHandshake, Wallet, TrendingUp, ListChecks, ChevronsLeft, ChevronsRight } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
@@ -65,7 +65,20 @@ function agruparNav(navFiltrado) {
   return entradas
 }
 
-function ItemNav({ to, Icon, label, sub }) {
+function ItemNav({ to, Icon, label, sub, colapsado }) {
+  if (colapsado) {
+    return (
+      <NavLink to={to} title={label} style={({ isActive }) => ({
+        display:'flex', alignItems:'center', justifyContent:'center', padding:'9px 0',
+        borderRadius:10, marginBottom:2, textDecoration:'none', transition:'all 0.15s',
+        background: isActive ? 'var(--accent-light)' : 'transparent',
+        border:`1px solid ${isActive ? 'rgba(78,143,255,0.4)' : 'transparent'}`,
+        color: isActive ? 'var(--accent)' : 'var(--text-muted)',
+      })}>
+        <Icon size={16} style={{ flexShrink:0 }} />
+      </NavLink>
+    )
+  }
   return (
     <NavLink to={to} style={({ isActive }) => ({
       display:'flex', alignItems:'center', gap:10, padding:'8px 10px',
@@ -94,6 +107,16 @@ export default function AppShell() {
   const location = useLocation()
   const rol = user?.rol || 'supervisor'
 
+  // Colapsar el panel lateral libera ancho para el contenido principal
+  // (paneles como Coordinación o Dashboard aprovechan el espacio extra).
+  // Se recuerda entre sesiones en localStorage.
+  const [colapsado, setColapsado] = useState(() => {
+    try { return localStorage.getItem('sidebar-colapsado') === '1' } catch { return false }
+  })
+  useEffect(() => {
+    try { localStorage.setItem('sidebar-colapsado', colapsado ? '1' : '0') } catch {}
+  }, [colapsado])
+
   // Onboarding solo se muestra a la asesora si tiene un alumno propio con
   // un programa por iniciar (ej. está en julio, tiene un alumno de agosto).
   // Supervisor lo ve siempre, sin esta condición.
@@ -120,23 +143,42 @@ export default function AppShell() {
 
   return (
     <div style={{ display:'flex', height:'100vh', overflow:'hidden', background:'var(--bg-base)' }}>
-      <aside style={{ width:220, flexShrink:0, background:'var(--bg-surface)', borderRight:'1px solid var(--border-default)', display:'flex', flexDirection:'column' }}>
-        {/* Logo */}
-        <div style={{ padding:'16px', borderBottom:'1px solid var(--border-default)' }}>
-          <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:10 }}>
+      <aside style={{ width: colapsado ? 60 : 220, flexShrink:0, background:'var(--bg-surface)', borderRight:'1px solid var(--border-default)', display:'flex', flexDirection:'column', transition:'width 0.15s', overflow:'hidden' }}>
+        {/* Logo + botón de colapsar */}
+        <div style={{ padding: colapsado ? '16px 8px' : '16px', borderBottom:'1px solid var(--border-default)' }}>
+          <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom: colapsado ? 0 : 10, justifyContent: colapsado ? 'center' : 'flex-start' }}>
             <BrandMark size={32} />
-            <div style={{ minWidth:0 }}>
-              <div style={{ fontFamily:'Syne,sans-serif', fontWeight:700, color:'var(--text-primary)', fontSize:13, lineHeight:1.15 }}>Experiencia al Cliente</div>
-              <div style={{ fontSize:9, color:'var(--text-muted)', marginTop:2 }}>Burs Advisory</div>
-            </div>
+            {!colapsado && (
+              <div style={{ minWidth:0, flex:1 }}>
+                <div style={{ fontFamily:'Syne,sans-serif', fontWeight:700, color:'var(--text-primary)', fontSize:13, lineHeight:1.15 }}>Experiencia al Cliente</div>
+                <div style={{ fontSize:9, color:'var(--text-muted)', marginTop:2 }}>Burs Advisory</div>
+              </div>
+            )}
           </div>
-          {/* Buscador */}
-          <BuscadorGlobal />
+          {!colapsado && (
+            <div style={{ display:'flex', gap:6, alignItems:'center' }}>
+              <div style={{ flex:1, minWidth:0 }}><BuscadorGlobal /></div>
+              <button onClick={() => setColapsado(true)} title="Colapsar panel"
+                style={{ flexShrink:0, width:26, height:26, display:'flex', alignItems:'center', justifyContent:'center', background:'none', border:'1px solid var(--border-default)', borderRadius:8, color:'var(--text-muted)', cursor:'pointer' }}>
+                <ChevronsLeft size={14} />
+              </button>
+            </div>
+          )}
+          {colapsado && (
+            <button onClick={() => setColapsado(false)} title="Expandir panel"
+              style={{ width:'100%', marginTop:10, display:'flex', alignItems:'center', justifyContent:'center', background:'none', border:'1px solid var(--border-default)', borderRadius:8, color:'var(--text-muted)', cursor:'pointer', padding:'6px 0' }}>
+              <ChevronsRight size={14} />
+            </button>
+          )}
         </div>
 
         {/* Nav */}
-        <nav style={{ flex:1, padding:10, overflowY:'auto' }}>
-          {navAgrupado.map((entrada) => {
+        <nav style={{ flex:1, padding: colapsado ? '10px 6px' : 10, overflowY:'auto', overflowX:'hidden' }}>
+          {colapsado
+            ? navFiltrado.map(({ to, icon:Icon, label, sub }) => (
+                <ItemNav key={to} to={to} Icon={Icon} label={label} sub={sub} colapsado />
+              ))
+            : navAgrupado.map((entrada) => {
             if (entrada.tipo === 'item') {
               const { to, icon:Icon, label, sub } = entrada.item
               return <ItemNav key={to} to={to} Icon={Icon} label={label} sub={sub} />
@@ -173,14 +215,16 @@ export default function AppShell() {
         </nav>
 
         {/* User footer */}
-        <div style={{ padding:'10px 14px', borderTop:'1px solid var(--border-default)' }}>
+        <div style={{ padding: colapsado ? '10px 6px' : '10px 14px', borderTop:'1px solid var(--border-default)' }}>
           {user && (
-            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:6 }}>
-              <div>
-                <div style={{ fontSize:12, fontWeight:600, color:'var(--text-primary)' }}>{user.nombre}</div>
-                <div style={{ fontSize:10, color: ROL_COLORS[user.rol] || 'var(--text-muted)', marginTop:1, fontWeight:600, textTransform:'capitalize' }}>{user.rol}</div>
-              </div>
-              <div style={{ display:'flex', gap:4 }}>
+            <div style={{ display:'flex', alignItems:'center', justifyContent: colapsado ? 'center' : 'space-between', marginBottom: colapsado ? 0 : 6, flexDirection: colapsado ? 'column' : 'row', gap: colapsado ? 6 : 0 }}>
+              {!colapsado && (
+                <div>
+                  <div style={{ fontSize:12, fontWeight:600, color:'var(--text-primary)' }}>{user.nombre}</div>
+                  <div style={{ fontSize:10, color: ROL_COLORS[user.rol] || 'var(--text-muted)', marginTop:1, fontWeight:600, textTransform:'capitalize' }}>{user.rol}</div>
+                </div>
+              )}
+              <div style={{ display:'flex', gap:4, flexDirection: colapsado ? 'column' : 'row' }}>
                 <button onClick={toggle} title={theme === 'dark' ? 'Modo claro' : 'Modo oscuro'}
                   style={{ background:'none', border:'none', cursor:'pointer', color:'var(--text-muted)', padding:4, display:'flex' }}>
                   {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
@@ -196,7 +240,7 @@ export default function AppShell() {
               </div>
             </div>
           )}
-          <div style={{ fontSize:10, color:'var(--text-faint)', textTransform:'capitalize' }}>{hoy}</div>
+          {!colapsado && <div style={{ fontSize:10, color:'var(--text-faint)', textTransform:'capitalize' }}>{hoy}</div>}
         </div>
       </aside>
 
