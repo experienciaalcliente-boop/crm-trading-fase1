@@ -11,6 +11,7 @@ import { createClient } from '@supabase/supabase-js'
 import { enviarCorreoAlumno, transporterGmailPool, procesarEnLotes } from './_lib/reactivateSend.js'
 import { enviarCorreoLead } from './_lib/expCampanaSend.js'
 import { filtrarCupoDiario, CUPO_DIARIO_POR_ASESORA, fetchTodosPaginado } from './_lib/expCampanaCronCore.js'
+import { ejecutarAccionCoordinacion } from './_lib/coordinacionEjecutar.js'
 
 const CONCURRENCIA_ENVIO = 8
 
@@ -79,6 +80,22 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Método no permitido' })
 
   const supabase = createClient(process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
+
+  // Panel de Coordinación: ejecuta una acción ya aprobada por el supervisor
+  // (crear la siguiente tanda en Brevo, iniciar un segmento, detenerlo).
+  // Va acá y no en su propio archivo porque el plan Hobby de Vercel ya
+  // estaba en el límite de 12 funciones serverless.
+  if (req.body?.campana === 'coordinacion') {
+    if (!req.body?.accionId) return res.status(400).json({ error: 'Falta accionId' })
+    try {
+      const resultado = await ejecutarAccionCoordinacion({ supabase, accionId: req.body.accionId })
+      return res.status(200).json(resultado)
+    } catch (err) {
+      console.error('reactivate-activar (coordinacion):', err)
+      return res.status(500).json({ error: err.message || 'Error interno' })
+    }
+  }
+
   const baseUrl = process.env.PUBLIC_APP_URL
   if (!baseUrl) return res.status(500).json({ error: 'Falta configurar PUBLIC_APP_URL en las variables de entorno' })
   if (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD) {

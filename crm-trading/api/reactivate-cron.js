@@ -7,6 +7,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { ejecutarCicloDiario } from './_lib/reactivateCronCore.js'
 import { ejecutarCicloDiarioExalumnos } from './_lib/expCampanaCronCore.js'
+import { ejecutarCicloDiarioCoordinacion } from './_lib/coordinacionCronCore.js'
 
 export default async function handler(req, res) {
   const auth = req.headers.authorization
@@ -20,7 +21,7 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Falta configurar PUBLIC_APP_URL en las variables de entorno' })
   }
 
-  const resultado = { reactivateBurs: null, planExalumnos: null }
+  const resultado = { reactivateBurs: null, planExalumnos: null, coordinacion: null }
   try {
     resultado.reactivateBurs = await ejecutarCicloDiario({ supabase, baseUrl })
   } catch (err) {
@@ -33,6 +34,13 @@ export default async function handler(req, res) {
   } catch (err) {
     console.error('reactivate-cron (Plan Exalumnos):', err)
     resultado.planExalumnos = { ok: false, error: err.message || 'Error interno' }
+  }
+
+  try {
+    resultado.coordinacion = await ejecutarCicloDiarioCoordinacion({ supabase })
+  } catch (err) {
+    console.error('reactivate-cron (Panel de Coordinación):', err)
+    resultado.coordinacion = { ok: false, error: err.message || 'Error interno' }
   }
 
   return res.status(200).json(resultado)

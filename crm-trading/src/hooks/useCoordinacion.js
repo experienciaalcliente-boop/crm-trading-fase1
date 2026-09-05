@@ -164,11 +164,30 @@ export function useCoordinacion() {
   }
 
   const revisarAccion = async (accion, aprobar) => {
-    const { error } = await supabase.from('panel_acciones_pendientes')
-      .update({ estado: aprobar ? 'aprobada' : 'rechazada', revisado_at: new Date().toISOString() })
-      .eq('id', accion.id)
-    if (error) { toast.error('No se pudo actualizar la acción'); console.error(error); return }
-    cargar()
+    if (!aprobar) {
+      const { error } = await supabase.from('panel_acciones_pendientes')
+        .update({ estado: 'rechazada', revisado_at: new Date().toISOString() })
+        .eq('id', accion.id)
+      if (error) { toast.error('No se pudo rechazar la acción'); console.error(error); return }
+      cargar()
+      return
+    }
+    try {
+      const res = await fetch('/api/reactivate-activar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ campana: 'coordinacion', accionId: accion.id }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Error al ejecutar la acción')
+      if (data.ok === false) toast(data.mensaje || 'La acción no se pudo completar', { icon: '⚠️' })
+      else toast.success('Acción aprobada y ejecutada')
+    } catch (err) {
+      toast.error(err.message || 'No se pudo aprobar la acción')
+      console.error(err)
+    } finally {
+      cargar()
+    }
   }
 
   return {
