@@ -1,7 +1,7 @@
 // v-20260622-1614
 import { useState, useEffect } from 'react'
 import { Outlet, NavLink, useLocation } from 'react-router-dom'
-import { Phone, Upload, BarChart2, CreditCard, MonitorSmartphone, ChevronRight, ChevronDown, GraduationCap, LogOut, UserCircle, Sun, Moon, ShoppingBag, CalendarCheck, Award, RotateCcw, HeartHandshake, Wallet, TrendingUp } from 'lucide-react'
+import { Phone, Upload, BarChart2, CreditCard, MonitorSmartphone, ChevronRight, ChevronDown, GraduationCap, LogOut, UserCircle, Sun, Moon, ShoppingBag, CalendarCheck, Award, RotateCcw, HeartHandshake, Wallet, TrendingUp, ListChecks } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
@@ -13,6 +13,7 @@ import BrandMark from './BrandMark'
 
 export const NAV = [
   { to:'/dashboard',   icon:BarChart2,        label:'Dashboard',       sub:'Vista ejecutiva',      roles:['supervisor','asesora','orientador'], group:null },
+  { to:'/coordinacion',icon:ListChecks,       label:'Coordinación',    sub:'Plan 90 días · 3 agentes', roles:['supervisor'], group:null },
 
   { to:'/llamadas',    icon:Phone,             label:'Seguimiento',     sub:'Registro de llamadas', roles:['supervisor','asesora'], group:'Gestión de Experiencia' },
   { to:'/seguimiento-semanal', icon:CalendarCheck, label:'Seg. Semanal', sub:'Contacto por semana',  roles:['supervisor','asesora'], group:'Gestión de Experiencia' },
