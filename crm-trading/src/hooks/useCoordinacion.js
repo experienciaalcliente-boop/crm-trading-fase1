@@ -5,13 +5,21 @@ import toast from 'react-hot-toast'
 const FRENTES = ['Retirados', 'Level Up', 'Retención', 'Datos', 'Impulso', 'Gestión']
 
 async function fetchCoordinacion() {
-  const [rTareas, rIdeas, rLog, rSupuestos, rSegmentos, rAcciones] = await Promise.all([
+  const [rTareas, rIdeas, rLog, rSupuestos, rSegmentos, rAcciones, rLevelUp, rLevelUpConfig] = await Promise.all([
     supabase.from('panel_tareas').select('*').order('orden_original', { ascending: true }),
     supabase.from('panel_ideas').select('*').order('created_at', { ascending: false }),
     supabase.from('panel_log').select('*').order('cuando', { ascending: false }).limit(8),
     supabase.from('panel_supuestos').select('*'),
     supabase.from('recuperacion_2026_alumnos').select('segmento, deuda_usd, estado_campana, excluido'),
     supabase.from('panel_acciones_pendientes').select('*').order('created_at', { ascending: false }),
+    // Level Up = Plan Exalumnos ya existente (mismo proyecto, confirmado por el usuario) — se
+    // mapea acá en modo lectura, no se toca su lógica de envío (sigue en ExpCampanaPage/Gmail).
+    supabase.from('campana_exalumnos_alumnos').select('estado_campana, excluido, monto_faltante'),
+    supabase.from('campana_exalumnos_config').select('*').eq('id', 'default').maybeSingle(),
+  ])
+  const [rImpulso, rVentasImpulso] = await Promise.all([
+    supabase.from('impulso_secuencia').select('*, alumno:alumnos(nombre, programa)').order('fecha_prevista', { ascending: true }),
+    supabase.from('ventas_complementos').select('complemento, valor_producto').ilike('complemento', 'Impulso%'),
   ])
   const supuestos = {}
   ;(rSupuestos.data || []).forEach(s => { supuestos[s.clave] = s.valor })
@@ -22,11 +30,18 @@ async function fetchCoordinacion() {
     supuestos,
     segmentos: rSegmentos.data || [],
     acciones: rAcciones.data || [],
+    levelUp: rLevelUp.data || [],
+    levelUpConfig: rLevelUpConfig.data || null,
+    impulso: rImpulso.data || [],
+    ventasImpulso: rVentasImpulso.data || [],
   }
 }
 
 export function useCoordinacion() {
-  const [raw, setRaw] = useState({ tareas: [], ideas: [], log: [], supuestos: {}, segmentos: [], acciones: [] })
+  const [raw, setRaw] = useState({ tareas: [], ideas: [], log: [], supuestos: {}, segmentos: [], acciones: [], levelUp: [], levelUpConfig: null, impulso: [], ventasImpulso: [] })
+  const [cohorteInput, setCohorteInput] = useState('')
+  const [asesoraInput, setAsesoraInput] = useState('Katerin')
+  const [definiendoCohorte, setDefiniendoCohorte] = useState(false)
   const [loading, setLoading] = useState(true)
   const [filtro, setFiltro] = useState('Todas')
   const [draft, setDraft] = useState('')
@@ -102,6 +117,31 @@ export function useCoordinacion() {
   const totalPersonas = segmentosResumen.reduce((s, r) => s + r.personas, 0)
   const totalDeuda = segmentosResumen.reduce((s, r) => s + r.deuda, 0)
 
+  const levelUpActivos = raw.levelUp.filter(l => !l.excluido)
+  const levelUpResumen = {
+    total: levelUpActivos.length,
+    activa: raw.levelUpConfig?.campana_activa ?? false,
+    pendientes: levelUpActivos.filter(l => l.estado_campana === 'Pendiente').length,
+    cierreEnviado: levelUpActivos.filter(l => l.estado_campana === 'Cierre enviado').length,
+    interesados: levelUpActivos.filter(l => ['Interesado', 'Negociación', 'Contactado'].includes(l.estado_campana)).length,
+    noInteresados: levelUpActivos.filter(l => l.estado_campana === 'No interesado').length,
+  }
+
+  const ventasImpulsoTotal = raw.ventasImpulso.reduce((s, v) => s + (parseFloat(v.valor_producto) || 0), 0)
+  const impulsoConDias = raw.impulso.map(t => ({ ...t, dias: diasHasta(t.fecha_prevista) }))
+  const impulsoPendientes = impulsoConDias
+    .filter(t => t.estado === 'Pendiente')
+    .sort((a, b) => (a.dias ?? 999) - (b.dias ?? 999))
+  const impulsoResumen = {
+    cohortesActivas: [...new Set(raw.impulso.map(t => t.cohorte_egreso))],
+    totalToques: raw.impulso.length,
+    pendientes: impulsoPendientes.length,
+    vencidos: impulsoPendientes.filter(t => t.dias !== null && t.dias < 0).length,
+    enviados: raw.impulso.filter(t => t.estado === 'Enviado' || t.estado === 'Respondido').length,
+    ventasCount: raw.ventasImpulso.length,
+    ventasUSD: ventasImpulsoTotal,
+  }
+
   const metaRecuperacion = num('meta_recuperacion_usd', 150000)
   const proyRecuperacion = num('proyeccion_recuperacion_90d_usd')
   const proyLevelUp = num('proyeccion_levelup_90d_usd')
@@ -123,13 +163,15 @@ export function useCoordinacion() {
     },
     {
       label: 'Level Up · aula y seminarios', value: `USD ${Math.round(proyLevelUp).toLocaleString('en-US')}`,
-      target: `base ${Math.round(num('base_contactable_email')).toLocaleString('en-US')} contactos`,
-      pct: 44, nota: 'Bloqueado hasta el export de exalumnos sin deuda',
+      target: `${levelUpResumen.total.toLocaleString('en-US')} contactos (Plan Exalumnos)`,
+      pct: levelUpResumen.total > 0 ? (levelUpResumen.interesados / levelUpResumen.total) * 100 : 0,
+      nota: `${levelUpResumen.activa ? 'Campaña activa' : 'Campaña pausada'} · ${levelUpResumen.cierreEnviado.toLocaleString('en-US')} cierres enviados · ${levelUpResumen.interesados} interesados`,
     },
     {
-      label: 'Impulso BURS al egreso', value: `USD ${Math.round(proyImpulso).toLocaleString('en-US')}`,
-      target: `${num('egresados_por_cohorte_mensual')} egresados/mes`,
-      pct: 12, nota: `Ticket real USD ${Math.round(num('ticket_promedio_impulso_usd'))} · solo exalumnos (R3)`,
+      label: 'Impulso BURS al egreso', value: `${impulsoResumen.ventasCount} ventas · USD ${Math.round(impulsoResumen.ventasUSD).toLocaleString('en-US')}`,
+      target: `meta USD ${Math.round(proyImpulso).toLocaleString('en-US')} · ticket real USD ${Math.round(num('ticket_promedio_impulso_usd'))}`,
+      pct: proyImpulso > 0 ? Math.min(100, (impulsoResumen.ventasUSD / proyImpulso) * 100) : 0,
+      nota: `${impulsoResumen.pendientes} toques pendientes (${impulsoResumen.vencidos} vencidos) · solo exalumnos al egresar (R3)`,
     },
     {
       label: 'Avance del plan 90 días', value: `${hechas}/${tareasConEstado.length}`,
@@ -190,6 +232,66 @@ export function useCoordinacion() {
     }
   }
 
+  // Definir la cohorte que egresa es, a propósito, una decisión 100% humana
+  // (tarea 19 del Mapa Operativo) — no hay dato confiable de "fecha de
+  // egreso" en el esquema para que un agente la adivine. El supervisor
+  // elige el programa y la asesora; el sistema arma los 5 toques (días 0,
+  // 3, 7, 10, 14, ventana de 2 semanas) para que no se pierda ninguno.
+  const DIAS_TOQUE = [0, 3, 7, 10, 14]
+  const definirCohorteImpulso = async () => {
+    const programa = cohorteInput.trim()
+    if (!programa) { toast.error('Escribe el programa de la cohorte (ej. Mar-26)'); return }
+    setDefiniendoCohorte(true)
+    try {
+      const { data: elegibles, error: errAl } = await supabase
+        .from('alumnos').select('id, nombre')
+        .eq('programa', programa).eq('estado_operativo', 'Activo')
+      if (errAl) throw errAl
+      if (!elegibles || elegibles.length === 0) { toast.error(`No hay alumnos activos en "${programa}"`); return }
+
+      const { data: yaTienen } = await supabase
+        .from('impulso_secuencia').select('alumno_id').eq('cohorte_egreso', programa)
+      const idsConSecuencia = new Set((yaTienen || []).map(r => r.alumno_id))
+      const nuevos = elegibles.filter(a => !idsConSecuencia.has(a.id))
+      if (nuevos.length === 0) { toast('Esta cohorte ya tiene su secuencia armada', { icon: 'ℹ️' }); return }
+
+      const hoy = new Date()
+      const filas = []
+      for (const al of nuevos) {
+        for (let i = 0; i < DIAS_TOQUE.length; i++) {
+          const f = new Date(hoy); f.setDate(f.getDate() + DIAS_TOQUE[i])
+          filas.push({
+            alumno_id: al.id, cohorte_egreso: programa, touch_numero: i + 1,
+            estado: 'Pendiente', fecha_prevista: f.toISOString().slice(0, 10), asesora_nombre: asesoraInput,
+          })
+        }
+      }
+      const { error: errIns } = await supabase.from('impulso_secuencia').insert(filas)
+      if (errIns) throw errIns
+
+      await supabase.from('panel_log').insert({
+        que: `Cohorte de Impulso definida: "${programa}" (${nuevos.length} alumnos, ${asesoraInput}). Secuencia de 5 toques armada.`,
+        donde: 'Fase 4 — Impulso BURS', agente: 'impulso',
+      })
+      toast.success(`Secuencia armada para ${nuevos.length} alumnos de ${programa}`)
+      setCohorteInput('')
+      cargar()
+    } catch (err) {
+      toast.error(err.message || 'No se pudo definir la cohorte')
+      console.error(err)
+    } finally {
+      setDefiniendoCohorte(false)
+    }
+  }
+
+  const marcarToqueImpulso = async (toque, estado) => {
+    const { error } = await supabase.from('impulso_secuencia')
+      .update({ estado, enviado_at: estado !== 'Pendiente' ? new Date().toISOString() : null })
+      .eq('id', toque.id)
+    if (error) { toast.error('No se pudo actualizar el toque'); console.error(error); return }
+    cargar()
+  }
+
   return {
     loading, cargar,
     filtro, setFiltro, frentes: FRENTES,
@@ -198,6 +300,7 @@ export function useCoordinacion() {
     ideas: raw.ideas, draft, setDraft, agregarIdea, ciclarIdea,
     log: raw.log,
     segmentos: segmentosResumen, totalPersonas, totalDeuda,
+    levelUp: levelUpResumen,
     goals,
     proyeccionTotal, metaRecuperacion,
     retencionActual: num('retencion_actual'),
@@ -208,5 +311,9 @@ export function useCoordinacion() {
     acciones: raw.acciones,
     accionesPendientes: raw.acciones.filter(a => a.estado === 'pendiente'),
     revisarAccion,
+    impulso: impulsoResumen,
+    impulsoPendientes,
+    cohorteInput, setCohorteInput, asesoraInput, setAsesoraInput, definiendoCohorte, definirCohorteImpulso,
+    marcarToqueImpulso,
   }
 }

@@ -232,6 +232,69 @@ export default function PanelCoordinacionPage() {
           </div>
         </div>
 
+        {/* Level Up / Plan Exalumnos */}
+        <div className="crm-card" style={{ padding: 18 }}>
+          <SectionTitle title="Level Up (Plan Exalumnos)" right={<a href="/exalumnos" style={{ color: 'var(--accent)' }}>Abrir panel completo →</a>} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5 }}>
+              <span style={{ color: 'var(--text-muted)' }}>Estado</span>
+              <span style={{ color: c.levelUp.activa ? '#2dd4a0' : 'var(--text-muted)', fontWeight: 600 }}>{c.levelUp.activa ? 'Activa' : 'Pausada'}</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5 }}>
+              <span style={{ color: 'var(--text-muted)' }}>Total contactos</span>
+              <span style={{ color: 'var(--text-primary)' }}>{c.levelUp.total.toLocaleString('en-US')}</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5 }}>
+              <span style={{ color: 'var(--text-muted)' }}>Pendientes (sin arrancar)</span>
+              <span style={{ color: 'var(--text-primary)' }}>{c.levelUp.pendientes.toLocaleString('en-US')}</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5 }}>
+              <span style={{ color: 'var(--text-muted)' }}>Cierre enviado</span>
+              <span style={{ color: 'var(--text-primary)' }}>{c.levelUp.cierreEnviado.toLocaleString('en-US')}</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5 }}>
+              <span style={{ color: 'var(--text-muted)' }}>Interesados / en conversación</span>
+              <span style={{ color: 'var(--accent)' }}>{c.levelUp.interesados.toLocaleString('en-US')}</span>
+            </div>
+          </div>
+          <span style={{ fontSize: 10.5, color: 'var(--text-muted)', display: 'block', marginTop: 10 }}>
+            Mismo proyecto que Level Up — sigue enviándose por Gmail desde su propio panel. Acá solo se refleja el estado.
+          </span>
+        </div>
+
+        {/* Impulso BURS */}
+        <div className="crm-card" style={{ padding: 18 }}>
+          <SectionTitle title="Impulso BURS al egreso" right={`${c.impulso.ventasCount} ventas · USD ${Math.round(c.impulso.ventasUSD).toLocaleString('en-US')}`} />
+          <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
+            <input className="crm-input" placeholder="Programa (ej. Mar-26)" value={c.cohorteInput} onChange={e => c.setCohorteInput(e.target.value)}
+              style={{ flex: 1, minWidth: 0, padding: '7px 9px', background: 'var(--bg-input)', border: '1.5px solid var(--border-default)', borderRadius: 8, color: 'var(--text-primary)', fontSize: 12.5 }} />
+            <select value={c.asesoraInput} onChange={e => c.setAsesoraInput(e.target.value)}
+              style={{ padding: '7px 9px', background: 'var(--bg-input)', border: '1.5px solid var(--border-default)', borderRadius: 8, color: 'var(--text-primary)', fontSize: 12.5 }}>
+              <option>Katerin</option>
+              <option>Anael</option>
+            </select>
+            <button className="crm-btn crm-btn-primary crm-btn-sm" disabled={c.definiendoCohorte} onClick={c.definirCohorteImpulso}>Definir cohorte</button>
+          </div>
+          <span style={{ fontSize: 10.5, color: 'var(--text-muted)', display: 'block', marginBottom: 10 }}>
+            Arma los 5 toques (días 0/3/7/10/14) para los alumnos activos de ese programa. Sin mentorías como bono (R2) · solo exalumnos al egresar (R3).
+          </span>
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            {c.impulsoPendientes.slice(0, 8).map(t => (
+              <div key={t.id} style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 60px 70px', gap: 8, alignItems: 'center', padding: '7px 0', borderBottom: '1px solid var(--border-default)' }}>
+                <div style={{ minWidth: 0 }}>
+                  <span style={{ display: 'block', fontSize: 12.5, color: 'var(--text-primary)' }}>{t.alumno?.nombre || '—'} · toque {t.touch_numero}/5</span>
+                  <span style={{ display: 'block', fontSize: 10.5, color: 'var(--text-muted)' }}>{t.cohorte_egreso} · {t.asesora_nombre}</span>
+                </div>
+                <span style={{ fontSize: 11, color: t.dias !== null && t.dias < 0 ? '#f07070' : 'var(--text-muted)' }}>
+                  {t.dias === 0 ? 'hoy' : t.dias < 0 ? `${Math.abs(t.dias)}d atrasado` : `en ${t.dias}d`}
+                </span>
+                <button className="crm-btn crm-btn-sm" onClick={() => c.marcarToqueImpulso(t, 'Enviado')}>Hecho</button>
+              </div>
+            ))}
+            {c.impulsoPendientes.length === 0 && <div style={{ color: 'var(--text-muted)', fontSize: 12 }}>Sin toques pendientes. Define una cohorte arriba para empezar.</div>}
+          </div>
+        </div>
+
         {/* Cartera por segmento */}
         <div className="crm-card" style={{ padding: 18 }}>
           <SectionTitle title="Cartera por segmento" />
