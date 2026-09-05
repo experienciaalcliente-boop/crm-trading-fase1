@@ -2,7 +2,7 @@
 // redacción del agente Organizador. Los números SIEMPRE se calculan en
 // nuestro código y se pasan ya resueltos al prompt — Gemini solo los
 // redacta en prosa, nunca los recalcula ni los "recuerda".
-const MODEL = 'gemini-2.0-flash'
+const MODEL = 'gemini-3.6-flash'
 
 export async function generarResumen(prompt) {
   const key = process.env.GEMINI_API_KEY
