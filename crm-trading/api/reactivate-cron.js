@@ -8,6 +8,7 @@ import { createClient } from '@supabase/supabase-js'
 import { ejecutarCicloDiario } from './_lib/reactivateCronCore.js'
 import { ejecutarCicloDiarioExalumnos } from './_lib/expCampanaCronCore.js'
 import { ejecutarCicloDiarioCoordinacion } from './_lib/coordinacionCronCore.js'
+import { actualizarInformeMensual } from './_lib/coordinacionInforme.js'
 
 export default async function handler(req, res) {
   const auth = req.headers.authorization
@@ -41,6 +42,13 @@ export default async function handler(req, res) {
   } catch (err) {
     console.error('reactivate-cron (Panel de Coordinación):', err)
     resultado.coordinacion = { ok: false, error: err.message || 'Error interno' }
+  }
+
+  try {
+    resultado.informeMensual = await actualizarInformeMensual({ supabase })
+  } catch (err) {
+    console.error('reactivate-cron (Informe mensual):', err)
+    resultado.informeMensual = { ok: false, error: err.message || 'Error interno' }
   }
 
   return res.status(200).json(resultado)

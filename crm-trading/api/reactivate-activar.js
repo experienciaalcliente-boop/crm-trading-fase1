@@ -12,6 +12,7 @@ import { enviarCorreoAlumno, transporterGmailPool, procesarEnLotes } from './_li
 import { enviarCorreoLead } from './_lib/expCampanaSend.js'
 import { filtrarCupoDiario, CUPO_DIARIO_POR_ASESORA, fetchTodosPaginado } from './_lib/expCampanaCronCore.js'
 import { ejecutarAccionCoordinacion } from './_lib/coordinacionEjecutar.js'
+import { actualizarInformeMensual } from './_lib/coordinacionInforme.js'
 
 const CONCURRENCIA_ENVIO = 8
 
@@ -92,6 +93,19 @@ export default async function handler(req, res) {
       return res.status(200).json(resultado)
     } catch (err) {
       console.error('reactivate-activar (coordinacion):', err)
+      return res.status(500).json({ error: err.message || 'Error interno' })
+    }
+  }
+
+  // Prueba manual del agente Organizador (Gemini + Google Docs) — salta el
+  // candado de "último viernes del mes" y no cuenta como el informe real,
+  // para poder verificar las credenciales sin esperar a fin de mes.
+  if (req.body?.campana === 'coordinacion-informe-test') {
+    try {
+      const resultado = await actualizarInformeMensual({ supabase, forzar: true })
+      return res.status(200).json(resultado)
+    } catch (err) {
+      console.error('reactivate-activar (informe test):', err)
       return res.status(500).json({ error: err.message || 'Error interno' })
     }
   }
