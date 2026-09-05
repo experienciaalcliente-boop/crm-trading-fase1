@@ -4,19 +4,37 @@ import toast from 'react-hot-toast'
 
 const FRENTES = ['Retirados', 'Level Up', 'Retención', 'Datos', 'Impulso', 'Gestión']
 
+// PostgREST tope 1000 filas por página por default — campana_exalumnos_alumnos
+// tiene ~3200, así que hay que paginar o el conteo queda truncado en 1000.
+async function fetchTodosPaginado(construirQuery) {
+  const TAMANO_PAGINA = 1000
+  let desde = 0
+  let todos = []
+  while (true) {
+    const { data, error } = await construirQuery(desde, desde + TAMANO_PAGINA - 1)
+    if (error) throw error
+    todos = todos.concat(data || [])
+    if (!data || data.length < TAMANO_PAGINA) break
+    desde += TAMANO_PAGINA
+  }
+  return todos
+}
+
 async function fetchCoordinacion() {
-  const [rTareas, rIdeas, rLog, rSupuestos, rSegmentos, rAcciones, rLevelUp, rLevelUpConfig] = await Promise.all([
+  const [rTareas, rIdeas, rLog, rSupuestos, rSegmentos, rAcciones, rLevelUpConfig] = await Promise.all([
     supabase.from('panel_tareas').select('*').order('orden_original', { ascending: true }),
     supabase.from('panel_ideas').select('*').order('created_at', { ascending: false }),
     supabase.from('panel_log').select('*').order('cuando', { ascending: false }).limit(8),
     supabase.from('panel_supuestos').select('*'),
     supabase.from('recuperacion_2026_alumnos').select('segmento, deuda_usd, estado_campana, excluido'),
     supabase.from('panel_acciones_pendientes').select('*').order('created_at', { ascending: false }),
-    // Level Up = Plan Exalumnos ya existente (mismo proyecto, confirmado por el usuario) — se
-    // mapea acá en modo lectura, no se toca su lógica de envío (sigue en ExpCampanaPage/Gmail).
-    supabase.from('campana_exalumnos_alumnos').select('estado_campana, excluido, monto_faltante'),
     supabase.from('campana_exalumnos_config').select('*').eq('id', 'default').maybeSingle(),
   ])
+  // Level Up = Plan Exalumnos ya existente (mismo proyecto, confirmado por el usuario) — se
+  // mapea acá en modo lectura, no se toca su lógica de envío (sigue en ExpCampanaPage/Gmail).
+  const levelUpRows = await fetchTodosPaginado((desde, hasta) =>
+    supabase.from('campana_exalumnos_alumnos').select('estado_campana, excluido, monto_faltante').order('id').range(desde, hasta)
+  )
   const [rImpulso, rVentasImpulso] = await Promise.all([
     supabase.from('impulso_secuencia').select('*, alumno:alumnos(nombre, programa)').order('fecha_prevista', { ascending: true }),
     supabase.from('ventas_complementos').select('complemento, valor_producto').ilike('complemento', 'Impulso%'),
@@ -30,7 +48,7 @@ async function fetchCoordinacion() {
     supuestos,
     segmentos: rSegmentos.data || [],
     acciones: rAcciones.data || [],
-    levelUp: rLevelUp.data || [],
+    levelUp: levelUpRows,
     levelUpConfig: rLevelUpConfig.data || null,
     impulso: rImpulso.data || [],
     ventasImpulso: rVentasImpulso.data || [],

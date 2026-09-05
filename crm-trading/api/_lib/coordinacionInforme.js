@@ -4,6 +4,7 @@
 // como define la cadencia ya fijada en el Mapa Operativo.
 import { generarResumen } from './geminiClient.js'
 import { agregarAlFinalDelDocumento } from './googleDocsClient.js'
+import { fetchTodosPaginado } from './expCampanaCronCore.js'
 
 // ID del "Informe de avance a gerencia" (no es secreto, es solo un
 // identificador de documento — el acceso real lo protege el compartir
@@ -42,8 +43,13 @@ export async function actualizarInformeMensual({ supabase, forzar = false }) {
   const reactivados = activos.filter(s => ['Interesado', 'Contactado', 'Negociación', 'Reactivado'].includes(s.estado_campana)).length
   const enSecuencia = activos.filter(s => (s.estado_campana || '').startsWith('Correo')).length
 
-  const { data: levelUp } = await supabase.from('campana_exalumnos_alumnos').select('estado_campana, excluido')
-  const levelUpActivos = (levelUp || []).filter(l => !l.excluido)
+  // PostgREST tope 1000 filas por página — campana_exalumnos_alumnos tiene
+  // ~3200, así que hay que paginar (mismo patrón ya usado en
+  // expCampanaCronCore.js) o el conteo queda truncado en 1000.
+  const levelUp = await fetchTodosPaginado((desde, hasta) =>
+    supabase.from('campana_exalumnos_alumnos').select('estado_campana, excluido').order('id').range(desde, hasta)
+  )
+  const levelUpActivos = levelUp.filter(l => !l.excluido)
   const levelUpInteresados = levelUpActivos.filter(l => ['Interesado', 'Contactado', 'Negociación'].includes(l.estado_campana)).length
 
   const { data: ventasImpulso } = await supabase.from('ventas_complementos').select('valor_producto').ilike('complemento', 'Impulso%')
