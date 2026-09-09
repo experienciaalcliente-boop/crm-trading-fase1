@@ -13,6 +13,7 @@ import { enviarCorreoLead } from './_lib/expCampanaSend.js'
 import { filtrarCupoDiario, CUPO_DIARIO_POR_ASESORA, fetchTodosPaginado } from './_lib/expCampanaCronCore.js'
 import { ejecutarAccionCoordinacion } from './_lib/coordinacionEjecutar.js'
 import { actualizarInformeMensual } from './_lib/coordinacionInforme.js'
+import { ejecutarCicloDiarioCoordinacion } from './_lib/coordinacionCronCore.js'
 
 const CONCURRENCIA_ENVIO = 8
 
@@ -93,6 +94,21 @@ export default async function handler(req, res) {
       return res.status(200).json(resultado)
     } catch (err) {
       console.error('reactivate-activar (coordinacion):', err)
+      return res.status(500).json({ error: err.message || 'Error interno' })
+    }
+  }
+
+  // Disparo manual del ciclo diario de Email Marketing (sync de tandas
+  // "programada" -> "enviada" contra Brevo + evaluación de métricas 48h+).
+  // Es lo mismo que corre el cron a las 9am Perú — se expone acá para no
+  // tener que esperar a la próxima corrida cuando una tanda se envió a
+  // mano en Brevo y el supervisor quiere ver el estado reflejado ya.
+  if (req.body?.campana === 'coordinacion-ciclo-test') {
+    try {
+      const resultado = await ejecutarCicloDiarioCoordinacion({ supabase })
+      return res.status(200).json(resultado)
+    } catch (err) {
+      console.error('reactivate-activar (ciclo coordinacion test):', err)
       return res.status(500).json({ error: err.message || 'Error interno' })
     }
   }

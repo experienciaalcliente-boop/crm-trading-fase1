@@ -297,17 +297,17 @@ export default function PanelCoordinacionPage() {
 
         {/* Cartera por segmento */}
         <div className="crm-card" style={{ padding: 18 }}>
-          <SectionTitle title="Cartera por segmento" />
+          <SectionTitle title="Cartera por segmento" right={<a href="/recuperacion-seguimiento" style={{ color: 'var(--accent)' }}>Ver seguimiento →</a>} />
           <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 46px 76px 60px', gap: 8, paddingBottom: 6, borderBottom: '1px solid var(--border-default)', fontSize: 10, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>
             <span>Segmento</span><span style={{ textAlign: 'right' }}>Pers.</span><span style={{ textAlign: 'right' }}>Deuda</span><span style={{ textAlign: 'right' }}>En envío</span>
           </div>
           {c.segmentos.map(s => (
-            <div key={s.segmento} style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 46px 76px 60px', gap: 8, padding: '7px 0', borderBottom: '1px solid var(--border-default)' }}>
+            <a key={s.segmento} href={`/recuperacion-seguimiento?segmento=${s.segmento}`} style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 46px 76px 60px', gap: 8, padding: '7px 0', borderBottom: '1px solid var(--border-default)', textDecoration: 'none' }}>
               <span style={{ fontSize: 12, color: 'var(--text-primary)' }}>Segmento {s.segmento}</span>
               <span style={{ fontSize: 12, textAlign: 'right', color: 'var(--text-primary)' }}>{s.personas}</span>
               <span style={{ fontSize: 12, textAlign: 'right', color: 'var(--text-primary)' }}>{Math.round(s.deuda).toLocaleString('en-US')}</span>
               <span style={{ fontSize: 12, textAlign: 'right', color: 'var(--accent)' }}>{s.enSecuencia}</span>
-            </div>
+            </a>
           ))}
           <span style={{ fontSize: 10.5, color: 'var(--text-muted)', display: 'block', marginTop: 8 }}>
             {c.excluidosSensibilidad} excluidos por sensibilidad (salud, duelo, motivos familiares) · {c.sinDatoCuota} sin dato de cuota, en depuración.
