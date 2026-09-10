@@ -130,6 +130,9 @@ export default function SeguimientoRecuperacionPage() {
           style={{ flex: 1, minWidth: 180, padding: '7px 9px', background: 'var(--bg-input)', border: '1.5px solid var(--border-default)', borderRadius: 8, color: 'var(--text-primary)', fontSize: 12.5 }} />
         <span style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>{s.pipeline.length} en esta vista</span>
       </div>
+      <p style={{ fontSize: 10.5, color: 'var(--text-muted)', marginTop: -6, marginBottom: 12 }}>
+        La deuda se calcula en vivo desde las cuotas reales cuando el registro está vinculado al alumno. El ⚠ marca a quien no se pudo vincular (nombre duplicado en la base) — ese monto es el del CSV original y puede estar desactualizado; verifícalo en la ficha del alumno antes de comunicarlo.
+      </p>
 
       {/* Pipeline */}
       <div className="crm-card" style={{ padding: 16 }}>
@@ -152,7 +155,11 @@ export default function SeguimientoRecuperacionPage() {
                       <div style={{ fontSize: 10.5, color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.email}</div>
                     </td>
                     <td style={{ padding: '7px 8px', borderBottom: '1px solid var(--border-default)', fontSize: 12, color: 'var(--text-muted)' }}>{a.segmento}</td>
-                    <td style={{ padding: '7px 8px', borderBottom: '1px solid var(--border-default)', fontSize: 12, color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>{fmtUSD(a.deuda_usd)}</td>
+                    <td style={{ padding: '7px 8px', borderBottom: '1px solid var(--border-default)', fontSize: 12, whiteSpace: 'nowrap' }}>
+                      {a.deuda_verificada
+                        ? <span style={{ color: 'var(--text-primary)' }} title="Calculada en vivo desde las cuotas reales del alumno">{fmtUSD(a.deuda_usd_real)}</span>
+                        : <span style={{ color: '#f5b93a' }} title="No se pudo vincular con el alumno real — este monto es el que traía el CSV original y puede estar desactualizado">⚠ {fmtUSD(a.deuda_usd)}</span>}
+                    </td>
                     <td style={{ padding: '7px 8px', borderBottom: '1px solid var(--border-default)', fontSize: 11 }}>
                       {a.estado_campana === 'Pendiente'
                         ? <span style={{ color: 'var(--text-muted)' }}>Sin enviar</span>

@@ -23,11 +23,32 @@ async function fetchTodosPaginado(construirQuery) {
 export const ESTADOS_WHATSAPP = ['Sin contacto', 'Contactado', 'Respondió', 'En conversación', 'Matriculado', 'No interesado']
 const SEGMENTOS = ['A', 'B', 'C', 'D']
 
+// Mismo tipo de cambio de respaldo que usa useDashboard.js cuando una cuota
+// no trae el suyo propio — para que la deuda en vivo coincida con el resto
+// del CRM en vez de inventar su propia conversión.
+const TC_DEFAULT = 3.6
+
+// deuda_usd de recuperacion_2026_alumnos es una foto fija tomada del CSV al
+// importar (Fase 1) — nunca se actualiza con los pagos reales. Para quien
+// sí quedó vinculado a un alumno real (alumno_id), se calcula la deuda
+// pendiente en vivo desde cuotas: mismo criterio de estado y de moneda/TC
+// que ya usa el resto del CRM (useDashboard.js).
+function calcularDeudaPendienteUSD(cuotasAlumno) {
+  return cuotasAlumno
+    .filter(c => c.estado !== 'Pagada' && c.estado !== 'Retirado')
+    .reduce((s, c) => {
+      const saldo = parseFloat(c.monto || 0) - parseFloat(c.monto_pagado || 0)
+      if (saldo <= 0) return s
+      const tc = parseFloat(c.tipo_cambio) || TC_DEFAULT
+      return s + (c.moneda === 'USD' ? saldo : saldo / tc)
+    }, 0)
+}
+
 async function fetchSeguimiento() {
   const [rAlumnos, rConfig, rTandas] = await Promise.all([
     fetchTodosPaginado((desde, hasta) =>
       supabase.from('recuperacion_2026_alumnos')
-        .select('id, nombre, email, segmento, tanda, cuotas_adeudadas, deuda_usd, estado_campana, fecha_ultimo_envio, excluido, estado_whatsapp, whatsapp_contactado_at, whatsapp_asesora, whatsapp_nota')
+        .select('id, alumno_id, nombre, email, segmento, tanda, cuotas_adeudadas, deuda_usd, estado_campana, fecha_ultimo_envio, excluido, estado_whatsapp, whatsapp_contactado_at, whatsapp_asesora, whatsapp_nota')
         .order('segmento').order('nombre')
         .range(desde, hasta)
     ),
@@ -40,8 +61,28 @@ async function fetchSeguimiento() {
     // inventar un "no abrió" que en realidad es "no medido".
     supabase.from('recuperacion_2026_tandas').select('segmento, tanda, estado, enviada_at, evaluada_at, metricas'),
   ])
+
+  const idsVinculados = [...new Set(rAlumnos.map(a => a.alumno_id).filter(Boolean))]
+  const cuotas = idsVinculados.length
+    ? await fetchTodosPaginado((desde, hasta) =>
+        supabase.from('cuotas').select('alumno_id, estado, monto, monto_pagado, moneda, tipo_cambio')
+          .in('alumno_id', idsVinculados).range(desde, hasta)
+      )
+    : []
+  const cuotasPorAlumno = new Map()
+  cuotas.forEach(c => {
+    if (!cuotasPorAlumno.has(c.alumno_id)) cuotasPorAlumno.set(c.alumno_id, [])
+    cuotasPorAlumno.get(c.alumno_id).push(c)
+  })
+
+  const alumnos = rAlumnos.map(a => {
+    if (!a.alumno_id) return { ...a, deuda_verificada: false }
+    const deudaReal = calcularDeudaPendienteUSD(cuotasPorAlumno.get(a.alumno_id) || [])
+    return { ...a, deuda_verificada: true, deuda_usd_real: deudaReal }
+  })
+
   return {
-    alumnos: rAlumnos,
+    alumnos,
     config: rConfig.data || [],
     tandas: rTandas.data || [],
   }
