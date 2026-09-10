@@ -131,7 +131,7 @@ export default function SeguimientoRecuperacionPage() {
         <span style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>{s.pipeline.length} en esta vista</span>
       </div>
       <p style={{ fontSize: 10.5, color: 'var(--text-muted)', marginTop: -6, marginBottom: 12 }}>
-        La deuda se calcula en vivo desde las cuotas reales cuando el registro está vinculado al alumno. El ⚠ marca a quien no se pudo vincular (nombre duplicado en la base) — ese monto es el del CSV original y puede estar desactualizado; verifícalo en la ficha del alumno antes de comunicarlo.
+        Deuda y teléfono vienen del archivo de deuda real de Finanzas (10-sept), cruzado por código de alumno.
       </p>
 
       {/* Pipeline */}
@@ -140,7 +140,7 @@ export default function SeguimientoRecuperacionPage() {
           <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 900 }}>
             <thead>
               <tr style={{ fontSize: 10, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>
-                {['Alumno', 'Seg.', 'Deuda', 'Correo', 'Estado WhatsApp', 'Asesora', 'Contacto', 'Nota'].map(h => (
+                {['Alumno', 'Seg.', 'Deuda', 'Teléfono', 'Correo', 'Estado WhatsApp', 'Asesora', 'Contacto', 'Nota'].map(h => (
                   <th key={h} style={{ textAlign: 'left', padding: '0 8px 8px', borderBottom: '1px solid var(--border-default)', fontWeight: 700, whiteSpace: 'nowrap' }}>{h}</th>
                 ))}
               </tr>
@@ -156,10 +156,10 @@ export default function SeguimientoRecuperacionPage() {
                     </td>
                     <td style={{ padding: '7px 8px', borderBottom: '1px solid var(--border-default)', fontSize: 12, color: 'var(--text-muted)' }}>{a.segmento}</td>
                     <td style={{ padding: '7px 8px', borderBottom: '1px solid var(--border-default)', fontSize: 12, whiteSpace: 'nowrap' }}>
-                      {a.deuda_verificada
-                        ? <span style={{ color: 'var(--text-primary)' }} title="Calculada en vivo desde las cuotas reales del alumno">{fmtUSD(a.deuda_usd_real)}</span>
-                        : <span style={{ color: '#f5b93a' }} title="No se pudo vincular con el alumno real — este monto es el que traía el CSV original y puede estar desactualizado">⚠ {fmtUSD(a.deuda_usd)}</span>}
+                      <span style={{ color: 'var(--text-primary)' }} title={a.cuota_pendiente_label || ''}>{fmtUSD(a.deuda_usd)}</span>
+                      {a.cuota_pendiente_label && <span style={{ display: 'block', fontSize: 9.5, color: 'var(--text-muted)' }}>{a.cuota_pendiente_label}</span>}
                     </td>
+                    <td style={{ padding: '7px 8px', borderBottom: '1px solid var(--border-default)', fontSize: 11.5, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{a.telefono || '—'}</td>
                     <td style={{ padding: '7px 8px', borderBottom: '1px solid var(--border-default)', fontSize: 11 }}>
                       {a.estado_campana === 'Pendiente'
                         ? <span style={{ color: 'var(--text-muted)' }}>Sin enviar</span>
@@ -184,7 +184,7 @@ export default function SeguimientoRecuperacionPage() {
                 )
               })}
               {s.pipeline.length === 0 && (
-                <tr><td colSpan={8} style={{ padding: '20px 0', textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>Nadie en este filtro.</td></tr>
+                <tr><td colSpan={9} style={{ padding: '20px 0', textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>Nadie en este filtro.</td></tr>
               )}
             </tbody>
           </table>
