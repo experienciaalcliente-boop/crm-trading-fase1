@@ -28,18 +28,44 @@ function excelSerialToMesAnio(val) {
   return str
 }
 
-// ── Convierte "Jul-26" (mes de cohorte) al primer día de ese mes ──
+// ── Convierte el mes de cohorte al primer día de ese mes ──────────
 // Se usa como fecha_inicio cuando el archivo no trae una columna de
 // fecha de inicio explícita (caso real: solo viene el mes de cohorte).
+// Reconoce dos formatos, porque distintos archivos los traen distinto:
+//   - Corto:  "Abr-26" / "jul-26"
+//   - Largo:  "ABRIL 2026" / "Setiembre 2025" (mes completo + año de 4 dígitos)
+// Antes solo se reconocía el formato corto: cualquier programa importado
+// como "ABRIL 2026" quedaba con fecha_inicio null, y como programaActivo()
+// trata "sin fecha_inicio" como NO activo, esos alumnos desaparecían por
+// completo de Orientación/Seguimiento aunque estuvieran bien asignados.
+const MESES_ABREV = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic']
+const MESES_COMPLETOS = {
+  enero: 0, febrero: 1, marzo: 2, abril: 3, mayo: 4, junio: 5,
+  julio: 6, agosto: 7, septiembre: 8, setiembre: 8, octubre: 9,
+  noviembre: 10, diciembre: 11,
+}
 function mesAnioToFecha(mesAnio) {
   if (!mesAnio) return null
-  const meses = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic']
-  const m = /^([A-Za-záéíóúñ]{3})-(\d{2})$/i.exec(String(mesAnio).trim())
-  if (!m) return null
-  const idx = meses.indexOf(m[1].toLowerCase())
-  if (idx === -1) return null
-  const anio = 2000 + parseInt(m[2])
-  return `${anio}-${String(idx + 1).padStart(2, '0')}-01`
+  const texto = String(mesAnio).trim()
+
+  const corto = /^([A-Za-záéíóúñ]{3})-(\d{2})$/i.exec(texto)
+  if (corto) {
+    const idx = MESES_ABREV.indexOf(corto[1].toLowerCase())
+    if (idx === -1) return null
+    const anio = 2000 + parseInt(corto[2])
+    return `${anio}-${String(idx + 1).padStart(2, '0')}-01`
+  }
+
+  const largo = /^([A-Za-záéíóúñ]+)\s+(\d{4})$/i.exec(texto)
+  if (largo) {
+    const nombreMes = largo[1].toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+    const idx = MESES_COMPLETOS[nombreMes]
+    if (idx === undefined) return null
+    const anio = parseInt(largo[2])
+    return `${anio}-${String(idx + 1).padStart(2, '0')}-01`
+  }
+
+  return null
 }
 
 // ── Convierte número serial de Excel o fecha en texto (ISO o DD/MM/YYYY)
