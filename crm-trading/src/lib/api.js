@@ -56,7 +56,15 @@ const DURACION_PROGRAMA_DIAS = 24 * 7 // 24 semanas
 // por defecto, lo que colaba miles de alumnos viejos (y sus asesoras) en
 // vistas que deberían mostrar solo la operación vigente. Se exporta para
 // que tanto fetchAlumnos() como el Dashboard apliquen la misma regla.
+//
+// El cálculo de +24 semanas es un estimado — la fecha de cierre real de
+// cada cohorte varía (feriados, calendario académico) y no siempre cae en
+// ese día exacto: se confirmó que Abril 26 cierra a los 179 días y Mayo 26
+// a los 177, no a los 168 que asume esta fórmula. Cuando el alumno trae
+// `fecha_fin` explícita (cargada a mano para esos cohortes) se usa esa
+// fecha real en vez de calcularla.
 export function programaActivo(alumno) {
+  if (alumno.fecha_fin) return new Date(alumno.fecha_fin + 'T00:00:00') >= new Date()
   if (!alumno.fecha_inicio) return false
   const fin = new Date(alumno.fecha_inicio + 'T00:00:00')
   fin.setDate(fin.getDate() + DURACION_PROGRAMA_DIAS)
@@ -71,7 +79,7 @@ export async function fetchAlumnos(asesoraId, { soloActivos = true } = {}) {
   const data = await fetchTodasLasPaginas((desde, hasta) => {
     let query = supabase
       .from('alumnos')
-      .select('id, nombre, programa, semana_actual, asesora, asesora_id, estado, fecha_inicio')
+      .select('id, nombre, programa, semana_actual, asesora, asesora_id, estado, fecha_inicio, fecha_fin')
       .eq('activo', true)
       .order('nombre')
       .range(desde, hasta)
@@ -601,7 +609,7 @@ export async function fetchAlumnosEnCursoOSeguimiento(asesoraId) {
   const data = await fetchTodasLasPaginas((desde, hasta) => {
     let query = supabase
       .from('alumnos')
-      .select('id, nombre, programa, fecha_inicio, asesora_id')
+      .select('id, nombre, programa, fecha_inicio, fecha_fin, asesora_id')
       .in('estado', ['En Curso', 'En Seguimiento', 'en curso', 'en seguimiento'])
       .order('nombre')
       .range(desde, hasta)

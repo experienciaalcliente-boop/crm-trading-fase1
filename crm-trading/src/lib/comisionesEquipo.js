@@ -20,7 +20,7 @@ export async function calcularComisionesEquipoMes(mes) {
 
   const [asesoras, alumnosRes, llamadasRes, sesionesRes, encuestas, testimonios, orientadorId, ventasDesde] = await Promise.all([
     fetchAsesorasLlamadas(),
-    supabase.from('alumnos').select('id, nombre, programa, asesora_id, estado, fecha_inicio')
+    supabase.from('alumnos').select('id, nombre, programa, asesora_id, estado, fecha_inicio, fecha_fin')
       .in('estado', ['Activo', 'En Curso', 'En Seguimiento', 'activo', 'en curso', 'en seguimiento']),
     supabase.from('registros_llamadas').select('alumno_id, respondio, fecha').gte('fecha', inicioMes).lte('fecha', finMes),
     supabase.from('sesiones_orientacion').select('alumno_id, orientador_id, estado, fecha').gte('fecha', inicioMes).lte('fecha', finMes),
