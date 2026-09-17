@@ -56,7 +56,7 @@ async function fetchDashboard() {
       .order('fecha', { ascending: false })
       .limit(500),
     supabase.from('alumnos')
-      .select('id, nombre, programa, estado, semana_actual, asesora, asesora_id, riesgo_nivel, riesgo_score, ultimo_contacto_at, nivel_atencion, estado_operativo, fecha_inicio')
+      .select('id, nombre, programa, estado, semana_actual, asesora, asesora_id, riesgo_nivel, riesgo_score, ultimo_contacto_at, nivel_atencion, estado_operativo, fecha_inicio, fecha_fin')
       .in('estado', ['Activo', 'En Curso', 'En Seguimiento', 'activo', 'en curso', 'en seguimiento']),
     supabase.from('asesoras').select('id, nombre'),
     // Evolución por programa: histórico completo desde Ene-26, sin filtrar por
