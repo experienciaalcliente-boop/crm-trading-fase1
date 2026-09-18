@@ -75,7 +75,12 @@ export async function ejecutarCicloDiarioCoordinacion({ supabase }) {
 
       const tasaReboteDuro = (g.hardBounces || 0) / delivered
       const tasaQuejas = (g.complaints || 0) / delivered
-      const tasaApertura = g.opensRate ?? ((g.uniqueViews || 0) / delivered)
+      // g.opensRate viene de Brevo como porcentaje (8.7 = 8.7%), no como
+      // fracción — usarlo directo contra el umbral 0.15 lo trataba como
+      // "870%" y siempre pasaba el filtro de apertura sin importar el dato
+      // real. Se calcula la fracción a mano para que quede consistente con
+      // el resto del código (umbral 0.15 y *100 al mostrar).
+      const tasaApertura = (g.uniqueViews || 0) / delivered
       const metricas = { delivered, hardBounces: g.hardBounces || 0, complaints: g.complaints || 0, uniqueViews: g.uniqueViews || 0, tasaReboteDuro, tasaQuejas, tasaApertura }
 
       let decision, resumenTexto, tipoAccion, payloadExtra = {}
