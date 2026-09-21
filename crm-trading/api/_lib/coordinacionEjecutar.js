@@ -14,7 +14,7 @@ function proximaFechaEnvioISO(diasDesdeHoy = 3) {
   return `${y}-${m}-${day}T10:00:00.000-05:00` // 10:00 hora Perú
 }
 
-async function crearYProgramarTanda({ supabase, segmento, tanda, config }) {
+async function crearYProgramarTanda({ supabase, segmento, tanda, config, asuntoOverride, previewOverride }) {
   const { data: candidatos, error } = await supabase
     .from('recuperacion_2026_alumnos')
     .select('id, email, nombre')
@@ -35,10 +35,13 @@ async function crearYProgramarTanda({ supabase, segmento, tanda, config }) {
 
   const referencia = await obtenerCampana(config.brevo_campana_referencia_id)
   const scheduledAtISO = proximaFechaEnvioISO()
+  // asuntoOverride/previewOverride: permite probar un asunto distinto en una
+  // tanda puntual (ej. A/Día 3 tras apertura baja) sin tocar la campaña de
+  // referencia en Brevo, que sigue siendo la fuente del htmlContent.
   const nuevaCampana = await crearCampana({
     name: `SEG_${segmento}_${tanda} — Correo 0 (${candidatos.length} contactos)`,
-    subject: referencia.subject,
-    previewText: referencia.previewText,
+    subject: asuntoOverride || referencia.subject,
+    previewText: previewOverride || referencia.previewText,
     sender: SENDER,
     replyTo: REPLY_TO,
     htmlContent: referencia.htmlContent,
@@ -64,7 +67,10 @@ export async function ejecutarAccionCoordinacion({ supabase, accionId }) {
 
   let resultado
   if (accion.tipo === 'email_marketing.siguiente_tanda') {
-    resultado = await crearYProgramarTanda({ supabase, segmento: accion.payload.segmento, tanda: accion.payload.tanda_siguiente, config })
+    resultado = await crearYProgramarTanda({
+      supabase, segmento: accion.payload.segmento, tanda: accion.payload.tanda_siguiente, config,
+      asuntoOverride: accion.payload.asunto_override, previewOverride: accion.payload.preview_override,
+    })
   } else if (accion.tipo === 'email_marketing.iniciar_segmento') {
     resultado = await crearYProgramarTanda({ supabase, segmento: accion.payload.segmento, tanda: 'Dia 1', config })
     if (resultado.ok) await supabase.from('recuperacion_2026_config').update({ campana_activa: true, updated_at: new Date().toISOString() }).eq('segmento', accion.payload.segmento)
