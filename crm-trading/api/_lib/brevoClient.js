@@ -76,8 +76,15 @@ export async function crearCampana({ name, subject, previewText, sender, replyTo
 }
 
 export async function listarWebhooks() {
-  const data = await brevoFetch('/webhooks?type=marketing')
-  return data.webhooks || []
+  try {
+    const data = await brevoFetch('/webhooks?type=marketing')
+    return data.webhooks || []
+  } catch (err) {
+    // Brevo responde 400 "document_not_found" (no 200 con lista vacía)
+    // cuando la cuenta todavía no tiene ningún webhook de este tipo.
+    if (/document_not_found/.test(err.message)) return []
+    throw err
+  }
 }
 
 // Suscribe nuestra URL de tracking a los eventos de campañas de Brevo, para
