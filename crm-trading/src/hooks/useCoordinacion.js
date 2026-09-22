@@ -36,7 +36,7 @@ async function fetchCoordinacion() {
     supabase.from('campana_exalumnos_alumnos').select('estado_campana, excluido, monto_faltante').order('id').range(desde, hasta)
   )
   const [rImpulso, rVentasImpulso] = await Promise.all([
-    supabase.from('impulso_secuencia').select('*, alumno:alumnos(nombre, programa)').order('fecha_prevista', { ascending: true }),
+    supabase.from('impulso_secuencia').select('*, alumno:alumnos(nombre, programa, telefono)').order('fecha_prevista', { ascending: true }),
     supabase.from('ventas_complementos').select('complemento, valor_producto').ilike('complemento', 'Impulso%'),
   ])
   const supuestos = {}
@@ -270,6 +270,27 @@ export function useCoordinacion() {
   // elige el programa y la asesora; el sistema arma los 5 toques (días 0,
   // 3, 7, 10, 14, ventana de 2 semanas) para que no se pierda ninguno.
   const DIAS_TOQUE = [0, 3, 7, 10, 14]
+
+  // Mensajes sugeridos por toque — la asesora ya no tiene que redactar ni
+  // copiar/pegar nada, el link de WhatsApp abre con esto ya escrito.
+  const MENSAJES_IMPULSO = [
+    (n) => `Hola ${n} 👋 ¡Felicidades por terminar el programa! Quería contarte que tu acceso a Impulso (las sesiones de los jueves, los videos y el canal de Telegram con JP) no tiene por qué terminar acá — se puede continuar por suscripción. Te cuento cómo en estos días.`,
+    (n) => `${n}, en unos días se cierra tu acceso al canal de Telegram donde JP va avisando las zonas de precio según el escenario y el activo. Si quieres seguir teniendo ese seguimiento, es buen momento para conversarlo.`,
+    (n) => `${n}, te dejo los planes de Impulso para que decidas con calma: 3M ($450 = $150/mes), 6M ($797 = $133/mes) y 12M ($997 = solo $83/mes). El de 12 meses sale a menos de un tercio por mes que el de 3. ¿Cuál te acomoda más?`,
+    (n) => `${n}, ¿alguna duda sobre continuar en Impulso? Sigues teniendo las 3 sesiones en vivo al mes con JP y el acompañamiento en Telegram — es justo lo que ya veníamos usando estos meses.`,
+    (n) => `${n}, último aviso de mi parte 🙂 Si quieres seguir en Impulso con JP, aquí estoy para ayudarte a activarlo. Cualquier cosa me escribes.`,
+  ]
+  const waLink = (telefono, mensaje) => {
+    if (!telefono) return null
+    const digitos = telefono.replace(/\D/g, '')
+    if (!digitos) return null
+    return `https://wa.me/${digitos}?text=${encodeURIComponent(mensaje)}`
+  }
+  const impulsoPendientesConLink = impulsoPendientes.map(t => {
+    const armar = MENSAJES_IMPULSO[t.touch_numero - 1]
+    const mensaje = armar ? armar(t.alumno?.nombre?.split(' ')[0] || 'hola') : ''
+    return { ...t, waHref: waLink(t.alumno?.telefono, mensaje) }
+  })
   const definirCohorteImpulso = async () => {
     const programa = cohorteInput.trim()
     if (!programa) { toast.error('Escribe el programa de la cohorte (ej. Mar-26)'); return }
@@ -350,7 +371,7 @@ export function useCoordinacion() {
     accionesPendientes: raw.acciones.filter(a => a.estado === 'pendiente'),
     revisarAccion,
     impulso: impulsoResumen,
-    impulsoPendientes,
+    impulsoPendientes: impulsoPendientesConLink,
     cohorteInput, setCohorteInput, asesoraInput, setAsesoraInput, definiendoCohorte, definirCohorteImpulso,
     marcarToqueImpulso,
   }

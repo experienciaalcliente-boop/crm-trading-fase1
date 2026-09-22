@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useCoordinacion } from '../hooks/useCoordinacion'
-import { Loader2, RefreshCw, CheckCircle2 } from 'lucide-react'
+import { Loader2, RefreshCw, CheckCircle2, MessageCircle } from 'lucide-react'
 
 const fmtUSD = n => `USD ${Math.round(n).toLocaleString('en-US')}`
 const fmtPct = n => `${Math.round(n)}%`
@@ -330,11 +330,11 @@ export default function PanelCoordinacionPage() {
             <button className="crm-btn crm-btn-primary crm-btn-sm" disabled={c.definiendoCohorte} onClick={c.definirCohorteImpulso}>Definir cohorte</button>
           </div>
           <span style={{ fontSize: 10.5, color: 'var(--text-muted)', display: 'block', marginBottom: 10 }}>
-            Arma los 5 toques (días 0/3/7/10/14) para los alumnos activos de ese programa. Sin mentorías como bono (R2) · solo exalumnos al egresar (R3).
+            Arma los 5 toques (días 0/3/7/10/14) para los alumnos activos de ese programa. "Enviar" abre WhatsApp con el mensaje ya escrito al teléfono real del alumno — ya no hay que redactar ni copiar nada.
           </span>
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             {c.impulsoPendientes.slice(0, 8).map(t => (
-              <div key={t.id} style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 60px 70px', gap: 8, alignItems: 'center', padding: '7px 0', borderBottom: '1px solid var(--border-default)' }}>
+              <div key={t.id} style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 60px auto 70px', gap: 8, alignItems: 'center', padding: '7px 0', borderBottom: '1px solid var(--border-default)' }}>
                 <div style={{ minWidth: 0 }}>
                   <span style={{ display: 'block', fontSize: 12.5, color: 'var(--text-primary)' }}>{t.alumno?.nombre || '—'} · toque {t.touch_numero}/5</span>
                   <span style={{ display: 'block', fontSize: 10.5, color: 'var(--text-muted)' }}>{t.cohorte_egreso} · {t.asesora_nombre}</span>
@@ -342,6 +342,11 @@ export default function PanelCoordinacionPage() {
                 <span style={{ fontSize: 11, color: t.dias !== null && t.dias < 0 ? '#f07070' : 'var(--text-muted)' }}>
                   {t.dias === 0 ? 'hoy' : t.dias < 0 ? `${Math.abs(t.dias)}d atrasado` : `en ${t.dias}d`}
                 </span>
+                {t.waHref
+                  ? <a href={t.waHref} target="_blank" rel="noreferrer" className="crm-btn crm-btn-sm" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, textDecoration: 'none' }}>
+                      <MessageCircle size={12} /> Enviar
+                    </a>
+                  : <span style={{ fontSize: 10, color: '#f07070' }}>Sin teléfono</span>}
                 <button className="crm-btn crm-btn-sm" onClick={() => c.marcarToqueImpulso(t, 'Enviado')}>Hecho</button>
               </div>
             ))}
