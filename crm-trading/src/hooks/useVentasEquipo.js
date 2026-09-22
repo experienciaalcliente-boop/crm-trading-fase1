@@ -90,9 +90,15 @@ export function useVentasEquipo() {
   }, [editando, cargar])
 
   const mesActual = new Date().toISOString().slice(0, 7)
-  const ventasMes = ventas.filter(v => v.fecha_registro?.slice(0, 7) === mesActual)
+  const [mesSeleccionado, setMesSeleccionado] = useState(mesActual)
+  const ventasMes = ventas.filter(v => v.fecha_registro?.slice(0, 7) === mesSeleccionado)
 
-  // ── Resumen del mes ────────────────────────────────────────
+  // Meses con al menos una venta, más recientes primero — para poblar el
+  // selector (siempre incluye el mes actual aunque todavía no tenga ventas).
+  const mesesDisponibles = Array.from(new Set([mesActual, ...ventas.map(v => v.fecha_registro?.slice(0, 7)).filter(Boolean)]))
+    .sort((a, b) => b.localeCompare(a))
+
+  // ── Resumen del mes seleccionado ───────────────────────────
   const totalVentasMes = ventasMes.length
   const montoTotalMes = ventasMes.reduce((s, v) => s + (parseFloat(v.valor_comision) || 0), 0)
   const conteoComplemento = {}
@@ -130,7 +136,8 @@ export function useVentasEquipo() {
   const evolucionMensual = Object.values(gruposMes).sort((a, b) => a.mes.localeCompare(b.mes))
 
   return {
-    ventas, loading, cargar,
+    ventas: ventasMes, loading, cargar,
+    mesSeleccionado, setMesSeleccionado, mesesDisponibles, esMesActual: mesSeleccionado === mesActual,
     totalVentasMes, montoTotalMes, complementoMasVendido,
     porAsesora, porComplemento, evolucionMensual,
     alumnos, asesoras,

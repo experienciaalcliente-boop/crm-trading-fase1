@@ -52,14 +52,26 @@ export default function ResumenVentasEquipo() {
 
   return (
     <div>
-      <div style={{ marginBottom:16 }}>
-        <h1 style={{ fontFamily:'Syne,sans-serif', fontWeight:700, color:'var(--text-primary)', fontSize:20 }}>Ventas de complementos — Equipo</h1>
-        <p style={{ fontSize:13, color:'var(--text-muted)', marginTop:3 }}>Resumen del mes actual y evolución desde junio 2026, todas las asesoras</p>
+      <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:16, marginBottom:16 }}>
+        <div>
+          <h1 style={{ fontFamily:'Syne,sans-serif', fontWeight:700, color:'var(--text-primary)', fontSize:20 }}>Ventas de complementos — Equipo</h1>
+          <p style={{ fontSize:13, color:'var(--text-muted)', marginTop:3 }}>Resumen del mes seleccionado y evolución desde junio 2026, todas las asesoras</p>
+        </div>
+        <select
+          value={e.mesSeleccionado}
+          onChange={ev => e.setMesSeleccionado(ev.target.value)}
+          className="crm-input"
+          style={{ minWidth:160, fontSize:13, fontWeight:600 }}
+        >
+          {e.mesesDisponibles.map(m => (
+            <option key={m} value={m}>{formatMesCorto(m)}</option>
+          ))}
+        </select>
       </div>
 
-      {/* Resumen del mes */}
+      {/* Resumen del mes seleccionado */}
       <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:10, marginBottom:20 }}>
-        <KPICard label="Ventas este mes" value={e.totalVentasMes} />
+        <KPICard label={e.esMesActual ? 'Ventas este mes' : `Ventas — ${formatMesCorto(e.mesSeleccionado)}`} value={e.totalVentasMes} />
         <KPICard label="Complemento más vendido" value={e.complementoMasVendido || '—'} />
         <KPICard label="Monto total (S/)" value={`S/ ${fmt(e.montoTotalMes)}`} color="#2dd4a0" />
       </div>
