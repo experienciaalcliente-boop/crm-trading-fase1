@@ -14,6 +14,7 @@ import { filtrarCupoDiario, CUPO_DIARIO_POR_ASESORA, fetchTodosPaginado } from '
 import { ejecutarAccionCoordinacion } from './_lib/coordinacionEjecutar.js'
 import { actualizarInformeMensual } from './_lib/coordinacionInforme.js'
 import { ejecutarCicloDiarioCoordinacion } from './_lib/coordinacionCronCore.js'
+import { ejecutarCicloDiarioImpulso } from './_lib/impulsoCronCore.js'
 
 const CONCURRENCIA_ENVIO = 8
 
@@ -109,6 +110,20 @@ export default async function handler(req, res) {
       return res.status(200).json(resultado)
     } catch (err) {
       console.error('reactivate-activar (ciclo coordinacion test):', err)
+      return res.status(500).json({ error: err.message || 'Error interno' })
+    }
+  }
+
+  // Disparo manual del ciclo diario de Impulso BURS (siembra la secuencia de
+  // 5 toques para la cohorte confirmada en panel_supuestos y propone los
+  // toques cuya fecha_prevista ya llegó). Mismo motivo que el de arriba: ver
+  // el resultado sin esperar al cron de las 9am Perú.
+  if (req.body?.campana === 'coordinacion-impulso-test') {
+    try {
+      const resultado = await ejecutarCicloDiarioImpulso({ supabase })
+      return res.status(200).json(resultado)
+    } catch (err) {
+      console.error('reactivate-activar (impulso test):', err)
       return res.status(500).json({ error: err.message || 'Error interno' })
     }
   }
