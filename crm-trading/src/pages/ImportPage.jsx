@@ -96,7 +96,7 @@ const TIPOS = {
   alumnos: {
     titulo: 'Base de alumnos',
     descripcion: 'Carga o actualiza el listado de alumnos. Si ya existen, se actualizarán.',
-    columnas: 'Nombre · Programa · Semana actual · Asesora · Estado',
+    columnas: 'Nombre · Programa · Semana actual · Asesora · Estado · Teléfono · Correo (si el archivo los trae)',
   },
   historial: {
     titulo: 'Historial de llamadas',
@@ -225,6 +225,11 @@ export default function ImportPage() {
           activo:        true,
           codigo_alumno: codigoRaw || null,
           fecha_inicio,
+          // El archivo de SisBurs sí trae estos campos pero antes no se
+          // capturaban — sin esto no había forma de contactar a un alumno
+          // activo por fuera del CRM (ej. para Impulso BURS al egreso).
+          telefono:      col(r, 'telefono', 'celular', 'movil', 'whatsapp', 'phone') || null,
+          email:         col(r, 'correo', 'email', 'mail') || null,
         }
       })
       .filter(r => r.nombre && r.programa)
