@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useCoordinacion } from '../hooks/useCoordinacion'
 import { Loader2, RefreshCw, CheckCircle2 } from 'lucide-react'
 
@@ -10,6 +11,15 @@ function KPICard({ label, value, sub, color = 'var(--accent)', accent }) {
       <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>{label}</div>
       <div style={{ fontSize: 26, fontWeight: 700, color, fontFamily: 'Syne,sans-serif', lineHeight: 1 }}>{value}</div>
       {sub && <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>{sub}</div>}
+    </div>
+  )
+}
+
+function FocusItem({ n, label, color, muted }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+      <span style={{ fontFamily: 'Syne,sans-serif', fontWeight: 700, fontSize: 30, lineHeight: 1, color: muted ? 'var(--text-muted)' : (color || 'var(--text-primary)') }}>{n}</span>
+      <span style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>{label}</span>
     </div>
   )
 }
@@ -54,8 +64,11 @@ const IDEA_CHIP = {
   'Por evaluar': { bg: 'transparent', fg: 'var(--text-muted)' },
 }
 
+const TABS_DETALLE = ['Ideas y actividad', 'Level Up', 'Impulso BURS', 'Cartera por segmento']
+
 export default function PanelCoordinacionPage() {
   const c = useCoordinacion()
+  const [tabDetalle, setTabDetalle] = useState(TABS_DETALLE[0])
 
   if (c.loading) return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 10, color: 'var(--text-muted)' }}>
@@ -75,33 +88,58 @@ export default function PanelCoordinacionPage() {
         <button className="crm-btn crm-btn-sm" onClick={c.cargar}><RefreshCw size={13} /> Actualizar</button>
       </div>
 
-      {/* KPIs */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(190px,1fr))', gap: 12, marginBottom: 28 }}>
+      {/* Enfoque de hoy — lo primero que se lee, sin tener que interpretar nada más */}
+      <div className="crm-card" style={{ padding: '18px 20px', marginBottom: 20, display: 'flex', gap: 32, flexWrap: 'wrap', alignItems: 'center' }}>
+        <FocusItem n={c.accionesPendientes.length} label="por aprobar" color={c.accionesPendientes.length > 0 ? '#f5b93a' : undefined} muted={c.accionesPendientes.length === 0} />
+        <FocusItem n={c.vencidas} label="tareas vencidas" color={c.vencidas > 0 ? '#f07070' : undefined} muted={c.vencidas === 0} />
+        <FocusItem n={c.urgentes} label="tareas urgentes (≤3d)" color={c.urgentes > 0 ? '#f5b93a' : undefined} muted={c.urgentes === 0} />
+        <FocusItem
+          n={c.impulsoPendientes.filter(t => t.dias !== null && t.dias <= 0).length}
+          label="toques de Impulso al día"
+          color={c.impulsoPendientes.some(t => t.dias !== null && t.dias < 0) ? '#f07070' : undefined}
+          muted={c.impulsoPendientes.filter(t => t.dias !== null && t.dias <= 0).length === 0}
+        />
+        {c.agenda[0] && (
+          <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
+            <span style={{ display: 'block', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-muted)' }}>Próximo hito</span>
+            <span style={{ fontSize: 13, color: 'var(--text-primary)' }}>{c.agenda[0].titulo} · {c.agenda[0].dias === 0 ? 'hoy' : `+${c.agenda[0].dias}d`}</span>
+          </div>
+        )}
+      </div>
+
+      {/* Cola de aprobación — agrupada por agente para no leerla como una sola lista larga */}
+      {c.accionesPendientes.length > 0 && (
+        <div className="crm-card" style={{ padding: 18, marginBottom: 20, borderLeft: '3px solid #f5b93a' }}>
+          <SectionTitle title="Cola de aprobación" right={`${c.accionesPendientes.length} pendientes`} />
+          {Object.entries(
+            c.accionesPendientes.reduce((acc, a) => { (acc[a.agente] ||= []).push(a); return acc }, {})
+          ).map(([agente, items]) => (
+            <div key={agente} style={{ marginBottom: 10 }}>
+              <div style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em', margin: '8px 0 4px' }}>{agente.replace('_', ' ')}</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {items.map(a => (
+                  <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: '1px solid var(--border-default)' }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 13, color: 'var(--text-primary)' }}>{a.resumen}</div>
+                    </div>
+                    <button className="crm-btn crm-btn-sm crm-btn-primary" onClick={() => c.revisarAccion(a, true)}>Aprobar</button>
+                    <button className="crm-btn crm-btn-sm" onClick={() => c.revisarAccion(a, false)}>Rechazar</button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* KPIs — detalle secundario, ya no es lo primero que se lee */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(190px,1fr))', gap: 12, marginBottom: 24 }}>
         <KPICard label="Retención cohorte" value={fmtPct(c.retencionActual * 100)} sub="Meta 85% · tendencia a la baja (78 → 76 → 74)" accent="#f07070" color="#f07070" />
         <KPICard label="Cartera de retirados" value={fmtUSD(c.totalDeuda)} sub={`${c.totalPersonas} contactables · ${c.excluidosSensibilidad} excl. sensibilidad · ${c.sinDatoCuota} sin dato`} accent="var(--accent)" />
         <KPICard label="Proyección 90 días" value={fmtUSD(c.proyeccionTotal)} sub="USD incrementales · 3 frentes" accent="#2dd4a0" color="#2dd4a0" />
         <KPICard label="Riesgo mes 2" value={fmtUSD(c.riesgoMes2)} sub="USD por trimestre · punto de ruptura" accent="#f5b93a" color="#f5b93a" />
         <KPICard label="Plan 90 días" value={`${c.hechas}/${c.totalTareas}`} sub={`${c.vencidas} vencidas · ${c.urgentes} urgentes`} accent="var(--accent)" />
       </div>
-
-      {/* Cola de aprobación */}
-      {c.accionesPendientes.length > 0 && (
-        <div className="crm-card" style={{ padding: 18, marginBottom: 24, borderLeft: '3px solid #f5b93a' }}>
-          <SectionTitle title="Cola de aprobación" right={`${c.accionesPendientes.length} pendientes`} />
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {c.accionesPendientes.map(a => (
-              <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: '1px solid var(--border-default)' }}>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 12, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{a.agente} · {a.tipo}</div>
-                  <div style={{ fontSize: 13, color: 'var(--text-primary)' }}>{a.resumen}</div>
-                </div>
-                <button className="crm-btn crm-btn-sm crm-btn-primary" onClick={() => c.revisarAccion(a, true)}>Aprobar</button>
-                <button className="crm-btn crm-btn-sm" onClick={() => c.revisarAccion(a, false)}>Rechazar</button>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1.4fr) minmax(0,1fr)', gap: 24, alignItems: 'start' }}>
 
@@ -187,7 +225,20 @@ export default function PanelCoordinacionPage() {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(320px,1fr))', gap: 24, marginTop: 24, alignItems: 'start' }}>
+      {/* Detalle secundario — en pestañas: antes eran 5 tarjetas siempre visibles a la vez,
+          ahora se ve una cosa por vez para que no compita todo por la atención. */}
+      <div style={{ marginTop: 24 }}>
+        <div style={{ display: 'flex', gap: 4, marginBottom: 14, borderBottom: '1px solid var(--border-default)' }}>
+          {TABS_DETALLE.map(tab => (
+            <button key={tab} onClick={() => setTabDetalle(tab)}
+              style={{ padding: '8px 14px', fontSize: 12.5, fontWeight: 600, background: 'transparent', border: 'none', borderBottom: tabDetalle === tab ? '2px solid var(--accent)' : '2px solid transparent', color: tabDetalle === tab ? 'var(--text-primary)' : 'var(--text-muted)', cursor: 'pointer' }}>
+              {tab}
+            </button>
+          ))}
+        </div>
+
+      {tabDetalle === 'Ideas y actividad' && (
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(320px,1fr))', gap: 24, alignItems: 'start' }}>
 
         {/* Bandeja de ideas */}
         <div className="crm-card" style={{ padding: 18 }}>
@@ -231,8 +282,10 @@ export default function PanelCoordinacionPage() {
             {c.log.length === 0 && <div style={{ color: 'var(--text-muted)', fontSize: 12 }}>Sin actividad registrada.</div>}
           </div>
         </div>
+      </div>
+      )}
 
-        {/* Level Up / Plan Exalumnos */}
+      {tabDetalle === 'Level Up' && (
         <div className="crm-card" style={{ padding: 18 }}>
           <SectionTitle title="Level Up (Plan Exalumnos)" right={<a href="/exalumnos" style={{ color: 'var(--accent)' }}>Abrir panel completo →</a>} />
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -261,8 +314,9 @@ export default function PanelCoordinacionPage() {
             Mismo proyecto que Level Up — sigue enviándose por Gmail desde su propio panel. Acá solo se refleja el estado.
           </span>
         </div>
+      )}
 
-        {/* Impulso BURS */}
+      {tabDetalle === 'Impulso BURS' && (
         <div className="crm-card" style={{ padding: 18 }}>
           <SectionTitle title="Impulso BURS al egreso" right={`${c.impulso.ventasCount} ventas · USD ${Math.round(c.impulso.ventasUSD).toLocaleString('en-US')}`} />
           <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
@@ -294,8 +348,9 @@ export default function PanelCoordinacionPage() {
             {c.impulsoPendientes.length === 0 && <div style={{ color: 'var(--text-muted)', fontSize: 12 }}>Sin toques pendientes. Define una cohorte arriba para empezar.</div>}
           </div>
         </div>
+      )}
 
-        {/* Cartera por segmento */}
+      {tabDetalle === 'Cartera por segmento' && (
         <div className="crm-card" style={{ padding: 18 }}>
           <SectionTitle title="Cartera por segmento" right={<a href="/recuperacion-seguimiento" style={{ color: 'var(--accent)' }}>Ver seguimiento →</a>} />
           <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 46px 76px 60px', gap: 8, paddingBottom: 6, borderBottom: '1px solid var(--border-default)', fontSize: 10, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>
@@ -313,6 +368,7 @@ export default function PanelCoordinacionPage() {
             {c.excluidosSensibilidad} excluidos por sensibilidad (salud, duelo, motivos familiares) · {c.sinDatoCuota} sin dato de cuota, en depuración.
           </span>
         </div>
+      )}
       </div>
     </div>
   )
