@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import toast from 'react-hot-toast'
+import { variantesDeEjemplo, TOTAL_TOQUES } from '../lib/impulsoMensajes'
+import { SUBJECT_CIERRE_IMPULSO, PREVIEW_CIERRE_IMPULSO, HTML_CIERRE_IMPULSO } from '../lib/impulsoCorreoCierre'
 
 const FRENTES = ['Retirados', 'Level Up', 'Retención', 'Datos', 'Impulso', 'Gestión']
 
@@ -163,11 +165,27 @@ export function useCoordinacion() {
     cohortesActivas: [...new Set(raw.impulso.map(t => t.cohorte_egreso))],
     totalToques: raw.impulso.length,
     pendientes: impulsoPendientes.length,
+    hoy: impulsoPendientes.filter(t => t.dias === 0).length,
     vencidos: impulsoPendientes.filter(t => t.dias !== null && t.dias < 0).length,
     enviados: raw.impulso.filter(t => t.estado === 'Enviado' || t.estado === 'Respondido').length,
     ventasCount: raw.ventasImpulso.length,
     ventasUSD: ventasImpulsoTotal,
   }
+  // Vista del supervisor: avance agregado por corte (cada uno de los 5
+  // toques), no por alumno — el detalle accionable (link de WhatsApp,
+  // marcar hecho) vive en la vista propia de la asesora.
+  const impulsoPorCorte = Array.from({ length: TOTAL_TOQUES }, (_, i) => {
+    const n = i + 1
+    const filas = impulsoConDias.filter(t => t.touch_numero === n)
+    return {
+      touch_numero: n,
+      total: filas.length,
+      enviados: filas.filter(t => t.estado === 'Enviado' || t.estado === 'Respondido').length,
+      pendientes: filas.filter(t => t.estado === 'Pendiente').length,
+      vencidos: filas.filter(t => t.estado === 'Pendiente' && t.dias !== null && t.dias < 0).length,
+      variantes: variantesDeEjemplo(n),
+    }
+  })
 
   const metaRecuperacion = num('meta_recuperacion_usd', 150000)
   const proyRecuperacion = num('proyeccion_recuperacion_90d_usd')
@@ -212,6 +230,43 @@ export function useCoordinacion() {
       nota: `${vencidas} vencidas · ${urgentes} en los próximos 3 días`,
     },
   ]
+
+  // Refuerzo por correo del cierre de una cohorte de Impulso — complementa
+  // los toques de WhatsApp de la asesora, no los reemplaza. Se guarda como
+  // acción de la misma cola de aprobación (deja registro/auditoría) y se
+  // ejecuta de inmediato porque quien la dispara ya es el supervisor.
+  const [enviandoCorreoCierre, setEnviandoCorreoCierre] = useState(false)
+  const enviarCorreoCierreImpulso = async (cohorte) => {
+    if (!cohorte) { toast.error('Define primero la cohorte arriba'); return }
+    setEnviandoCorreoCierre(true)
+    try {
+      const { data: accion, error: errIns } = await supabase
+        .from('panel_acciones_pendientes')
+        .insert({
+          agente: 'impulso', tipo: 'impulso.correo_cierre',
+          resumen: `Correo de cierre de Impulso para "${cohorte}" (felicitación + opción de continuar).`,
+          payload: { cohorte, subject: SUBJECT_CIERRE_IMPULSO, preview_text: PREVIEW_CIERRE_IMPULSO, html_content: HTML_CIERRE_IMPULSO },
+          estado: 'pendiente',
+        })
+        .select().single()
+      if (errIns) throw errIns
+
+      const res = await fetch('/api/reactivate-activar', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ campana: 'coordinacion', accionId: accion.id }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Error al enviar el correo de cierre')
+      if (data.ok === false) toast(data.mensaje || 'No se pudo enviar', { icon: '⚠️' })
+      else toast.success(`Correo de cierre programado (${data.contactos} contactos)`)
+    } catch (err) {
+      toast.error(err.message || 'No se pudo enviar el correo de cierre')
+      console.error(err)
+    } finally {
+      setEnviandoCorreoCierre(false)
+      cargar()
+    }
+  }
 
   const toggleTarea = async (tarea) => {
     const nuevoEstado = tarea.estado === 'Hecho' ? 'Pendiente' : 'Hecho'
@@ -271,26 +326,6 @@ export function useCoordinacion() {
   // 3, 7, 10, 14, ventana de 2 semanas) para que no se pierda ninguno.
   const DIAS_TOQUE = [0, 3, 7, 10, 14]
 
-  // Mensajes sugeridos por toque — la asesora ya no tiene que redactar ni
-  // copiar/pegar nada, el link de WhatsApp abre con esto ya escrito.
-  const MENSAJES_IMPULSO = [
-    (n) => `Hola ${n} 👋 ¡Felicidades por terminar el programa! Quería contarte que tu acceso a Impulso (las sesiones de los jueves, los videos y el canal de Telegram con JP) no tiene por qué terminar acá — se puede continuar por suscripción. Te cuento cómo en estos días.`,
-    (n) => `${n}, en unos días se cierra tu acceso al canal de Telegram donde JP va avisando las zonas de precio según el escenario y el activo. Si quieres seguir teniendo ese seguimiento, es buen momento para conversarlo.`,
-    (n) => `${n}, te dejo los planes de Impulso para que decidas con calma: 3M ($450 = $150/mes), 6M ($797 = $133/mes) y 12M ($997 = solo $83/mes). El de 12 meses sale a menos de un tercio por mes que el de 3. ¿Cuál te acomoda más?`,
-    (n) => `${n}, ¿alguna duda sobre continuar en Impulso? Sigues teniendo las 3 sesiones en vivo al mes con JP y el acompañamiento en Telegram — es justo lo que ya veníamos usando estos meses.`,
-    (n) => `${n}, último aviso de mi parte 🙂 Si quieres seguir en Impulso con JP, aquí estoy para ayudarte a activarlo. Cualquier cosa me escribes.`,
-  ]
-  const waLink = (telefono, mensaje) => {
-    if (!telefono) return null
-    const digitos = telefono.replace(/\D/g, '')
-    if (!digitos) return null
-    return `https://wa.me/${digitos}?text=${encodeURIComponent(mensaje)}`
-  }
-  const impulsoPendientesConLink = impulsoPendientes.map(t => {
-    const armar = MENSAJES_IMPULSO[t.touch_numero - 1]
-    const mensaje = armar ? armar(t.alumno?.nombre?.split(' ')[0] || 'hola') : ''
-    return { ...t, waHref: waLink(t.alumno?.telefono, mensaje) }
-  })
   const definirCohorteImpulso = async () => {
     const programa = cohorteInput.trim()
     if (!programa) { toast.error('Escribe el programa de la cohorte (ej. Mar-26)'); return }
@@ -303,7 +338,7 @@ export function useCoordinacion() {
       // seguimiento de quien ya se fue (y probablemente ya está en el plan
       // de recuperación de retirados, no debería duplicarse en Impulso).
       const { data: elegibles, error: errAl } = await supabase
-        .from('alumnos').select('id, nombre')
+        .from('alumnos').select('id, nombre, fecha_fin')
         .eq('programa', programa).eq('estado_operativo', 'Activo').neq('estado', 'Retirado')
       if (errAl) throw errAl
       if (!elegibles || elegibles.length === 0) { toast.error(`No hay alumnos activos en "${programa}"`); return }
@@ -314,11 +349,16 @@ export function useCoordinacion() {
       const nuevos = elegibles.filter(a => !idsConSecuencia.has(a.id))
       if (nuevos.length === 0) { toast('Esta cohorte ya tiene su secuencia armada', { icon: 'ℹ️' }); return }
 
-      const hoy = new Date()
+      // Ancla los toques a la fecha real de egreso de CADA alumno
+      // (alumnos.fecha_fin), no al día en que se hace clic acá — si no, el
+      // Toque 1 ("¡felicidades por terminar!") puede salir días antes de
+      // que el alumno de verdad termine. Si algún registro no trae
+      // fecha_fin, se usa hoy como respaldo en vez de fallar la siembra.
       const filas = []
       for (const al of nuevos) {
+        const base = al.fecha_fin ? new Date(al.fecha_fin + 'T00:00:00') : new Date()
         for (let i = 0; i < DIAS_TOQUE.length; i++) {
-          const f = new Date(hoy); f.setDate(f.getDate() + DIAS_TOQUE[i])
+          const f = new Date(base); f.setDate(f.getDate() + DIAS_TOQUE[i])
           filas.push({
             alumno_id: al.id, cohorte_egreso: programa, touch_numero: i + 1,
             estado: 'Pendiente', fecha_prevista: f.toISOString().slice(0, 10), asesora_nombre: asesoraInput,
@@ -343,14 +383,6 @@ export function useCoordinacion() {
     }
   }
 
-  const marcarToqueImpulso = async (toque, estado) => {
-    const { error } = await supabase.from('impulso_secuencia')
-      .update({ estado, enviado_at: estado !== 'Pendiente' ? new Date().toISOString() : null })
-      .eq('id', toque.id)
-    if (error) { toast.error('No se pudo actualizar el toque'); console.error(error); return }
-    cargar()
-  }
-
   return {
     loading, cargar,
     filtro, setFiltro, frentes: FRENTES,
@@ -371,8 +403,8 @@ export function useCoordinacion() {
     accionesPendientes: raw.acciones.filter(a => a.estado === 'pendiente'),
     revisarAccion,
     impulso: impulsoResumen,
-    impulsoPendientes: impulsoPendientesConLink,
+    impulsoPorCorte,
     cohorteInput, setCohorteInput, asesoraInput, setAsesoraInput, definiendoCohorte, definirCohorteImpulso,
-    marcarToqueImpulso,
+    enviandoCorreoCierre, enviarCorreoCierreImpulso,
   }
 }

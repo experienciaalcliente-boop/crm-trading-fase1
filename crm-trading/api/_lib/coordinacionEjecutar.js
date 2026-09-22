@@ -96,6 +96,48 @@ async function crearCampanaSemilla({ supabase, segmento, subject, previewText, h
   return { ok: true, listId, campaignId: nuevaCampana.id, contactos: candidatos.length, scheduledAtISO }
 }
 
+// Correo de refuerzo al cierre de una cohorte de Impulso: felicita el
+// egreso y presenta la opción de continuar por suscripción. Complementa
+// (no reemplaza) los 5 toques de WhatsApp que maneja cada asesora — ataca
+// el mismo mensaje por dos canales distintos. Se manda una sola vez por
+// cohorte, a quienes tengan correo real cargado (import de alumnos).
+async function enviarCorreoCierreImpulso({ supabase, cohorte, subject, previewText, htmlContent }) {
+  const { data: yaEnviado } = await supabase
+    .from('panel_log').select('id')
+    .eq('agente', 'impulso')
+    .ilike('que', `Correo de cierre de Impulso enviado para "${cohorte}"%`)
+    .limit(1)
+  if (yaEnviado && yaEnviado.length > 0) {
+    return { ok: false, mensaje: `Ya se envió el correo de cierre para "${cohorte}" — no se repite.` }
+  }
+
+  const { data: candidatos, error } = await supabase
+    .from('alumnos').select('id, nombre, email')
+    .eq('programa', cohorte).eq('estado_operativo', 'Activo').neq('estado', 'Retirado').not('email', 'is', null)
+  if (error) throw error
+  if (!candidatos || candidatos.length === 0) {
+    return { ok: false, mensaje: `No hay alumnos con correo real en "${cohorte}".` }
+  }
+
+  const listId = await crearOEncontrarLista(`IMPULSO_CIERRE_${cohorte}`)
+  for (const c of candidatos) {
+    await agregarContactoALista({ email: c.email, nombre: c.nombre, listId })
+  }
+
+  const scheduledAtISO = proximaFechaEnvioISO(1) // mañana 10am Perú — cerca del egreso, no 3 días como las tandas de recuperación
+  const nuevaCampana = await crearCampana({
+    name: `IMPULSO_CIERRE_${cohorte} (${candidatos.length} contactos)`,
+    subject, previewText, sender: SENDER, replyTo: REPLY_TO, htmlContent, listId, scheduledAtISO,
+  })
+
+  await supabase.from('panel_log').insert({
+    que: `Correo de cierre de Impulso enviado para "${cohorte}" — ${candidatos.length} contactos, felicitación + opción de continuar.`,
+    donde: 'Fase 4 — Impulso BURS', agente: 'impulso',
+  })
+
+  return { ok: true, listId, campaignId: nuevaCampana.id, contactos: candidatos.length, scheduledAtISO }
+}
+
 export async function ejecutarAccionCoordinacion({ supabase, accionId }) {
   const { data: accion, error } = await supabase.from('panel_acciones_pendientes').select('*').eq('id', accionId).maybeSingle()
   if (error) throw error
@@ -123,17 +165,24 @@ export async function ejecutarAccionCoordinacion({ supabase, accionId }) {
   } else if (accion.tipo === 'email_marketing.detener_segmento') {
     await supabase.from('recuperacion_2026_config').update({ campana_activa: false, updated_at: new Date().toISOString() }).eq('segmento', accion.payload.segmento)
     resultado = { ok: true, mensaje: `Segmento ${accion.payload.segmento} detenido.` }
+  } else if (accion.tipo === 'impulso.correo_cierre') {
+    resultado = await enviarCorreoCierreImpulso({
+      supabase, cohorte: accion.payload.cohorte,
+      subject: accion.payload.subject, previewText: accion.payload.preview_text, htmlContent: accion.payload.html_content,
+    })
   } else {
     throw new Error(`Tipo de acción no reconocido: ${accion.tipo}`)
   }
 
+  const esImpulso = accion.tipo.startsWith('impulso.')
   await supabase.from('panel_acciones_pendientes').update({
     estado: 'ejecutada', revisado_at: new Date().toISOString(), resultado,
   }).eq('id', accionId)
 
   await supabase.from('panel_log').insert({
     que: `${accion.resumen} → APROBADO y ejecutado.`,
-    donde: 'Fase 3 — Email Marketing', agente: 'email_marketing',
+    donde: esImpulso ? 'Fase 4 — Impulso BURS' : 'Fase 3 — Email Marketing',
+    agente: esImpulso ? 'impulso' : 'email_marketing',
   })
 
   return resultado

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useCoordinacion } from '../hooks/useCoordinacion'
-import { Loader2, RefreshCw, CheckCircle2, MessageCircle } from 'lucide-react'
+import { Loader2, RefreshCw, CheckCircle2 } from 'lucide-react'
 
 const fmtUSD = n => `USD ${Math.round(n).toLocaleString('en-US')}`
 const fmtPct = n => `${Math.round(n)}%`
@@ -69,6 +69,7 @@ const TABS_DETALLE = ['Ideas y actividad', 'Level Up', 'Impulso BURS', 'Cartera 
 export default function PanelCoordinacionPage() {
   const c = useCoordinacion()
   const [tabDetalle, setTabDetalle] = useState(TABS_DETALLE[0])
+  const [corteExpandido, setCorteExpandido] = useState(null)
 
   if (c.loading) return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 10, color: 'var(--text-muted)' }}>
@@ -94,10 +95,10 @@ export default function PanelCoordinacionPage() {
         <FocusItem n={c.vencidas} label="tareas vencidas" color={c.vencidas > 0 ? '#f07070' : undefined} muted={c.vencidas === 0} />
         <FocusItem n={c.urgentes} label="tareas urgentes (≤3d)" color={c.urgentes > 0 ? '#f5b93a' : undefined} muted={c.urgentes === 0} />
         <FocusItem
-          n={c.impulsoPendientes.filter(t => t.dias !== null && t.dias <= 0).length}
+          n={c.impulso.hoy + c.impulso.vencidos}
           label="toques de Impulso al día"
-          color={c.impulsoPendientes.some(t => t.dias !== null && t.dias < 0) ? '#f07070' : undefined}
-          muted={c.impulsoPendientes.filter(t => t.dias !== null && t.dias <= 0).length === 0}
+          color={c.impulso.vencidos > 0 ? '#f07070' : undefined}
+          muted={c.impulso.hoy + c.impulso.vencidos === 0}
         />
         {c.agenda[0] && (
           <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
@@ -329,29 +330,43 @@ export default function PanelCoordinacionPage() {
             </select>
             <button className="crm-btn crm-btn-primary crm-btn-sm" disabled={c.definiendoCohorte} onClick={c.definirCohorteImpulso}>Definir cohorte</button>
           </div>
-          <span style={{ fontSize: 10.5, color: 'var(--text-muted)', display: 'block', marginBottom: 10 }}>
-            Arma los 5 toques (días 0/3/7/10/14) para los alumnos activos de ese programa. "Enviar" abre WhatsApp con el mensaje ya escrito al teléfono real del alumno — ya no hay que redactar ni copiar nada.
-          </span>
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            {c.impulsoPendientes.slice(0, 8).map(t => (
-              <div key={t.id} style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 60px auto 70px', gap: 8, alignItems: 'center', padding: '7px 0', borderBottom: '1px solid var(--border-default)' }}>
-                <div style={{ minWidth: 0 }}>
-                  <span style={{ display: 'block', fontSize: 12.5, color: 'var(--text-primary)' }}>{t.alumno?.nombre || '—'} · toque {t.touch_numero}/5</span>
-                  <span style={{ display: 'block', fontSize: 10.5, color: 'var(--text-muted)' }}>{t.cohorte_egreso} · {t.asesora_nombre}</span>
-                </div>
-                <span style={{ fontSize: 11, color: t.dias !== null && t.dias < 0 ? '#f07070' : 'var(--text-muted)' }}>
-                  {t.dias === 0 ? 'hoy' : t.dias < 0 ? `${Math.abs(t.dias)}d atrasado` : `en ${t.dias}d`}
-                </span>
-                {t.waHref
-                  ? <a href={t.waHref} target="_blank" rel="noreferrer" className="crm-btn crm-btn-sm" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, textDecoration: 'none' }}>
-                      <MessageCircle size={12} /> Enviar
-                    </a>
-                  : <span style={{ fontSize: 10, color: '#f07070' }}>Sin teléfono</span>}
-                <button className="crm-btn crm-btn-sm" onClick={() => c.marcarToqueImpulso(t, 'Enviado')}>Hecho</button>
-              </div>
-            ))}
-            {c.impulsoPendientes.length === 0 && <div style={{ color: 'var(--text-muted)', fontSize: 12 }}>Sin toques pendientes. Define una cohorte arriba para empezar.</div>}
+          <div style={{ marginBottom: 12 }}>
+            <button className="crm-btn crm-btn-sm" disabled={c.enviandoCorreoCierre || !c.cohorteInput.trim()}
+              onClick={() => c.enviarCorreoCierreImpulso(c.cohorteInput.trim())}>
+              {c.enviandoCorreoCierre ? 'Enviando…' : 'Enviar correo de cierre'}
+            </button>
+            <span style={{ fontSize: 10.5, color: 'var(--text-muted)', marginLeft: 8 }}>
+              Escribe el programa arriba y manda el refuerzo por correo (felicitación + opción de continuar) — una sola vez por cohorte, en paralelo a los toques de WhatsApp.
+            </span>
           </div>
+          <span style={{ fontSize: 10.5, color: 'var(--text-muted)', display: 'block', marginBottom: 10 }}>
+            Los 5 toques (días 0/3/7/10/14 desde el egreso real de cada alumno) se arman con "Definir cohorte". El envío por WhatsApp lo hace la asesora desde su propia vista — acá solo el avance por corte y el mensaje que se está mandando.
+          </span>
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 60px 70px 70px', gap: 8, paddingBottom: 6, borderBottom: '1px solid var(--border-default)', fontSize: 10, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>
+            <span>Corte</span><span style={{ textAlign: 'right' }}>Total</span><span style={{ textAlign: 'right' }}>Enviados</span><span style={{ textAlign: 'right' }}>Vencidos</span>
+          </div>
+          {c.impulsoPorCorte.map(corte => (
+            <div key={corte.touch_numero}>
+              <button onClick={() => setCorteExpandido(x => x === corte.touch_numero ? null : corte.touch_numero)}
+                style={{ width: '100%', display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 60px 70px 70px', gap: 8, padding: '9px 0', borderBottom: '1px solid var(--border-default)', background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left' }}>
+                <span style={{ fontSize: 12.5, color: 'var(--text-primary)' }}>Toque {corte.touch_numero}/5 {corteExpandido === corte.touch_numero ? '▾' : '▸'}</span>
+                <span style={{ fontSize: 12, textAlign: 'right', color: 'var(--text-primary)' }}>{corte.total}</span>
+                <span style={{ fontSize: 12, textAlign: 'right', color: '#2dd4a0' }}>{corte.enviados}</span>
+                <span style={{ fontSize: 12, textAlign: 'right', color: corte.vencidos > 0 ? '#f07070' : 'var(--text-muted)' }}>{corte.vencidos}</span>
+              </button>
+              {corteExpandido === corte.touch_numero && (
+                <div style={{ padding: '10px 0 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <span style={{ fontSize: 10.5, color: 'var(--text-muted)' }}>Variantes reales (se alterna por alumno para no mandar el mismo texto 55 veces):</span>
+                  {corte.variantes.map((texto, i) => (
+                    <div key={i} style={{ fontSize: 12, color: 'var(--text-secondary)', background: 'var(--bg-input)', borderRadius: 8, padding: '8px 10px', lineHeight: 1.4 }}>
+                      {texto}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+          {c.impulsoPorCorte.every(x => x.total === 0) && <div style={{ color: 'var(--text-muted)', fontSize: 12, padding: '10px 0' }}>Sin cohorte definida todavía.</div>}
         </div>
       )}
 

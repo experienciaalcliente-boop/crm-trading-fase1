@@ -20,6 +20,7 @@ export const NAV = [
   { to:'/seguimiento-semanal', icon:CalendarCheck, label:'Seg. Semanal', sub:'Contacto por semana',  roles:['supervisor','asesora'], group:'Gestión de Experiencia' },
   { to:'/orientacion', icon:MonitorSmartphone, label:'Orient. Técnica', sub:'Agenda y sesiones',    roles:['supervisor','asesora','orientador'], group:'Gestión de Experiencia' },
   { to:'/onboarding',  icon:GraduationCap,     label:'Onboarding',      sub:'Próximas promociones', roles:['supervisor','asesora'], group:'Gestión de Experiencia' },
+  { to:'/impulso-envios', icon:MessageCircle,  label:'Impulso BURS',    sub:'Envíos de WhatsApp',   roles:['supervisor','asesora'], group:'Gestión de Experiencia' },
   { to:'/recaudacion', icon:CreditCard,        label:'Recaudación',     sub:'Cuotas y pagos',       roles:['supervisor'], group:'Gestión de Experiencia' },
   { to:'/cuentas-reales', icon:TrendingUp,     label:'Cuentas Reales',  sub:'Capital y beneficios', roles:['supervisor'], group:'Gestión de Experiencia' },
 

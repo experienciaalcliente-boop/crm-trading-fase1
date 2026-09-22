@@ -14,6 +14,7 @@ import CuentasRealesPage from './pages/CuentasRealesPage'
 import OrientacionPage   from './pages/OrientacionPage'
 import DashboardPage     from './pages/DashboardPage'
 import PanelCoordinacionPage from './pages/PanelCoordinacionPage'
+import ImpulsoEnviosPage from './pages/ImpulsoEnviosPage'
 import SeguimientoRecuperacionPage from './pages/SeguimientoRecuperacionPage'
 import OnboardingPage    from './pages/OnboardingPage'
 import FichaAlumnoPage   from './pages/FichaAlumnoPage'
@@ -81,6 +82,7 @@ function ProtectedApp() {
           <Route path="/dashboard"      element={<ErrorBoundary><DashboardPage /></ErrorBoundary>} />
           <Route path="/coordinacion"   element={<RequireRole path="/coordinacion"><ErrorBoundary><PanelCoordinacionPage /></ErrorBoundary></RequireRole>} />
           <Route path="/recuperacion-seguimiento" element={<RequireRole path="/recuperacion-seguimiento"><ErrorBoundary><SeguimientoRecuperacionPage /></ErrorBoundary></RequireRole>} />
+          <Route path="/impulso-envios" element={<RequireRole path="/impulso-envios"><ErrorBoundary><ImpulsoEnviosPage /></ErrorBoundary></RequireRole>} />
           <Route path="/llamadas"       element={<RequireRole path="/llamadas"><ErrorBoundary><LlamadasPage /></ErrorBoundary></RequireRole>} />
           <Route path="/seguimiento-semanal" element={<RequireRole path="/seguimiento-semanal"><ErrorBoundary><SeguimientoSemanalPage /></ErrorBoundary></RequireRole>} />
           <Route path="/recaudacion"    element={<RequireRole path="/recaudacion"><RecaudacionPage /></RequireRole>} />
