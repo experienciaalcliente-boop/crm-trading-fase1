@@ -7,6 +7,21 @@ import { crearOEncontrarLista, agregarContactoALista, obtenerCampana, crearCampa
 const SENDER = { name: 'Experiencia del Cliente · Burs Advisory', email: 'noreply@comunidad.bursadvisory.com' }
 const REPLY_TO = 'experienciaalcliente@bursadvisory.com'
 
+// Agregar contactos a Brevo uno por uno (secuencial) tardaba demasiado con
+// segmentos grandes (279 contactos superó el maxDuration de 60s de la
+// función). Con 8 en paralelo baja bastante sin golpear límites de tasa
+// de la API de Brevo.
+async function agregarContactosEnParalelo(candidatos, listId, concurrencia = 8) {
+  let cursor = 0
+  async function trabajador() {
+    while (cursor < candidatos.length) {
+      const c = candidatos[cursor++]
+      await agregarContactoALista({ email: c.email, nombre: c.nombre, listId })
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(concurrencia, candidatos.length) }, trabajador))
+}
+
 function proximaFechaEnvioISO(diasDesdeHoy = 3) {
   const d = new Date()
   d.setUTCDate(d.getUTCDate() + diasDesdeHoy)
@@ -29,9 +44,7 @@ async function crearYProgramarTanda({ supabase, segmento, tanda, config, asuntoO
 
   const nombreLista = `SEG_${segmento}_${tanda.replace(' ', '').toUpperCase()}`
   const listId = await crearOEncontrarLista(nombreLista)
-  for (const c of candidatos) {
-    await agregarContactoALista({ email: c.email, nombre: c.nombre, listId })
-  }
+  await agregarContactosEnParalelo(candidatos, listId)
 
   const referencia = await obtenerCampana(config.brevo_campana_referencia_id)
   const scheduledAtISO = proximaFechaEnvioISO()
@@ -75,9 +88,7 @@ async function crearCampanaSemilla({ supabase, segmento, subject, previewText, h
 
   const nombreLista = `SEG_${segmento}_DIA1`
   const listId = await crearOEncontrarLista(nombreLista)
-  for (const c of candidatos) {
-    await agregarContactoALista({ email: c.email, nombre: c.nombre, listId })
-  }
+  await agregarContactosEnParalelo(candidatos, listId)
 
   const scheduledAtISO = proximaFechaEnvioISO()
   const nuevaCampana = await crearCampana({
@@ -120,9 +131,7 @@ async function enviarCorreoCierreImpulso({ supabase, cohorte, subject, previewTe
   }
 
   const listId = await crearOEncontrarLista(`IMPULSO_CIERRE_${cohorte}`)
-  for (const c of candidatos) {
-    await agregarContactoALista({ email: c.email, nombre: c.nombre, listId })
-  }
+  await agregarContactosEnParalelo(candidatos, listId)
 
   const scheduledAtISO = proximaFechaEnvioISO(1) // mañana 10am Perú — cerca del egreso, no 3 días como las tandas de recuperación
   const nuevaCampana = await crearCampana({
