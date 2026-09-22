@@ -135,9 +135,50 @@ async function trackExalumnos(supabase, token, evento, res) {
   return res.end()
 }
 
+// Webhook de Brevo (segmentos de recuperación A-D). Brevo manda POST con
+// {event, email, camp_id, ...} — no trae token propio, se correlaciona por
+// email + camp_id contra recuperacion_2026_tandas/alumnos. Reusa este mismo
+// archivo (por método, no por ruta) para no sumar una función serverless
+// más al límite de 12 del plan Hobby.
+async function procesarEventoBrevo(supabase, evt) {
+  const { event, email, camp_id } = evt || {}
+  if (!event || !email || camp_id === undefined) return
+
+  const { data: tanda } = await supabase
+    .from('recuperacion_2026_tandas').select('segmento')
+    .eq('brevo_campaign_id', parseInt(camp_id)).maybeSingle()
+  if (!tanda) return // no es una campaña de recuperación 2026 (o es de otro proyecto en la misma cuenta Brevo)
+
+  const { data: alumno } = await supabase
+    .from('recuperacion_2026_alumnos').select('id')
+    .eq('email', email).eq('segmento', tanda.segmento).maybeSingle()
+  if (!alumno) return
+
+  const campos = {}
+  if (event === 'opened') { campos.abierto = true; campos.abierto_at = new Date().toISOString() }
+  else if (event === 'click') { campos.click = true; campos.click_at = new Date().toISOString() }
+  else if (event === 'hardBounce') { campos.bounced = true; campos.bounced_hard = true }
+  else if (event === 'softBounce') { campos.bounced = true }
+  else if (event === 'spam') { campos.complaint = true }
+  else return
+
+  const { data: existente } = await supabase.from('recuperacion_2026_envios').select('id').eq('alumno_id', alumno.id).maybeSingle()
+  if (existente) await supabase.from('recuperacion_2026_envios').update(campos).eq('id', existente.id)
+  else await supabase.from('recuperacion_2026_envios').insert({ alumno_id: alumno.id, enviado_at: new Date().toISOString(), ...campos })
+}
+
 export default async function handler(req, res) {
-  const { t: token, e: evento } = req.query
   const supabase = createClient(process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
+
+  if (req.method === 'POST') {
+    const eventos = Array.isArray(req.body) ? req.body : [req.body]
+    for (const evt of eventos) {
+      try { await procesarEventoBrevo(supabase, evt) } catch (err) { console.error('reactivate-track (webhook Brevo):', err) }
+    }
+    return res.status(200).json({ ok: true })
+  }
+
+  const { t: token, e: evento } = req.query
 
   try {
     if (!token || (evento !== 'open' && evento !== 'click')) {

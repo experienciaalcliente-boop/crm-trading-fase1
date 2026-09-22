@@ -14,6 +14,7 @@ import { filtrarCupoDiario, CUPO_DIARIO_POR_ASESORA, fetchTodosPaginado } from '
 import { ejecutarAccionCoordinacion } from './_lib/coordinacionEjecutar.js'
 import { actualizarInformeMensual } from './_lib/coordinacionInforme.js'
 import { ejecutarCicloDiarioCoordinacion } from './_lib/coordinacionCronCore.js'
+import { listarWebhooks, crearWebhook } from './_lib/brevoClient.js'
 
 const CONCURRENCIA_ENVIO = 8
 
@@ -109,6 +110,25 @@ export default async function handler(req, res) {
       return res.status(200).json(resultado)
     } catch (err) {
       console.error('reactivate-activar (ciclo coordinacion test):', err)
+      return res.status(500).json({ error: err.message || 'Error interno' })
+    }
+  }
+
+  // Registra (una sola vez) el webhook de Brevo que alimenta el tracking
+  // real por persona en recuperacion_2026_envios. Idempotente: si ya existe
+  // uno apuntando a nuestra URL, no crea un segundo.
+  if (req.body?.campana === 'coordinacion-crear-webhook-brevo') {
+    try {
+      const baseUrl = process.env.PUBLIC_APP_URL
+      if (!baseUrl) return res.status(500).json({ error: 'Falta PUBLIC_APP_URL' })
+      const url = `${baseUrl}/api/reactivate-track`
+      const existentes = await listarWebhooks()
+      const yaExiste = existentes.find(w => w.url === url)
+      if (yaExiste) return res.status(200).json({ ok: true, yaExistia: true, id: yaExiste.id })
+      const creado = await crearWebhook({ url, events: ['opened', 'click', 'hardBounce', 'softBounce', 'spam'] })
+      return res.status(200).json({ ok: true, creado: true, id: creado.id })
+    } catch (err) {
+      console.error('reactivate-activar (crear webhook brevo):', err)
       return res.status(500).json({ error: err.message || 'Error interno' })
     }
   }

@@ -74,3 +74,18 @@ export async function crearCampana({ name, subject, previewText, sender, replyTo
     }),
   })
 }
+
+export async function listarWebhooks() {
+  const data = await brevoFetch('/webhooks?type=marketing')
+  return data.webhooks || []
+}
+
+// Suscribe nuestra URL de tracking a los eventos de campañas de Brevo, para
+// que el open/click/rebote real de cada contacto llegue por POST en vez de
+// tener que inventarlo a partir de las estadísticas agregadas del cron.
+export async function crearWebhook({ url, events }) {
+  return brevoFetch('/webhooks', {
+    method: 'POST',
+    body: JSON.stringify({ url, events, type: 'marketing' }),
+  })
+}
