@@ -261,9 +261,15 @@ export function useCoordinacion() {
     if (!programa) { toast.error('Escribe el programa de la cohorte (ej. Mar-26)'); return }
     setDefiniendoCohorte(true)
     try {
+      // estado_operativo='Activo' no alcanza para filtrar: se mantiene así
+      // incluso para alumnos ya Retirados (verificado con "ABRIL 2026" — los
+      // 37 retirados de ese programa también salían como "Activo" acá).
+      // estado != 'Retirado' es lo que realmente separa a quien sigue en
+      // seguimiento de quien ya se fue (y probablemente ya está en el plan
+      // de recuperación de retirados, no debería duplicarse en Impulso).
       const { data: elegibles, error: errAl } = await supabase
         .from('alumnos').select('id, nombre')
-        .eq('programa', programa).eq('estado_operativo', 'Activo')
+        .eq('programa', programa).eq('estado_operativo', 'Activo').neq('estado', 'Retirado')
       if (errAl) throw errAl
       if (!elegibles || elegibles.length === 0) { toast.error(`No hay alumnos activos en "${programa}"`); return }
 

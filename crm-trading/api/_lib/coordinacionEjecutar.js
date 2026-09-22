@@ -123,15 +123,6 @@ export async function ejecutarAccionCoordinacion({ supabase, accionId }) {
   } else if (accion.tipo === 'email_marketing.detener_segmento') {
     await supabase.from('recuperacion_2026_config').update({ campana_activa: false, updated_at: new Date().toISOString() }).eq('segmento', accion.payload.segmento)
     resultado = { ok: true, mensaje: `Segmento ${accion.payload.segmento} detenido.` }
-  } else if (accion.tipo === 'impulso.recordatorio_toque') {
-    // No hay envío automático que hacer acá — el mensaje lo manda la asesora
-    // por su WhatsApp personal (no hay email/teléfono de alumnos activos en
-    // la base). Aprobar solo confirma que el recordatorio quedó entregado a
-    // la asesora y marca el toque como hecho en impulso_secuencia.
-    await supabase.from('impulso_secuencia')
-      .update({ estado: 'Enviado', enviado_at: new Date().toISOString() })
-      .eq('id', accion.payload.impulso_secuencia_id)
-    resultado = { ok: true, mensaje: `Toque ${accion.payload.touch_numero}/5 confirmado para ${accion.payload.alumno_nombre}.` }
   } else {
     throw new Error(`Tipo de acción no reconocido: ${accion.tipo}`)
   }

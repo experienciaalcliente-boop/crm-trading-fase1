@@ -8,7 +8,6 @@ import { createClient } from '@supabase/supabase-js'
 import { ejecutarCicloDiario } from './_lib/reactivateCronCore.js'
 import { ejecutarCicloDiarioExalumnos } from './_lib/expCampanaCronCore.js'
 import { ejecutarCicloDiarioCoordinacion } from './_lib/coordinacionCronCore.js'
-import { ejecutarCicloDiarioImpulso } from './_lib/impulsoCronCore.js'
 import { actualizarInformeMensual } from './_lib/coordinacionInforme.js'
 
 export default async function handler(req, res) {
@@ -43,13 +42,6 @@ export default async function handler(req, res) {
   } catch (err) {
     console.error('reactivate-cron (Panel de Coordinación):', err)
     resultado.coordinacion = { ok: false, error: err.message || 'Error interno' }
-  }
-
-  try {
-    resultado.impulso = await ejecutarCicloDiarioImpulso({ supabase })
-  } catch (err) {
-    console.error('reactivate-cron (Impulso BURS):', err)
-    resultado.impulso = { ok: false, error: err.message || 'Error interno' }
   }
 
   try {
