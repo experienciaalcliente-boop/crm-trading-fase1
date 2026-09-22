@@ -57,6 +57,45 @@ async function crearYProgramarTanda({ supabase, segmento, tanda, config, asuntoO
   return { ok: true, listId, campaignId: nuevaCampana.id, contactos: candidatos.length, scheduledAtISO }
 }
 
+// Crea la PRIMERA campaña de un segmento nuevo (sin brevo_campana_referencia_id
+// todavía) directamente desde subject/previewText/htmlContent del payload, en
+// vez de clonar una referencia que aún no existe — mismo patrón que se usó a
+// mano para el Día 1 de A (esa campaña terminó siendo su propia referencia).
+// Deja la campaña creada como referencia del segmento para las tandas que
+// sigan (crearYProgramarTanda ya la clona normalmente desde ahí en adelante).
+async function crearCampanaSemilla({ supabase, segmento, subject, previewText, htmlContent }) {
+  const { data: candidatos, error } = await supabase
+    .from('recuperacion_2026_alumnos')
+    .select('id, email, nombre')
+    .eq('segmento', segmento).eq('tanda', 'Dia 1').eq('estado_campana', 'Pendiente').eq('excluido', false)
+  if (error) throw error
+  if (!candidatos || candidatos.length === 0) {
+    return { ok: false, mensaje: `No hay contactos pendientes en ${segmento}/Dia 1 (¿ya se procesó?)` }
+  }
+
+  const nombreLista = `SEG_${segmento}_DIA1`
+  const listId = await crearOEncontrarLista(nombreLista)
+  for (const c of candidatos) {
+    await agregarContactoALista({ email: c.email, nombre: c.nombre, listId })
+  }
+
+  const scheduledAtISO = proximaFechaEnvioISO()
+  const nuevaCampana = await crearCampana({
+    name: `SEG_${segmento}_Dia 1 — Correo 0 (${candidatos.length} contactos)`,
+    subject, previewText, sender: SENDER, replyTo: REPLY_TO, htmlContent, listId, scheduledAtISO,
+  })
+
+  await supabase.from('recuperacion_2026_tandas').insert({
+    segmento, tanda: 'Dia 1', brevo_list_id: listId, brevo_campaign_id: nuevaCampana.id,
+    estado: 'programada', fecha_programada: scheduledAtISO.slice(0, 10),
+  })
+  await supabase.from('recuperacion_2026_config')
+    .update({ brevo_campana_referencia_id: nuevaCampana.id, campana_activa: true, updated_at: new Date().toISOString() })
+    .eq('segmento', segmento)
+
+  return { ok: true, listId, campaignId: nuevaCampana.id, contactos: candidatos.length, scheduledAtISO }
+}
+
 export async function ejecutarAccionCoordinacion({ supabase, accionId }) {
   const { data: accion, error } = await supabase.from('panel_acciones_pendientes').select('*').eq('id', accionId).maybeSingle()
   if (error) throw error
@@ -74,6 +113,11 @@ export async function ejecutarAccionCoordinacion({ supabase, accionId }) {
   } else if (accion.tipo === 'email_marketing.iniciar_segmento') {
     resultado = await crearYProgramarTanda({ supabase, segmento: accion.payload.segmento, tanda: 'Dia 1', config })
     if (resultado.ok) await supabase.from('recuperacion_2026_config').update({ campana_activa: true, updated_at: new Date().toISOString() }).eq('segmento', accion.payload.segmento)
+  } else if (accion.tipo === 'email_marketing.crear_campana_semilla') {
+    resultado = await crearCampanaSemilla({
+      supabase, segmento: accion.payload.segmento,
+      subject: accion.payload.subject, previewText: accion.payload.preview_text, htmlContent: accion.payload.html_content,
+    })
   } else if (accion.tipo === 'email_marketing.detener_segmento') {
     await supabase.from('recuperacion_2026_config').update({ campana_activa: false, updated_at: new Date().toISOString() }).eq('segmento', accion.payload.segmento)
     resultado = { ok: true, mensaje: `Segmento ${accion.payload.segmento} detenido.` }
