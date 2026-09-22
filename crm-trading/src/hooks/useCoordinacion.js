@@ -26,7 +26,7 @@ async function fetchCoordinacion() {
     supabase.from('panel_ideas').select('*').order('created_at', { ascending: false }),
     supabase.from('panel_log').select('*').order('cuando', { ascending: false }).limit(8),
     supabase.from('panel_supuestos').select('*'),
-    supabase.from('recuperacion_2026_alumnos').select('segmento, deuda_usd, estado_campana, excluido'),
+    supabase.from('recuperacion_2026_alumnos').select('segmento, deuda_usd, estado_campana, estado_whatsapp, excluido'),
     supabase.from('panel_acciones_pendientes').select('*').order('created_at', { ascending: false }),
     supabase.from('campana_exalumnos_config').select('*').eq('id', 'default').maybeSingle(),
   ])
@@ -135,6 +135,15 @@ export function useCoordinacion() {
   const totalPersonas = segmentosResumen.reduce((s, r) => s + r.personas, 0)
   const totalDeuda = segmentosResumen.reduce((s, r) => s + r.deuda, 0)
 
+  // Avance REAL de recuperación (no proyección): cuántos de los contactables
+  // ya respondieron/matricularon por WhatsApp, medido de recuperacion_2026_alumnos
+  // directamente — esto sí cambia con cada acción real, a diferencia de las
+  // proyecciones de panel_supuestos que se calcularon una sola vez en Fase 1.
+  const contactablesReal = raw.segmentos.filter(s => !s.excluido)
+  const matriculadosReal = contactablesReal.filter(s => s.estado_whatsapp === 'Matriculado').length
+  const respondieronReal = contactablesReal.filter(s => ['Respondió', 'En conversación', 'Matriculado'].includes(s.estado_whatsapp)).length
+  const contactadosWAReal = contactablesReal.filter(s => s.estado_whatsapp && s.estado_whatsapp !== 'Sin contacto').length
+
   const levelUpActivos = raw.levelUp.filter(l => !l.excluido)
   const levelUpResumen = {
     total: levelUpActivos.length,
@@ -166,30 +175,35 @@ export function useCoordinacion() {
   const proyImpulso = num('proyeccion_impulso_90d_usd')
   const proyeccionTotal = proyRecuperacion + proyLevelUp + proyImpulso
 
+  // Cada goal mide número y barra con la MISMA fuente — antes algunos mostraban
+  // una proyección como valor pero la barra medía otra cosa (ej. Level Up
+  // mostraba USD proyectado pero la barra usaba interesados reales). Ahora el
+  // valor y la barra son siempre el dato real; la proyección de panel_supuestos
+  // (fija desde Fase 1, no se recalcula sola) queda solo como referencia en la nota.
   const goals = [
     {
-      label: 'Recuperación de cartera', value: `USD ${Math.round(proyRecuperacion).toLocaleString('en-US')}`,
-      target: `meta ${Math.round(metaRecuperacion).toLocaleString('en-US')}`,
-      pct: Math.min(100, metaRecuperacion > 0 ? (proyRecuperacion / metaRecuperacion) * 100 : 0),
-      nota: `Segmentos A–D con tasas conservadoras`,
+      label: 'Recuperación de cartera', value: `${matriculadosReal} matriculados`,
+      target: `de ${totalPersonas} contactables`,
+      pct: totalPersonas > 0 ? (matriculadosReal / totalPersonas) * 100 : 0,
+      nota: `${respondieronReal} respondieron · ${contactadosWAReal} contactados por WA · proyección inicial USD ${Math.round(proyRecuperacion).toLocaleString('en-US')} (fija, no en vivo)`,
     },
     {
       label: 'Retención por cohorte', value: `${Math.round(num('retencion_actual') * 100)}%`,
       target: `meta ${Math.round(num('meta_retencion') * 100)}%`,
       pct: num('retencion_actual') * 100,
-      nota: 'Punto de ruptura: mes 2 (42% de los retiros)',
+      nota: 'Dato manual del informe (Ene 78 → Feb 76 → Mar 74) — no se recalcula solo, hay que actualizarlo a mano',
     },
     {
-      label: 'Level Up · aula y seminarios', value: `USD ${Math.round(proyLevelUp).toLocaleString('en-US')}`,
-      target: `${levelUpResumen.total.toLocaleString('en-US')} contactos (Plan Exalumnos)`,
+      label: 'Level Up · aula y seminarios', value: `${levelUpResumen.interesados} interesados`,
+      target: `de ${levelUpResumen.total.toLocaleString('en-US')} contactos`,
       pct: levelUpResumen.total > 0 ? (levelUpResumen.interesados / levelUpResumen.total) * 100 : 0,
-      nota: `${levelUpResumen.activa ? 'Campaña activa' : 'Campaña pausada'} · ${levelUpResumen.cierreEnviado.toLocaleString('en-US')} cierres enviados · ${levelUpResumen.interesados} interesados`,
+      nota: `${levelUpResumen.activa ? 'Campaña activa' : 'Campaña pausada'} · ${levelUpResumen.cierreEnviado.toLocaleString('en-US')} cierres enviados · proyección inicial USD ${Math.round(proyLevelUp).toLocaleString('en-US')} (fija)`,
     },
     {
-      label: 'Impulso BURS al egreso', value: `${impulsoResumen.ventasCount} ventas · USD ${Math.round(impulsoResumen.ventasUSD).toLocaleString('en-US')}`,
-      target: `meta USD ${Math.round(proyImpulso).toLocaleString('en-US')} · ticket real USD ${Math.round(num('ticket_promedio_impulso_usd'))}`,
+      label: 'Impulso BURS al egreso', value: `${impulsoResumen.ventasCount} ventas`,
+      target: `USD ${Math.round(impulsoResumen.ventasUSD).toLocaleString('en-US')} reales`,
       pct: proyImpulso > 0 ? Math.min(100, (impulsoResumen.ventasUSD / proyImpulso) * 100) : 0,
-      nota: `${impulsoResumen.pendientes} toques pendientes (${impulsoResumen.vencidos} vencidos) · solo exalumnos al egresar (R3)`,
+      nota: `${impulsoResumen.pendientes} toques pendientes (${impulsoResumen.vencidos} vencidos) · meta proyectada USD ${Math.round(proyImpulso).toLocaleString('en-US')} (fija)`,
     },
     {
       label: 'Avance del plan 90 días', value: `${hechas}/${tareasConEstado.length}`,

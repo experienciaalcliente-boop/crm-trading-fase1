@@ -134,10 +134,10 @@ export default function PanelCoordinacionPage() {
 
       {/* KPIs — detalle secundario, ya no es lo primero que se lee */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(190px,1fr))', gap: 12, marginBottom: 24 }}>
-        <KPICard label="Retención cohorte" value={fmtPct(c.retencionActual * 100)} sub="Meta 85% · tendencia a la baja (78 → 76 → 74)" accent="#f07070" color="#f07070" />
-        <KPICard label="Cartera de retirados" value={fmtUSD(c.totalDeuda)} sub={`${c.totalPersonas} contactables · ${c.excluidosSensibilidad} excl. sensibilidad · ${c.sinDatoCuota} sin dato`} accent="var(--accent)" />
-        <KPICard label="Proyección 90 días" value={fmtUSD(c.proyeccionTotal)} sub="USD incrementales · 3 frentes" accent="#2dd4a0" color="#2dd4a0" />
-        <KPICard label="Riesgo mes 2" value={fmtUSD(c.riesgoMes2)} sub="USD por trimestre · punto de ruptura" accent="#f5b93a" color="#f5b93a" />
+        <KPICard label="Retención cohorte (dato manual)" value={fmtPct(c.retencionActual * 100)} sub="Meta 85% · último dato cargado a mano, no se recalcula solo" accent="#f07070" color="#f07070" />
+        <KPICard label="Cartera de retirados" value={fmtUSD(c.totalDeuda)} sub={`${c.totalPersonas} contactables (dato real) · ${c.excluidosSensibilidad} excl. sensibilidad · ${c.sinDatoCuota} sin dato`} accent="var(--accent)" />
+        <KPICard label="Proyección 90 días (estimado)" value={fmtUSD(c.proyeccionTotal)} sub="Fija desde Fase 1 · avance real está en Objetivos y medición" accent="#2dd4a0" color="#2dd4a0" />
+        <KPICard label="Riesgo mes 2 (estimado)" value={fmtUSD(c.riesgoMes2)} sub="USD por trimestre · punto de ruptura, dato fijo" accent="#f5b93a" color="#f5b93a" />
         <KPICard label="Plan 90 días" value={`${c.hechas}/${c.totalTareas}`} sub={`${c.vencidas} vencidas · ${c.urgentes} urgentes`} accent="var(--accent)" />
       </div>
 
