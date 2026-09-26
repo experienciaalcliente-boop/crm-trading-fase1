@@ -47,8 +47,16 @@ export default async function handler(req, res) {
   try {
     resultado.informeMensual = await actualizarInformeMensual({ supabase })
   } catch (err) {
+    // Un fallo acá se lo comía la consola: el cron devolvía 200 y el mes se
+    // perdía sin que nadie se enterara (pasó el 2026-09-25 con un 503 de
+    // Gemini). Se deja rastro en panel_log para que quede visible en el panel
+    // y se pueda recuperar con campana: 'coordinacion-informe-mes'.
     console.error('reactivate-cron (Informe mensual):', err)
     resultado.informeMensual = { ok: false, error: err.message || 'Error interno' }
+    await supabase.from('panel_log').insert({
+      que: `El informe mensual NO se pudo generar: ${err.message || 'error interno'}. Hay que recuperarlo a mano (campana: 'coordinacion-informe-mes') — el cron no reintenta hasta el último viernes del mes que viene.`,
+      donde: 'Fase 5 — Organizador', agente: 'organizador',
+    }).then(() => {}, () => {})
   }
 
   return res.status(200).json(resultado)

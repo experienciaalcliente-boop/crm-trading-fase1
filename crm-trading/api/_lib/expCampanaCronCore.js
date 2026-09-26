@@ -5,7 +5,7 @@
 // sin perder ningún correo de la secuencia. El cierre real de ciclo
 // (antes 31/07) queda en día 14 desde la activación.
 import { totalCorreos, diaPara, reenvioDePara, CORREO_NUMERO_ACLARACION } from './expCampanaEmails.js'
-import { enviarCorreoLead, enviarCorreoCierreLead, enviarCorreoAclaracionLead, transporterGmailPool, procesarEnLotes } from './expCampanaSend.js'
+import { enviarCorreoLead, enviarCorreoCierreLead, enviarCorreoAclaracionLead, transporterBrevo, remitenteBrevo, procesarEnLotes } from './expCampanaSend.js'
 
 const DIAS_GRACIA_SIN_RESPUESTA = 3 // margen tras el último correo (C8) antes de cerrar el ciclo
 const CONCURRENCIA_ENVIO = 20
@@ -175,9 +175,9 @@ export async function ejecutarCicloDiarioExalumnos({ supabase, baseUrl }) {
     porEnviar.push({ lead, correoNumero: siguienteCorreo, fechaInicio })
   }
 
-  const transporter = transporterGmailPool()
+  const transporter = transporterBrevo()
   const { enviados, errores } = await procesarEnLotes(porEnviar, CONCURRENCIA_ENVIO, ({ lead, correoNumero, fechaInicio }) =>
-    enviarCorreoLead({ supabase, transporter, baseUrl, gmailUser: process.env.GMAIL_USER, lead, correoNumero, fechaInicio })
+    enviarCorreoLead({ supabase, transporter, baseUrl, remitente: remitenteBrevo(), lead, correoNumero, fechaInicio })
   )
   transporter.close()
 
@@ -260,9 +260,9 @@ export async function ejecutarEnvioCierre({ supabase, baseUrl }) {
   })
   const enOrden = intercalarPorAsesora(elegiblesHoy)
 
-  const transporter = transporterGmailPool()
+  const transporter = transporterBrevo()
   const { enviados, errores } = await procesarEnLotes(enOrden, CONCURRENCIA_ENVIO, (lead) =>
-    enviarCorreoCierreLead({ supabase, transporter, baseUrl, gmailUser: process.env.GMAIL_USER, lead })
+    enviarCorreoCierreLead({ supabase, transporter, baseUrl, remitente: remitenteBrevo(), lead })
   )
   transporter.close()
 
@@ -297,9 +297,9 @@ export async function ejecutarEnvioAclaracion({ supabase }) {
   const idsNotificados = new Set(yaNotificados.map(e => e.alumno_id))
   const pendientes = candidatos.filter(l => !idsNotificados.has(l.id))
 
-  const transporter = transporterGmailPool()
+  const transporter = transporterBrevo()
   const { enviados, errores } = await procesarEnLotes(pendientes, CONCURRENCIA_ENVIO, (lead) =>
-    enviarCorreoAclaracionLead({ supabase, transporter, gmailUser: process.env.GMAIL_USER, lead })
+    enviarCorreoAclaracionLead({ supabase, transporter, remitente: remitenteBrevo(), lead })
   )
   transporter.close()
 

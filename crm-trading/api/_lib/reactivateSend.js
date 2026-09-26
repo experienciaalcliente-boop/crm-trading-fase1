@@ -3,10 +3,10 @@
 // inmediata del Correo 0 (api/reactivate-activar.js), para no duplicar la
 // lógica de armar el correo + registrar el envío + actualizar el estado.
 import { randomUUID } from 'node:crypto'
-import nodemailer from 'nodemailer'
+import { enviarCorreoTransaccional } from './brevoClient.js'
 import { construirCorreo, construirCorreoCierre, conPixelDeApertura, CORREO_NUMERO_CIERRE } from './reactivateEmails.js'
 
-export async function enviarCorreoAlumno({ supabase, transporter, baseUrl, gmailUser, alumno, correoNumero, testimonioUrls, fechaInicio }) {
+export async function enviarCorreoAlumno({ supabase, transporter, baseUrl, remitente, alumno, correoNumero, testimonioUrls, fechaInicio }) {
   const token = randomUUID()
   const waUrl = `${baseUrl}/api/reactivate-track?t=${token}&e=click`
   const pixelUrl = `${baseUrl}/api/reactivate-track?t=${token}&e=open`
@@ -15,7 +15,7 @@ export async function enviarCorreoAlumno({ supabase, transporter, baseUrl, gmail
   const htmlConPixel = conPixelDeApertura(html, pixelUrl)
 
   await transporter.sendMail({
-    from: `"BURS Advisory" <${gmailUser}>`,
+    from: `"BURS Advisory" <${remitente}>`,
     to: alumno.email,
     subject: asunto,
     html: htmlConPixel,
@@ -39,7 +39,7 @@ export async function enviarCorreoAlumno({ supabase, transporter, baseUrl, gmail
 // Correo de cierre — envío único y manual, a los 399 alumnos de Reactivate
 // Burs, todos con saldo pendiente real. No forma parte de la secuencia
 // Correo 0-6.
-export async function enviarCorreoCierreAlumno({ supabase, transporter, baseUrl, gmailUser, alumno }) {
+export async function enviarCorreoCierreAlumno({ supabase, transporter, baseUrl, remitente, alumno }) {
   const token = randomUUID()
   const waUrl = `${baseUrl}/api/reactivate-track?t=${token}&e=click`
   const pixelUrl = `${baseUrl}/api/reactivate-track?t=${token}&e=open`
@@ -48,7 +48,7 @@ export async function enviarCorreoCierreAlumno({ supabase, transporter, baseUrl,
   const htmlConPixel = conPixelDeApertura(html, pixelUrl)
 
   await transporter.sendMail({
-    from: `"BURS Advisory" <${gmailUser}>`,
+    from: `"BURS Advisory" <${remitente}>`,
     to: alumno.email,
     subject: asunto,
     html: htmlConPixel,
@@ -69,31 +69,46 @@ export async function enviarCorreoCierreAlumno({ supabase, transporter, baseUrl,
 
 export const dormir = (ms) => new Promise((r) => setTimeout(r, ms))
 
-// Transporter simple, sin pool de conexiones — mismo patrón que
-// reactivate-test-send.js (probado: responde al instante). Se usa para el
-// envío de cierre porque transporterGmailPool() se quedó colgado sin
-// completar ni un solo correo justo después de que Gmail liberara la cuenta
-// de un bloqueo por volumen (probablemente sigue penalizando conexiones
-// persistentes por un rato, aunque ya acepte conexiones sueltas).
-export function transporterGmailSimple() {
-  return nodemailer.createTransport({
-    service: 'gmail',
-    auth: { user: process.env.GMAIL_USER, pass: process.env.GMAIL_APP_PASSWORD },
-  })
+// Adaptador de envío sobre la API transaccional de Brevo. Expone la misma
+// forma que tenía el transporter de nodemailer (`sendMail` + `close`) a
+// propósito: así el resto de la secuencia —plantillas, anclaje por alumno,
+// tokens de tracking, estados en Supabase— quedó intacta al migrar desde el
+// SMTP de Gmail, que se retiró el 2026-09-26 (la app password caducó y
+// reponerla habría duplicado campañas sobre 386 alumnos que ya están en la
+// recuperación 2026 de Brevo).
+//
+// `close()` es un no-op: sobre HTTP no hay conexión persistente que cerrar,
+// pero se mantiene para no tener que tocar los call sites que ya lo llaman.
+const REMITENTE_NOMBRE = 'BURS Advisory'
+
+// Acepta tanto `"Nombre" <correo@dominio>` como un correo suelto, porque los
+// call sites arman el `from` en el primer formato.
+function parsearRemitente(from) {
+  const conNombre = /^\s*"?([^"<]*)"?\s*<([^>]+)>\s*$/.exec(from || '')
+  if (conNombre) return { name: (conNombre[1] || REMITENTE_NOMBRE).trim(), email: conNombre[2].trim() }
+  return { name: REMITENTE_NOMBRE, email: (from || '').trim() }
 }
 
-export function transporterGmailPool() {
-  // pool:true reutiliza conexiones SMTP en vez de abrir una nueva por
-  // correo — con cientos de alumnos el costo de conexión+TLS por envío
-  // vuelve el proceso demasiado lento para el límite de tiempo de una
-  // función serverless si se hiciera una a la vez.
-  return nodemailer.createTransport({
-    service: 'gmail',
-    pool: true,
-    maxConnections: 8,
-    maxMessages: Infinity,
-    auth: { user: process.env.GMAIL_USER, pass: process.env.GMAIL_APP_PASSWORD },
-  })
+export function transporterBrevo() {
+  return {
+    async sendMail({ from, to, subject, html }) {
+      return enviarCorreoTransaccional({
+        sender: parsearRemitente(from),
+        to,
+        subject,
+        htmlContent: html,
+      })
+    },
+    close() {},
+  }
+}
+
+// Remitente verificado en Brevo. Es el mismo subdominio que ya usan las
+// campañas de recuperación 2026 — mantener los envíos fuera del dominio
+// principal protege la reputación del correo con el que se atiende a los
+// alumnos activos.
+export function remitenteBrevo() {
+  return process.env.BREVO_SENDER_EMAIL || 'noreply@comunidad.bursadvisory.com'
 }
 
 // Procesa `items` en lotes concurrentes (en vez de uno a uno con espera),

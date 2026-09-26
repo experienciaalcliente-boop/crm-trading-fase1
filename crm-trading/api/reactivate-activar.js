@@ -8,7 +8,7 @@
 // Exalumnos, según body.campana) para no sumar una función serverless más
 // — el plan Hobby de Vercel limita a 12 y ya estaba en el tope.
 import { createClient } from '@supabase/supabase-js'
-import { enviarCorreoAlumno, transporterGmailPool, procesarEnLotes } from './_lib/reactivateSend.js'
+import { enviarCorreoAlumno, transporterBrevo, remitenteBrevo, procesarEnLotes } from './_lib/reactivateSend.js'
 import { enviarCorreoLead } from './_lib/expCampanaSend.js'
 import { filtrarCupoDiario, CUPO_DIARIO_POR_ASESORA, fetchTodosPaginado } from './_lib/expCampanaCronCore.js'
 import { ejecutarAccionCoordinacion } from './_lib/coordinacionEjecutar.js'
@@ -30,12 +30,12 @@ async function activarReactivateBurs(supabase, baseUrl) {
     .is('fecha_inicio_campana', null)
   if (error) throw error
 
-  const transporter = transporterGmailPool()
+  const transporter = transporterBrevo()
   const hoyStr = new Date().toISOString().slice(0, 10)
   const testimonioUrls = { 1: config?.testimonio_url_1, 2: config?.testimonio_url_2 }
 
   const { enviados, errores } = await procesarEnLotes(candidatos, CONCURRENCIA_ENVIO, (alumno) =>
-    enviarCorreoAlumno({ supabase, transporter, baseUrl, gmailUser: process.env.GMAIL_USER, alumno, correoNumero: 0, fechaInicio: hoyStr, testimonioUrls })
+    enviarCorreoAlumno({ supabase, transporter, baseUrl, remitente: remitenteBrevo(), alumno, correoNumero: 0, fechaInicio: hoyStr, testimonioUrls })
   )
   transporter.close()
   return { ok: true, activada: true, total: candidatos.length, enviados, errores }
@@ -63,10 +63,10 @@ async function activarExalumnos(supabase, baseUrl) {
   // arranca automáticamente en los días siguientes vía el cron compartido.
   const { candidatosHoy, pendientesRestantes } = filtrarCupoDiario(candidatos, hoyStr)
 
-  const transporter = transporterGmailPool()
+  const transporter = transporterBrevo()
 
   const { enviados, errores } = await procesarEnLotes(candidatosHoy, CONCURRENCIA_ENVIO, (lead) =>
-    enviarCorreoLead({ supabase, transporter, baseUrl, gmailUser: process.env.GMAIL_USER, lead, correoNumero: 0, fechaInicio: hoyStr })
+    enviarCorreoLead({ supabase, transporter, baseUrl, remitente: remitenteBrevo(), lead, correoNumero: 0, fechaInicio: hoyStr })
   )
   transporter.close()
   return {
@@ -146,10 +146,23 @@ export default async function handler(req, res) {
     }
   }
 
+  // Recupera el informe de un mes que el cron perdió por un fallo — se
+  // escribe con el encabezado real y marca el mes como hecho, a diferencia
+  // de 'coordinacion-informe-test' que solo verifica credenciales.
+  if (req.body?.campana === 'coordinacion-informe-mes') {
+    try {
+      const resultado = await actualizarInformeMensual({ supabase, comoMesReal: true })
+      return res.status(200).json(resultado)
+    } catch (err) {
+      console.error('reactivate-activar (informe mes):', err)
+      return res.status(500).json({ error: err.message || 'Error interno' })
+    }
+  }
+
   const baseUrl = process.env.PUBLIC_APP_URL
   if (!baseUrl) return res.status(500).json({ error: 'Falta configurar PUBLIC_APP_URL en las variables de entorno' })
-  if (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD) {
-    return res.status(500).json({ error: 'GMAIL_USER / GMAIL_APP_PASSWORD no están configurados en el servidor' })
+  if (!process.env.BREVO_API_KEY) {
+    return res.status(500).json({ error: 'BREVO_API_KEY no está configurada en el servidor' })
   }
 
   const campana = req.body?.campana === 'exalumnos' ? 'exalumnos' : 'reactivate'

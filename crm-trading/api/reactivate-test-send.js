@@ -2,7 +2,7 @@
 // datos ni cuenta como envío real. Atiende ambas campañas (body.campana)
 // con el mismo archivo, ver nota en api/reactivate-activar.js sobre el
 // límite de funciones del plan Hobby.
-import nodemailer from 'nodemailer'
+import { transporterBrevo, remitenteBrevo } from './_lib/reactivateSend.js'
 import { randomUUID } from 'node:crypto'
 import { construirCorreo as construirCorreoReactivate, conPixelDeApertura } from './_lib/reactivateEmails.js'
 import { construirCorreo as construirCorreoExalumnos, construirCorreoCierre, variantePara, variantePararCierre } from './_lib/expCampanaEmails.js'
@@ -18,8 +18,8 @@ export default async function handler(req, res) {
   const { destinatario, campana, correoNumero, asesoraId } = req.body || {}
   if (!destinatario) return res.status(400).json({ error: 'Falta el destinatario' })
 
-  if (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD) {
-    return res.status(500).json({ error: 'GMAIL_USER / GMAIL_APP_PASSWORD no están configurados en el servidor' })
+  if (!process.env.BREVO_API_KEY) {
+    return res.status(500).json({ error: 'BREVO_API_KEY no está configurada en el servidor' })
   }
   if (!process.env.PUBLIC_APP_URL) {
     return res.status(500).json({ error: 'PUBLIC_APP_URL no está configurado en el servidor' })
@@ -50,13 +50,10 @@ export default async function handler(req, res) {
         : construirCorreoReactivate(1, { nombre: 'Alumno de Prueba', waUrl, testimonioUrls: {}, baseUrl })
     const htmlConPixel = conPixelDeApertura(html, pixelUrl)
 
-    const transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: { user: process.env.GMAIL_USER, pass: process.env.GMAIL_APP_PASSWORD },
-    })
+    const transporter = transporterBrevo()
 
     await transporter.sendMail({
-      from: `"BURS Advisory" <${process.env.GMAIL_USER}>`,
+      from: `"BURS Advisory" <${remitenteBrevo()}>`,
       to: destinatario,
       subject: `[PRUEBA] ${asunto}`,
       html: htmlConPixel,

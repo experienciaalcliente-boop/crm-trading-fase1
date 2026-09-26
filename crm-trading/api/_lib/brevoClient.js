@@ -96,3 +96,25 @@ export async function crearWebhook({ url, events }) {
     body: JSON.stringify({ url, events, type: 'marketing' }),
   })
 }
+
+// Envío transaccional (uno a uno), el reemplazo del SMTP de Gmail para las
+// secuencias drip de Plan Exalumnos / Level Up y Reactivate Burs. A
+// diferencia de crearCampana() —que manda un lote a una lista en una fecha—
+// acá cada alumno recibe su propio correo, con su token de tracking y su
+// enlace de asesora, que es lo que esas secuencias necesitan.
+//
+// El tracking sigue siendo el propio (api/reactivate-track.js): el píxel y
+// el redirect viven dentro del HTML, así que funcionan igual sin importar
+// quién entregue el correo. No se usan los webhooks de Brevo acá.
+export async function enviarCorreoTransaccional({ sender, to, subject, htmlContent, replyTo }) {
+  return brevoFetch('/smtp/email', {
+    method: 'POST',
+    body: JSON.stringify({
+      sender,
+      to: [{ email: to }],
+      subject,
+      htmlContent,
+      ...(replyTo ? { replyTo } : {}),
+    }),
+  })
+}

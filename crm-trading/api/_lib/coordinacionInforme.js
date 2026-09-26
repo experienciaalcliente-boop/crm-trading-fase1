@@ -23,13 +23,17 @@ async function obtenerSupuesto(supabase, clave, def = 0) {
   return data ? parseFloat(data.valor) : def
 }
 
-export async function actualizarInformeMensual({ supabase, forzar = false }) {
+export async function actualizarInformeMensual({ supabase, forzar = false, comoMesReal = false }) {
   if (!process.env.GEMINI_API_KEY || !process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL) {
     return { ok: true, saltado: 'GEMINI_API_KEY / credenciales de Google no configuradas todavía' }
   }
 
   const hoy = new Date()
-  if (!forzar && !esUltimoViernesDelMes(hoy)) return { ok: true, saltado: 'No es el último viernes del mes' }
+  // comoMesReal: salta solo el candado de fecha, pero conserva el encabezado
+  // real y el dedup — sirve para recuperar un mes que el cron perdió por un
+  // fallo (ej. el 503 de Gemini del 2026-09-25), sin que quede marcado como
+  // "prueba manual" ni se pueda escribir dos veces el mismo mes.
+  if (!forzar && !comoMesReal && !esUltimoViernesDelMes(hoy)) return { ok: true, saltado: 'No es el último viernes del mes' }
 
   const mesActual = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}`
   if (!forzar) {

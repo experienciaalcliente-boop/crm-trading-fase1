@@ -5,9 +5,9 @@
 import { randomUUID } from 'node:crypto'
 import { construirCorreo, construirCorreoCierre, construirCorreoAclaracion, conPixelDeApertura, variantePara, CORREO_NUMERO_CIERRE, CORREO_NUMERO_ACLARACION } from './expCampanaEmails.js'
 import { waLinkPara } from './expCampanaAsesoras.js'
-export { transporterGmailPool, procesarEnLotes, dormir } from './reactivateSend.js'
+export { transporterBrevo, remitenteBrevo, procesarEnLotes, dormir } from './reactivateSend.js'
 
-export async function enviarCorreoLead({ supabase, transporter, baseUrl, gmailUser, lead, correoNumero, fechaInicio }) {
+export async function enviarCorreoLead({ supabase, transporter, baseUrl, remitente, lead, correoNumero, fechaInicio }) {
   const token = randomUUID()
   // El tracking de ambas campañas vive en un solo endpoint (api/reactivate-track.js)
   // — ver esa nota sobre el límite de funciones serverless del plan Hobby.
@@ -21,7 +21,7 @@ export async function enviarCorreoLead({ supabase, transporter, baseUrl, gmailUs
   const htmlConPixel = conPixelDeApertura(html, pixelUrl)
 
   await transporter.sendMail({
-    from: `"BURS Advisory" <${gmailUser}>`,
+    from: `"BURS Advisory" <${remitente}>`,
     to: lead.email,
     subject: asunto,
     html: htmlConPixel,
@@ -49,7 +49,7 @@ export async function enviarCorreoLead({ supabase, transporter, baseUrl, gmailUs
 
 // Correo de cierre — envío único y manual (no forma parte de la secuencia
 // C1-C8), ver api/_lib/expCampanaCronCore.js#ejecutarEnvioCierre.
-export async function enviarCorreoCierreLead({ supabase, transporter, baseUrl, gmailUser, lead }) {
+export async function enviarCorreoCierreLead({ supabase, transporter, baseUrl, remitente, lead }) {
   const token = randomUUID()
   const waUrl = `${baseUrl}/api/reactivate-track?t=${token}&e=click`
   const pixelUrl = `${baseUrl}/api/reactivate-track?t=${token}&e=open`
@@ -61,7 +61,7 @@ export async function enviarCorreoCierreLead({ supabase, transporter, baseUrl, g
   const htmlConPixel = conPixelDeApertura(html, pixelUrl)
 
   await transporter.sendMail({
-    from: `"BURS Advisory" <${gmailUser}>`,
+    from: `"BURS Advisory" <${remitente}>`,
     to: lead.email,
     subject: asunto,
     html: htmlConPixel,
@@ -84,11 +84,11 @@ export async function enviarCorreoCierreLead({ supabase, transporter, baseUrl, g
 // tiene saldo pendiente real. No toca estado_campana (sigue siendo
 // "Cierre enviado", es históricamente correcto); solo deja registro del
 // envío para no reenviarla dos veces.
-export async function enviarCorreoAclaracionLead({ supabase, transporter, gmailUser, lead }) {
+export async function enviarCorreoAclaracionLead({ supabase, transporter, remitente, lead }) {
   const { asunto, html } = construirCorreoAclaracion({ nombre: lead.nombre })
 
   await transporter.sendMail({
-    from: `"BURS Advisory" <${gmailUser}>`,
+    from: `"BURS Advisory" <${remitente}>`,
     to: lead.email,
     subject: asunto,
     html,

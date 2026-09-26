@@ -4,7 +4,7 @@
 // (api/reactivate-forzar-envio.js), para poder ponerse al día sin esperar
 // a la próxima corrida automática si una tanda se cortó a medias.
 import { totalCorreos } from './reactivateEmails.js'
-import { enviarCorreoAlumno, enviarCorreoCierreAlumno, transporterGmailPool, transporterGmailSimple, procesarEnLotes } from './reactivateSend.js'
+import { enviarCorreoAlumno, enviarCorreoCierreAlumno, transporterBrevo, remitenteBrevo, procesarEnLotes } from './reactivateSend.js'
 
 // Días transcurridos desde fecha_inicio_campana (día 1 = 0 transcurridos) en
 // los que corresponde enviar el correo N según la sección 5 del plan.
@@ -62,10 +62,10 @@ export async function ejecutarCicloDiario({ supabase, baseUrl }) {
     porEnviar.push({ alumno, correoNumero: siguienteCorreo, fechaInicio })
   }
 
-  const transporter = transporterGmailPool()
+  const transporter = transporterBrevo()
   const testimonioUrls = { 1: config.testimonio_url_1, 2: config.testimonio_url_2 }
   const { enviados, errores } = await procesarEnLotes(porEnviar, CONCURRENCIA_ENVIO, ({ alumno, correoNumero, fechaInicio }) =>
-    enviarCorreoAlumno({ supabase, transporter, baseUrl, gmailUser: process.env.GMAIL_USER, alumno, correoNumero, fechaInicio, testimonioUrls })
+    enviarCorreoAlumno({ supabase, transporter, baseUrl, remitente: remitenteBrevo(), alumno, correoNumero, fechaInicio, testimonioUrls })
   )
   transporter.close()
 
@@ -88,13 +88,13 @@ export async function ejecutarEnvioCierre({ supabase, baseUrl }) {
 
   const pendientes = candidatos.filter(a => !ESTADOS_YA_RESUELTOS_CIERRE.includes(a.estado_campana))
 
-  // transporterGmailSimple (sin pool) en vez de transporterGmailPool: el
-  // pool se quedó colgado sin completar ni un envío justo después del
-  // bloqueo de hoy por volumen. Concurrencia baja para no forzar de golpe
-  // muchas conexiones sueltas simultáneas tampoco.
-  const transporter = transporterGmailSimple()
+  // Concurrencia baja (3) a propósito: el envío de cierre va a cientos de
+  // alumnos y sobre la API de Brevo conviene no disparar demasiadas
+  // peticiones en paralelo. La distinción pool/simple que había acá dejó de
+  // aplicar al salir del SMTP de Gmail — ya no hay conexión persistente.
+  const transporter = transporterBrevo()
   const { enviados, errores } = await procesarEnLotes(pendientes, 3, (alumno) =>
-    enviarCorreoCierreAlumno({ supabase, transporter, baseUrl, gmailUser: process.env.GMAIL_USER, alumno })
+    enviarCorreoCierreAlumno({ supabase, transporter, baseUrl, remitente: remitenteBrevo(), alumno })
   )
   transporter.close()
 
